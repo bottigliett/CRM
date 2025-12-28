@@ -1,8 +1,8 @@
-// Prisma Schema - supports both SQLite (dev) and MySQL (production)
-// Provider is configured in prisma.config.ts via DATABASE_URL
+// Prisma Schema for MySQL production database
 
 generator client {
   provider = "prisma-client-js"
+  engineType = "binary"
 }
 
 datasource db {
