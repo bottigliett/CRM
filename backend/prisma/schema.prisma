@@ -62,13 +62,6 @@ model User {
   notificationPreference NotificationPreference?
   createdInvoices        Invoice[]           @relation("InvoiceCreator") // Invoices created by this user
 
-  // Client Portal Relations
-  quotesCreated          Quote[]             @relation("QuoteCreator") // Quotes created by this user
-  clientAccessCreated    ClientAccess[]      @relation("ClientAccessCreator") // Client access created by this user
-  ticketsAssigned        Ticket[]            @relation("TicketAssigned") // Tickets assigned to this user
-  ticketMessages         TicketMessage[]     // Messages from admin in tickets
-  filesUploaded          ClientFile[]        // Files uploaded by this user for clients
-
   @@map("users")
 }
 
@@ -76,7 +69,6 @@ enum UserRole {
   SUPER_ADMIN
   ADMIN
   USER
-  CLIENT // Nuovo ruolo per accessi clienti
 }
 
 model Session {
@@ -201,11 +193,6 @@ model Contact {
   tasks             Task[]               @relation("TaskContact") // Tasks linked to this contact (client)
   transactions      Transaction[]        // Transactions linked to this contact
   invoices          Invoice[]            // Invoices for this contact
-
-  // Client Portal Relations
-  clientAccess      ClientAccess[]       // Client access accounts for this contact
-  quotes            Quote[]              // Quotes for this contact
-  tickets           Ticket[]             // Support tickets from this contact
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
