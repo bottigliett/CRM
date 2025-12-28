@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>🧪 Test Form Agenda</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        .test-section { border: 1px solid #ddd; margin: 20px 0; padding: 15px; border-radius: 5px; }
+        .test-button { padding: 8px 16px; margin: 5px; border: none; border-radius: 3px; cursor: pointer; }
+        .test-button.primary { background: #007cba; color: white; }
+        .test-button.secondary { background: #666; color: white; }
+        .test-log { background: #f5f5f5; padding: 10px; border-radius: 3px; margin: 10px 0; font-family: monospace; white-space: pre-wrap; max-height: 300px; overflow-y: auto; }
+        .form-group { margin: 10px 0; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
+        .form-group input, .form-group select { padding: 5px; width: 200px; }
+        .checkbox-group { display: flex; align-items: center; }
+        .checkbox-group input { width: auto; margin-right: 10px; }
+        .status { padding: 5px; border-radius: 3px; margin: 5px 0; }
+        .status.success { background: #d4edda; color: #155724; }
+        .status.error { background: #f8d7da; color: #721c24; }
+        .status.warning { background: #fff3cd; color: #856404; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Test Form Agenda - Debug Cliente e Tutto il Giorno</h1>
+    
+    <div class="test-section">
+        <h2>📋 Stato Attuale Form</h2>
+        <button class="test-button primary" onclick="checkCurrentFormState()">🔍 Controlla Stato Form</button>
+        <div id="formStateLog" class="test-log"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>🏢 Test Cliente</h2>
+        
+        <div class="form-group">
+            <label>Client ID da testare:</label>
+            <input type="number" id="testClientId" value="1" placeholder="Es: 1">
+        </div>
+        
+        <div class="form-group">
+            <label>Nome Cliente (opzionale):</label>
+            <input type="text" id="testClientName" placeholder="Es: Nome Cliente">
+        </div>
+        
+        <button class="test-button primary" onclick="testSetClient()">🏢 Imposta Cliente</button>
+        <button class="test-button secondary" onclick="testClearClient()">🗑️ Pulisci Cliente</button>
+        
+        <div id="clientTestLog" class="test-log"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>📅 Test Tutto il Giorno</h2>
+        
+        <div class="checkbox-group">
+            <input type="checkbox" id="testAllDay">
+            <label>Tutto il giorno</label>
+        </div>
+        
+        <button class="test-button primary" onclick="testSetAllDay(true)">✅ Imposta Tutto il Giorno</button>
+        <button class="test-button primary" onclick="testSetAllDay(false)">❌ Rimuovi Tutto il Giorno</button>
+        
+        <div id="allDayTestLog" class="test-log"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>📤 Test Invio Dati</h2>
+        
+        <button class="test-button primary" onclick="testFormData()">📋 Simula FormData</button>
+        <button class="test-button primary" onclick="testSubmitSimulation()">📤 Simula Submit</button>
+        
+        <div id="submitTestLog" class="test-log"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>🔧 Test API Diretta</h2>
+        
+        <div class="form-group">
+            <label>Event ID da caricare:</label>
+            <input type="number" id="testEventId" value="83" placeholder="Es: 83">
+        </div>
+        
+        <button class="test-button primary" onclick="testLoadEvent()">📥 Carica Evento</button>
+        <button class="test-button primary" onclick="testSaveEvent()">💾 Test Salva Evento</button>
+        
+        <div id="apiTestLog" class="test-log"></div>
+    </div>
+    
+    <script>
+        let testLog = '';
+        
+        function log(message, data = null) {
+            const timestamp = new Date().toLocaleTimeString();
+            testLog += `[${timestamp}] ${message}\n`;
+            if (data) {
+                testLog += `   Data: ${JSON.stringify(data, null, 2)}\n`;
+            }
+            console.log(`🧪 [Test] ${message}`, data || '');
+        }
+        
+        function updateLog(elementId, message) {
+            const element = document.getElementById(elementId);
+            if (element) {
+                element.textContent = testLog;
+                element.scrollTop = element.scrollHeight;
+            }
+            testLog = ''; // Reset per il prossimo test
+        }
+        
+        function checkCurrentFormState() {
+            log('=== CONTROLLO STATO FORM ===');
+            
+            // Cerca modal agenda
+            const modal = document.getElementById('eventModal') || document.querySelector('.modal');
+            log('Modal trovato:', modal ? 'SI' : 'NO');
+            
+            // Controlla campi cliente
+            const clientId = document.getElementById('eventClient_id');
+            const clientSearch = document.getElementById('eventClient_search');
+            const clientSelected = document.getElementById('eventClient_selected');
+            
+            log('Campi Cliente:');
+            log('  - eventClient_id:', clientId ? clientId.value : 'CAMPO NON TROVATO');
+            log('  - eventClient_search:', clientSearch ? clientSearch.value : 'CAMPO NON TROVATO');
+            log('  - eventClient_selected visibile:', clientSelected ? (clientSelected.style.display !== 'none') : 'CAMPO NON TROVATO');
+            
+            // Controlla checkbox tutto il giorno
+            const allDay = document.getElementById('allDayEvent');
+            log('Checkbox Tutto il Giorno:');
+            log('  - Trovato:', allDay ? 'SI' : 'NO');
+            log('  - Checked:', allDay ? allDay.checked : 'N/A');
+            
+            // Controlla ContactSelector
+            log('ContactSelector disponibile:', typeof ContactSelector !== 'undefined' ? 'SI' : 'NO');
+            log('AgendaClientAllDayFix disponibile:', typeof AgendaClientAllDayFix !== 'undefined' ? 'SI' : 'NO');
+            
+            updateLog('formStateLog');
+        }
+        
+        function testSetClient() {
+            const clientId = document.getElementById('testClientId').value;
+            const clientName = document.getElementById('testClientName').value;
+            
+            log('=== TEST IMPOSTA CLIENTE ===');
+            log(`Impostando cliente ID: ${clientId}, Nome: ${clientName || 'Non specificato'}`);
+            
+            if (typeof AgendaClientAllDayFix !== 'undefined') {
+                try {
+                    AgendaClientAllDayFix.forceSetClient(clientId, clientName);
+                    log('✅ AgendaClientAllDayFix.forceSetClient chiamato');
+                } catch (error) {
+                    log('❌ Errore AgendaClientAllDayFix:', error.message);
+                }
+            } else {
+                log('⚠️ AgendaClientAllDayFix non disponibile');
+            }
+            
+            // Verifica risultato
+            setTimeout(() => {
+                const hiddenField = document.getElementById('eventClient_id');
+                const searchField = document.getElementById('eventClient_search');
+                
+                log('Verifica risultato:');
+                log('  - Hidden field value:', hiddenField ? hiddenField.value : 'CAMPO NON TROVATO');
+                log('  - Search field value:', searchField ? searchField.value : 'CAMPO NON TROVATO');
+                
+                updateLog('clientTestLog');
+            }, 500);
+        }
+        
+        function testClearClient() {
+            log('=== TEST PULISCI CLIENTE ===');
+            
+            if (typeof AgendaClientAllDayFix !== 'undefined') {
+                try {
+                    AgendaClientAllDayFix.forceClearClient();
+                    log('✅ AgendaClientAllDayFix.forceClearClient chiamato');
+                } catch (error) {
+                    log('❌ Errore AgendaClientAllDayFix:', error.message);
+                }
+            } else {
+                log('⚠️ AgendaClientAllDayFix non disponibile');
+            }
+            
+            // Verifica risultato
+            setTimeout(() => {
+                const hiddenField = document.getElementById('eventClient_id');
+                const searchField = document.getElementById('eventClient_search');
+                
+                log('Verifica risultado:');
+                log('  - Hidden field value:', hiddenField ? hiddenField.value : 'CAMPO NON TROVATO');
+                log('  - Search field value:', searchField ? searchField.value : 'CAMPO NON TROVATO');
+                
+                updateLog('clientTestLog');
+            }, 200);
+        }
+        
+        function testSetAllDay(isAllDay) {
+            log('=== TEST IMPOSTA TUTTO IL GIORNO ===');
+            log(`Impostando tutto il giorno: ${isAllDay}`);
+            
+            if (typeof AgendaClientAllDayFix !== 'undefined') {
+                try {
+                    AgendaClientAllDayFix.forceSetAllDay(isAllDay);
+                    log('✅ AgendaClientAllDayFix.forceSetAllDay chiamato');
+                } catch (error) {
+                    log('❌ Errore AgendaClientAllDayFix:', error.message);
+                }
+            } else {
+                log('⚠️ AgendaClientAllDayFix non disponibile');
+            }
+            
+            // Test anche checkbox locale
+            const localCheckbox = document.getElementById('testAllDay');
+            if (localCheckbox) {
+                localCheckbox.checked = isAllDay;
+                log('✅ Checkbox locale aggiornato');
+            }
+            
+            // Verifica risultato
+            setTimeout(() => {
+                const checkbox = document.getElementById('allDayEvent');
+                const localCheckbox = document.getElementById('testAllDay');
+                
+                log('Verifica risultato:');
+                log('  - Checkbox agenda (allDayEvent):', checkbox ? checkbox.checked : 'CAMPO NON TROVATO');
+                log('  - Checkbox locale (testAllDay):', localCheckbox ? localCheckbox.checked : 'CAMPO NON TROVATO');
+                
+                updateLog('allDayTestLog');
+            }, 300);
+        }
+        
+        function testFormData() {
+            log('=== TEST FORM DATA ===');
+            
+            const form = document.getElementById('eventForm');
+            if (!form) {
+                log('❌ Form agenda non trovato');
+                updateLog('submitTestLog');
+                return;
+            }
+            
+            const formData = new FormData(form);
+            
+            log('Dati nel form:');
+            for (let [key, value] of formData.entries()) {
+                log(`  ${key}: "${value}"`);
+            }
+            
+            // Controlli specifici
+            const clientId = formData.get('client_id');
+            const allDay = formData.get('all_day');
+            const responsables = formData.getAll('responsables[]');
+            
+            log('Controlli critici:');
+            log(`  - client_id: "${clientId}" (vuoto: ${!clientId})`);
+            log(`  - all_day: "${allDay}" (presente: ${allDay !== null})`);
+            log(`  - responsables: [${responsables.join(', ')}] (count: ${responsables.length})`);
+            
+            updateLog('submitTestLog');
+        }
+        
+        function testSubmitSimulation() {
+            log('=== TEST SIMULAZIONE SUBMIT ===');
+            
+            const form = document.getElementById('eventForm');
+            if (!form) {
+                log('❌ Form agenda non trovato');
+                updateLog('submitTestLog');
+                return;
+            }
+            
+            // Simula FormData come farebbe il vero submit
+            const formData = new FormData(form);
+            
+            // Aggiungi dati di test se mancano
+            if (!formData.get('title')) {
+                formData.set('title', 'Test Event ' + new Date().getTime());
+            }
+            if (!formData.get('start_date')) {
+                formData.set('start_date', new Date().toISOString().split('T')[0]);
+            }
+            if (!formData.get('category_id')) {
+                formData.set('category_id', '1');
+            }
+            
+            log('Dati che verrebbero inviati:');
+            for (let [key, value] of formData.entries()) {
+                log(`  ${key}: "${value}"`);
+            }
+            
+            updateLog('submitTestLog');
+        }
+        
+        async function testLoadEvent() {
+            const eventId = document.getElementById('testEventId').value;
+            
+            log('=== TEST CARICA EVENTO ===');
+            log(`Caricando evento ID: ${eventId}`);
+            
+            try {
+                const response = await fetch(`/modules/agenda/ajax/get_event.php?event_id=${eventId}`);
+                const data = await response.json();
+                
+                log(`Response status: ${response.status}`);
+                log('Response data:', data);
+                
+                if (data.success && data.event) {
+                    log('✅ Evento caricato con successo');
+                    log('Dati evento:');
+                    log(`  - Title: ${data.event.title}`);
+                    log(`  - Client ID: ${data.event.client_id}`);
+                    log(`  - All Day: ${data.event.is_all_day}`);
+                    log(`  - Start: ${data.event.start_date} ${data.event.start_time}`);
+                } else {
+                    log('❌ Errore caricamento evento:', data.error);
+                }
+                
+            } catch (error) {
+                log('❌ Errore rete:', error.message);
+            }
+            
+            updateLog('apiTestLog');
+        }
+        
+        async function testSaveEvent() {
+            log('=== TEST SALVA EVENTO ===');
+            
+            const formData = new FormData();
+            formData.set('title', 'Test Event ' + new Date().getTime());
+            formData.set('start_date', new Date().toISOString().split('T')[0]);
+            formData.set('start_time', '10:00');
+            formData.set('end_date', new Date().toISOString().split('T')[0]);
+            formData.set('end_time', '11:00');
+            formData.set('category_id', '1');
+            formData.set('client_id', document.getElementById('testClientId').value);
+            formData.set('all_day', document.getElementById('testAllDay').checked ? '1' : '');
+            formData.set('responsables[]', '1'); // Assumendo user ID 1
+            
+            log('Dati di test che verranno inviati:');
+            for (let [key, value] of formData.entries()) {
+                log(`  ${key}: "${value}"`);
+            }
+            
+            try {
+                const response = await fetch('/modules/agenda/ajax/save_event.php', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                log(`Response status: ${response.status}`);
+                log('Response data:', data);
+                
+                if (data.success) {
+                    log('✅ Evento salvato con successo');
+                    log(`Event ID: ${data.event_id}`);
+                } else {
+                    log('❌ Errore salvataggio evento:', data.error);
+                }
+                
+            } catch (error) {
+                log('❌ Errore rete:', error.message);
+            }
+            
+            updateLog('apiTestLog');
+        }
+        
+        // Auto-check iniziale
+        setTimeout(() => {
+            checkCurrentFormState();
+        }, 1000);
+    </script>
+</body>
+</html>

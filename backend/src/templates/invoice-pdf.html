@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fattura {{invoiceNumber}}</title>
+
+    <!--ADOBE FONTS-->
+    <link rel="stylesheet" href="https://use.typekit.net/ekm2csm.css">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            color-adjust: exact !important;
+        }
+
+        body {
+            font-family: "Elza", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+            color: #000;
+            background-color: #ffffff;
+            margin: 0;
+            padding: 0;
+        }
+
+        .page-wrapper {
+            width: 210mm;
+            height: 297mm;
+            margin: 0 auto;
+            background: white;
+        }
+
+        .invoice-container {
+            background-color: white;
+            padding: 2em;
+            width: 100%;
+            position: relative;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 2em;
+        }
+
+        .logo {
+            width: 250px;
+            font-size: 36px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .company-info {
+            display: flex;
+            gap: 2em;
+        }
+
+        .company-column {
+            font-size: 12px;
+            text-transform: uppercase;
+            line-height: 1.4;
+        }
+
+        .meta-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-bottom: -1em;
+        }
+
+        .fattura-title {
+            font-size: 48px;
+            text-transform: uppercase;
+            font-weight: 500;
+            margin: 0;
+        }
+
+        .invoice-number {
+            font-size: 48px;
+            text-transform: uppercase;
+            font-weight: 500;
+            margin: 0;
+        }
+
+        .invoice-date {
+            font-size: 48px;
+            text-transform: uppercase;
+            font-weight: 500;
+            margin-bottom: 0.5em;
+            text-align-last: justify;
+        }
+
+        .client-section {
+            margin-bottom: 2em;
+        }
+
+        .client-info {
+            display: flex;
+            gap: 2em;
+            font-size: 14px;
+            font-weight: 400;
+            text-transform: uppercase;
+            line-height: 1.4;
+        }
+
+        h3{
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .client-column {
+            flex: 1;
+        }
+
+        .object-section {
+            margin-bottom: 0.75em;
+        }
+
+        .invoice-object {
+            font-size: 16px;
+            font-weight: 500;
+            text-transform: uppercase;
+            margin-bottom: 1em;
+        }
+
+        .divider {
+            border-top: 1px solid #000;
+            border-bottom: 1px solid #000;
+            margin: 0.5em 0;
+        }
+
+        .services-table {
+            width: 100%;
+            margin-bottom: 1em;
+        }
+
+        .services-header {
+            display: flex;
+            align-items: center;
+            font-size: 14px;
+            font-weight: 400;
+            text-transform: uppercase;
+            padding: 0.5em 0;
+        }
+
+        .service-description {
+            flex: 6;
+        }
+
+        .service-quantity {
+            flex: 1;
+            text-align: center;
+        }
+
+        .service-price {
+            flex: 2;
+            text-align: right;
+        }
+
+        .service-vat {
+            flex: 1.5;
+            text-align: right;
+        }
+
+        .totals {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            width: 100%;
+            margin-top: 20px;
+        }
+
+        .totals-labels {
+            text-align: left;
+            font-size: 24px;
+            font-weight: 500;
+            text-transform: uppercase;
+        }
+
+        .totals-values {
+            text-align: right;
+            font-size: 24px;
+            font-weight: 500;
+            text-transform: uppercase;
+        }
+
+        .total-invoice{
+            padding-top: 1.5em;
+        }
+
+        .notes-section {
+            margin-bottom: 3em;
+        }
+
+        .notes-section p {
+            font-size: 11px;
+            font-weight: 400;
+            text-transform: uppercase;
+            line-height: 1.4;
+        }
+
+        .payment-section {
+            margin-bottom: 3em;
+        }
+
+        .payment-title {
+            font-size: 36px;
+            font-weight: 500;
+            text-transform: uppercase;
+            margin-bottom: 0.15em;
+        }
+
+        .payment-label {
+            font-size: 14px;
+            font-weight: 500;
+            text-transform: uppercase;
+            margin-bottom: 0.1em;
+            width: 120px;
+            display: inline-block;
+        }
+
+        .payment-value {
+            font-size: 14px;
+            font-weight: 400;
+            text-transform: uppercase;
+        }
+
+        h4{
+            font-size: 12px;
+            font-weight: 500;
+            text-transform: uppercase;
+        }
+
+        .footer-disclaimer {
+            position: relative;
+            bottom: -15em;
+        }
+
+        .footer-disclaimer p {
+            font-size: 11px;
+            font-weight: 400;
+            text-transform: uppercase;
+        }
+    </style>
+</head>
+<body>
+    <div class="page-wrapper">
+        <div class="invoice-container">
+            <!--HEADER-->
+            <div class="header">
+                <div class="logo-section">
+                   <div class="logo">MISMO</div>
+                </div>
+                <div class="company-info">
+                    <div class="company-column">
+                        <p>MISMO | STUDIO GRAFICO & CREATIVO<br>DI STEFANO COSTATO E DAVIDE MARANGONI</p>
+                        <p>VIA DELL'ARTIGIANATO 23<br>37135 VERONA - IT</p>
+                    </div>
+                    <div class="company-column">
+                        <p>HI@MISMO.STUDIO<br>(+39) 375 620 9885</p>
+                        <p>PI (S) IT04904900232<br>PI (D) IT05052740239</p>
+                    </div>
+                </div>
+            </div>
+
+            <!--META INFO-->
+            <div class="meta-info">
+                <h1 class="fattura-title">Fattura</h1>
+                <h2 class="invoice-number">{{invoiceNumber}}</h2>
+            </div>
+            <h2 class="invoice-date">{{invoiceDate}}</h2>
+
+            <!--DESTINATARIO-->
+            <div class="client-section">
+                <div class="client-info">
+                    <div class="client-column">
+                        <h3>{{clientName}}</h3>
+                    </div>
+                    {{#if clientAddress}}
+                    <div class="client-column">
+                        <h3>{{clientAddress}}</h3>
+                    </div>
+                    {{/if}}
+                    {{#if clientPIva}}
+                    <div class="client-column">
+                        <h3>P.IVA {{clientPIva}}</h3>
+                    </div>
+                    {{/if}}
+                </div>
+            </div>
+
+            <!--OGGETTO-->
+            <div class="object-section">
+                <div class="invoice-object">Oggetto: {{subject}}</div>
+                <div class="divider"></div>
+            </div>
+
+            <!--SERVIZI-->
+            <div class="services-table">
+                <div class="services-header">
+                    <div class="service-description">{{description}}</div>
+                    <div class="service-quantity">{{quantity}}</div>
+                    <div class="service-price">{{unitPrice}} EUR</div>
+                    <div class="service-vat">IVA {{vatPercentage}}%</div>
+                </div>
+                <div class="divider"></div>
+            </div>
+
+            <!--TOTALI-->
+            <div class="totals">
+                <div class="totals-labels">
+                    <div>Subtotale</div>
+                    <div>IVA</div>
+                    <div class="total-invoice">Totale da pagare</div>
+                </div>
+                <div class="totals-values">
+                    <div>{{subtotal}} EUR</div>
+                    <div>{{vatAmount}} EUR</div>
+                    <div class="total-invoice">{{total}} EUR</div>
+                </div>
+            </div>
+
+            <!--INFORMAZIONI PAGAMENTO-->
+            <div class="divider"></div>
+            <div class="payment-section">
+                <h3 class="payment-title">Informazioni sul pagamento</h3>
+                <div class="payment-info">
+                    <span class="payment-label">[Scadenze]</span><span class="payment-value date">{{dueDate}}:</span>&nbsp;<span class="payment-value subtotal">{{total}} EUR</span><br>
+                    <span class="payment-label">[Banca]</span><span class="payment-value">REVOLUT BANK UAB</span><br>
+                    <span class="payment-label">[IBAN]</span><span class="payment-value">LT95 3250 0482 6617 5203</span><br>
+                    <span class="payment-label">[Beneficiario]</span><span class="payment-value">STEFANO COSTATO E DAVIDE MARANGONI</span><br>
+                    <span class="payment-label">[BIC/Swift]</span><span class="payment-value">REVOLT21</span><br>
+                    <span class="payment-label">[TAX ID]</span><span class="payment-value">JI3TXCE</span>
+                </div>
+            </div>
+
+            <!--DISCLAIMER-->
+            <div class="footer-disclaimer">
+                <h4>Note importanti</h4>
+                {{#if fiscalNotes}}
+                <p>{{fiscalNotes}}</p>
+                {{else}}
+                <p>QUESTO DOCUMENTO NON COSTITUISCE FATTURA A FINI FISCALI, CHE SARÀ EMESSA AL MOMENTO DEL PAGAMENTO.</p>
+                {{#if isVatZero}}
+                <p>IVA 0% - OPERAZIONE NON SOGGETTA A IVA AI SENSI DELL'ART. 1, COMMI 54-89, LEGGE N. 190/2014 E SUCC. MODIFICHE/INTEGRAZIONI.</p>
+                {{/if}}
+                {{/if}}
+            </div>
+        </div>
+    </div>
+</body>
+</html>

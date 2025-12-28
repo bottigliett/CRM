@@ -1,0 +1,3 @@
+# Protezione cartella
+Order Allow,Deny
+Deny from all

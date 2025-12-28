@@ -1,0 +1,4 @@
+<?php
+// Directory protected
+exit;
+?>

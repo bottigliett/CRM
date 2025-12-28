@@ -1,0 +1,8 @@
+# Protegge i PDF delle fatture
+Order Deny,Allow
+Deny from all
+# Allow access only through PHP scripts
+<Files ~ '\.pdf$'>
+    Order Allow,Deny
+    Deny from all
+</Files>

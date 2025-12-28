@@ -1,0 +1,244 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// ===================================
+// AUTHENTICATION & USERS
+// ===================================
+
+model User {
+  id        Int      @id @default(autoincrement())
+  username  String   @unique @db.VarChar(50)
+  email     String   @unique @db.VarChar(100)
+  password  String   @db.VarChar(255)
+  firstName String?  @map("first_name") @db.VarChar(50)
+  lastName  String?  @map("last_name") @db.VarChar(50)
+  role      UserRole @default(ADMIN)
+  isActive  Boolean  @default(true) @map("is_active")
+
+  profileImage String?   @map("profile_image") @db.VarChar(255)
+  lastLogin    DateTime? @map("last_login")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  sessions    Session[]
+  permissions UserPermission[]
+  accessLogs  AccessLog[]
+
+  @@map("users")
+}
+
+enum UserRole {
+  SUPER_ADMIN
+  ADMIN
+  USER
+}
+
+model Session {
+  id           Int      @id @default(autoincrement())
+  userId       Int      @map("user_id")
+  token        String   @unique @db.VarChar(500)
+  expiresAt    DateTime @map("expires_at")
+  ipAddress    String?  @map("ip_address") @db.VarChar(45)
+  userAgent    String?  @map("user_agent") @db.Text
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+  @@map("user_sessions")
+}
+
+model UserPermission {
+  id         Int     @id @default(autoincrement())
+  userId     Int     @map("user_id")
+  moduleName String  @map("module_name") @db.VarChar(50)
+  canRead    Boolean @default(false) @map("can_read")
+  canWrite   Boolean @default(false) @map("can_write")
+  canDelete  Boolean @default(false) @map("can_delete")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, moduleName])
+  @@index([userId])
+  @@map("user_permissions")
+}
+
+model AccessLog {
+  id        Int      @id @default(autoincrement())
+  userId    Int?     @map("user_id")
+  username  String?  @db.VarChar(50)
+  ipAddress String?  @map("ip_address") @db.VarChar(45)
+  userAgent String?  @map("user_agent") @db.Text
+  action    String   @db.VarChar(100)
+  status    String   @db.VarChar(20)
+  details   String?  @db.Text
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("access_logs")
+}
+
+// ===================================
+// CONTACTS (Base per Lead e Clienti)
+// ===================================
+
+model Contact {
+  id          Int         @id @default(autoincrement())
+  name        String      @db.VarChar(255)
+  type        ContactType @default(LEAD)
+  email       String?     @db.VarChar(100)
+  phone       String?     @db.VarChar(50)
+  address     String?     @db.Text
+  partitaIva  String?     @map("partita_iva") @db.VarChar(20)
+  codiceFiscale String?   @map("codice_fiscale") @db.VarChar(20)
+  website     String?     @db.VarChar(255)
+  notes       String?     @db.Text
+  tags        String?     @db.Text // JSON array di tags
+  priority    Int?        @default(0)
+  status      String?     @db.VarChar(50)
+
+  // Lead Board fields
+  funnelStage   String?  @map("funnel_stage") @db.VarChar(50)
+  funnelValue   Decimal? @map("funnel_value") @db.Decimal(10, 2)
+  leadSource    String?  @map("lead_source") @db.VarChar(100)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([type])
+  @@index([funnelStage])
+  @@map("contacts")
+}
+
+enum ContactType {
+  LEAD
+  PROSPECT
+  CLIENT
+  COMPANY
+  PERSON
+}
+
+// ===================================
+// TASKS
+// ===================================
+
+model Task {
+  id          Int      @id @default(autoincrement())
+  title       String   @db.VarChar(255)
+  description String?  @db.Text
+  clientId    Int?     @map("client_id")
+  categoryId  Int?     @map("category_id")
+  priority    TaskPriority @default(P2)
+  status      TaskStatus   @default(TODO)
+  deadline    DateTime?
+  estimatedHours Int?   @map("estimated_hours")
+  completedAt DateTime? @map("completed_at")
+  visibleToClient Boolean @default(false) @map("visible_to_client")
+  createdBy   Int      @map("created_by")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([status])
+  @@index([priority])
+  @@index([deadline])
+  @@index([clientId])
+  @@map("tasks")
+}
+
+enum TaskPriority {
+  P1
+  P2
+  P3
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  PENDING
+  COMPLETED
+}
+
+// ===================================
+// AGENDA / EVENTS
+// ===================================
+
+model Event {
+  id          Int      @id @default(autoincrement())
+  title       String   @db.VarChar(255)
+  description String?  @db.Text
+  startDateTime DateTime @map("start_datetime")
+  endDateTime   DateTime @map("end_datetime")
+  categoryId    Int?     @map("category_id")
+  clientId      Int?     @map("client_id")
+  location      String?  @db.VarChar(255)
+  notes         String?  @db.Text
+  status        String?  @db.VarChar(50)
+  visibleToClient Boolean @default(false) @map("visible_to_client")
+  createdBy     Int      @map("created_by")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@index([startDateTime])
+  @@index([clientId])
+  @@map("events")
+}
+
+// ===================================
+// FINANCE
+// ===================================
+
+model Transaction {
+  id            Int      @id @default(autoincrement())
+  type          TransactionType
+  amount        Decimal  @db.Decimal(10, 2)
+  date          DateTime
+  categoryId    Int?     @map("category_id")
+  paymentMethodId Int?   @map("payment_method_id")
+  description   String?  @db.Text
+  invoiceId     Int?     @map("invoice_id")
+  createdBy     Int      @map("created_by")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@index([type])
+  @@index([date])
+  @@map("transactions")
+}
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+}
+
+model TransactionCategory {
+  id        Int    @id @default(autoincrement())
+  name      String @db.VarChar(100)
+  type      TransactionType
+  icon      String? @db.VarChar(50)
+  color     String? @db.VarChar(20)
+
+  @@map("transaction_categories")
+}
+
+model PaymentMethod {
+  id   Int    @id @default(autoincrement())
+  name String @db.VarChar(100)
+
+  @@map("payment_methods")
+}

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="14.998" height="20" viewBox="0 0 14.998 20">
+  <g id="receipt" transform="translate(-3)">
+    <path id="Tracciato_3" data-name="Tracciato 3" d="M14.5,7h-5a1.5,1.5,0,0,0,0,3h5a1.5,1.5,0,0,0,0-3Z" transform="translate(-1.501 -1.334)" fill="#333"/>
+    <path id="Tracciato_4" data-name="Tracciato 4" d="M12.5,12h-3a1.5,1.5,0,0,0,0,3h3a1.5,1.5,0,1,0,0-3Z" transform="translate(-1.251 -2.287)" fill="#333"/>
+    <path id="Tracciato_5" data-name="Tracciato 5" d="M13.415,0H7.583A4.588,4.588,0,0,0,3,4.583V18.747a1.25,1.25,0,0,0,1.809,1.118L7.544,18.5,9.877,19.83a1.25,1.25,0,0,0,1.24,0L13.449,18.5l2.735,1.368A1.25,1.25,0,0,0,18,18.747V4.583A4.588,4.588,0,0,0,13.415,0ZM15.5,16.725l-1.525-.762A1.25,1.25,0,0,0,12.794,16l-2.3,1.312L8.2,16a1.25,1.25,0,0,0-1.179-.032l-1.525.76V4.583A2.083,2.083,0,0,1,7.583,2.5h5.832A2.083,2.083,0,0,1,15.5,4.583Z" transform="translate(0)" fill="#333"/>
+  </g>
+</svg>
