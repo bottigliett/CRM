@@ -74,7 +74,7 @@ enum UserRole {
 model Session {
   id        Int      @id @default(autoincrement())
   userId    Int      @map("user_id")
-  token     String   @unique
+  token     String   @unique @db.Text
   expiresAt DateTime @map("expires_at")
   ipAddress String?  @map("ip_address")
   userAgent String?  @map("user_agent")
@@ -84,7 +84,6 @@ model Session {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
-  @@index([token])
   @@map("user_sessions")
 }
 
