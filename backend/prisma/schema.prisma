@@ -1,12 +1,12 @@
-// Schema SQLite per sviluppo locale
-// Per produzione useremo schema.mysql.prisma
+// Prisma Schema - supports both SQLite (dev) and MySQL (production)
+// Provider is configured in prisma.config.ts via DATABASE_URL
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "mysql"
 }
 
 // ===================================
