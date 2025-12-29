@@ -49,6 +49,22 @@ export function DataTableRowActions<TData>({
     }
   }
 
+  const handleDelete = async () => {
+    if (!confirm('Sei sicuro di voler eliminare questo task?')) return
+
+    try {
+      const response = await tasksAPI.deleteTask(task.id)
+      if (response.success) {
+        toast.success('Task eliminato con successo')
+        // Trigger a refresh by calling onTaskUpdated with null or refetch
+        window.location.reload() // Simple solution for now
+      }
+    } catch (error) {
+      console.error('Failed to delete task:', error)
+      toast.error('Errore nell\'eliminazione del task')
+    }
+  }
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -60,7 +76,7 @@ export function DataTableRowActions<TData>({
           <span className="sr-only">Apri menu</span>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-[160px]">
+      <DropdownMenuContent align="end" className="w-[200px]">
         <DropdownMenuItem
           className="cursor-pointer"
           onClick={() => onViewTask?.(task)}
@@ -89,7 +105,7 @@ export function DataTableRowActions<TData>({
           </DropdownMenuSubContent>
         </DropdownMenuSub>
         <DropdownMenuSeparator />
-        <DropdownMenuItem className="cursor-pointer">
+        <DropdownMenuItem className="cursor-pointer" onClick={handleDelete}>
           Elimina
           <DropdownMenuShortcut>⌘⌫</DropdownMenuShortcut>
         </DropdownMenuItem>
