@@ -53,6 +53,15 @@ export const taskSchema = z.object({
     firstName: z.string(),
     lastName: z.string(),
   }).optional().nullable(),
+  teamMembers: z.array(z.object({
+    userId: z.number(),
+    user: z.object({
+      id: z.number(),
+      firstName: z.string(),
+      lastName: z.string(),
+      email: z.string().optional().nullable(),
+    }),
+  })).optional().nullable(),
 })
 
 export type Task = z.infer<typeof taskSchema>

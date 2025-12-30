@@ -99,21 +99,39 @@ export function TaskDetailModal({ task, open, onOpenChange, onEdit, onDelete }: 
             </div>
           )}
 
-          {/* Assigned User */}
-          {task.assignedUser && (
-            <div className="flex items-center gap-3">
-              <User className="w-4 h-4 text-muted-foreground shrink-0" />
-              <div className="flex items-center gap-2">
-                <Avatar className="w-6 h-6">
-                  <AvatarFallback className="text-[10px]">
-                    {task.assignedUser.firstName?.[0]}{task.assignedUser.lastName?.[0]}
-                  </AvatarFallback>
-                </Avatar>
-                <div>
-                  <p className="text-sm font-medium">
-                    {task.assignedUser.firstName} {task.assignedUser.lastName}
-                  </p>
-                  <p className="text-xs text-muted-foreground">Responsabile</p>
+          {/* Assigned Users */}
+          {(task.assignedUser || (task.teamMembers && task.teamMembers.length > 0)) && (
+            <div className="flex items-start gap-3">
+              <User className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <p className="text-xs text-muted-foreground mb-2">
+                  Responsabil{((task.teamMembers?.length || 0) > 0) ? 'i' : 'e'}
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {task.assignedUser && (
+                    <div className="flex items-center gap-2 px-3 py-1.5 bg-muted rounded-md">
+                      <Avatar className="w-5 h-5">
+                        <AvatarFallback className="text-[9px]">
+                          {task.assignedUser.firstName?.[0]}{task.assignedUser.lastName?.[0]}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="text-sm font-medium">
+                        {task.assignedUser.firstName} {task.assignedUser.lastName}
+                      </span>
+                    </div>
+                  )}
+                  {task.teamMembers?.map(member => (
+                    <div key={member.userId} className="flex items-center gap-2 px-3 py-1.5 bg-muted rounded-md">
+                      <Avatar className="w-5 h-5">
+                        <AvatarFallback className="text-[9px]">
+                          {member.user.firstName?.[0]}{member.user.lastName?.[0]}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="text-sm">
+                        {member.user.firstName} {member.user.lastName}
+                      </span>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
