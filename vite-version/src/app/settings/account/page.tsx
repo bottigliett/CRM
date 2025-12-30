@@ -24,6 +24,8 @@ import { SettingsNav } from "@/components/settings-nav"
 import axios from "axios"
 import { api } from "@/lib/api"
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
+
 const accountFormSchema = z.object({
   firstName: z.string().min(1, "Nome obbligatorio"),
   lastName: z.string().min(1, "Cognome obbligatorio"),
@@ -146,7 +148,7 @@ export default function AccountSettings() {
     try {
       const token = localStorage.getItem('auth_token')
       const response = await axios.post(
-        'http://localhost:3001/api/auth/email-verification/send',
+        `${API_BASE_URL}/auth/email-verification/send`,
         { email: emailToVerify },
         {
           headers: {
@@ -184,7 +186,7 @@ export default function AccountSettings() {
     try {
       const token = localStorage.getItem('auth_token')
       const response = await axios.post(
-        'http://localhost:3001/api/auth/email-verification/verify',
+        `${API_BASE_URL}/auth/email-verification/verify`,
         {
           email: verificationEmail,
           code: verificationCode
