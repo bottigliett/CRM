@@ -94,3 +94,4 @@ storybook-static
 
 # Deployment scripts (contain server-specific paths)
 *.env.production
+MIO-CRM-ATTUALE/
