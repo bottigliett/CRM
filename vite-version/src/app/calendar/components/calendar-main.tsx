@@ -589,13 +589,13 @@ export function CalendarMain({ selectedDate, onDateSelect, onMenuClick, events, 
                     {showCurrentTime && (
                       <>
                         <div
-                          className="absolute left-0 right-0 h-[2px] bg-red-500 z-[100]"
+                          className="absolute left-0 right-0 h-[2px] bg-red-500 z-10"
                           style={{ top: `${currentTimeOffset}px` }}
                         >
                           <div className="absolute left-0 top-1/2 w-3 h-3 bg-red-500 rounded-full -translate-y-1/2 -translate-x-1/2" />
                         </div>
                         <div
-                          className="absolute -left-16 text-[11px] font-semibold text-red-500 z-[100]"
+                          className="absolute -left-16 text-[11px] font-semibold text-red-500 z-10"
                           style={{ top: `${currentTimeOffset - 6}px` }}
                         >
                           {format(currentTime, 'HH:mm')}
@@ -734,13 +734,13 @@ export function CalendarMain({ selectedDate, onDateSelect, onMenuClick, events, 
                 {isToday(currentDate) && (
                   <>
                     <div
-                      className="absolute left-0 right-0 h-[2px] bg-red-500 z-[100]"
+                      className="absolute left-0 right-0 h-[2px] bg-red-500 z-10"
                       style={{ top: `${(currentTime.getHours() * 60 + currentTime.getMinutes()) * pixelsPerMinute}px` }}
                     >
                       <div className="absolute left-0 top-1/2 w-3 h-3 bg-red-500 rounded-full -translate-y-1/2 -translate-x-1/2" />
                     </div>
                     <div
-                      className="absolute -left-16 text-[11px] font-semibold text-red-500 z-[100]"
+                      className="absolute -left-16 text-[11px] font-semibold text-red-500 z-10"
                       style={{ top: `${(currentTime.getHours() * 60 + currentTime.getMinutes()) * pixelsPerMinute - 6}px` }}
                     >
                       {format(currentTime, 'HH:mm')}
