@@ -119,6 +119,15 @@ export default function AccountSettings() {
       // Applica il tema immediatamente
       setTheme(data.theme)
 
+      // Reload user data to update emailVerified status
+      const updatedUser = await api.getCurrentUser()
+
+      // Update localStorage with new user data
+      localStorage.setItem('user', JSON.stringify(updatedUser))
+
+      // Update auth store with new user data
+      useAuthStore.setState({ user: updatedUser })
+
       // Resetta i campi password dopo il salvataggio
       form.setValue('currentPassword', '')
       form.setValue('newPassword', '')
@@ -438,6 +447,7 @@ export default function AccountSettings() {
                           setTheme(value as "light" | "dark" | "system")
                         }}
                         value={field.value}
+                        defaultValue={field.value}
                       >
                         <FormControl>
                           <SelectTrigger className="cursor-pointer">
