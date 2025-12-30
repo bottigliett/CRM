@@ -113,7 +113,7 @@ export function EventForm({ event, open, onOpenChange, onSave, onDelete }: Event
         categoryId: event.categoryId,
         assignedTo: event.assignedTo,
         contactId: event.contactId,
-        participants: [],
+        participants: (event as any).teamMembers?.map((tm: any) => tm.userId) || [],
         location: event.location || "",
         description: event.description || "",
         color: event.color || "#3b82f6",
