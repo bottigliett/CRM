@@ -28,17 +28,26 @@ export const getEvents = async (req: Request, res: Response) => {
 
     // Date range filter
     if (startDate && endDate) {
+      const start = new Date(startDate as string);
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(endDate as string);
+      end.setHours(23, 59, 59, 999); // End of day to include all events on the last day
+
       where.startDateTime = {
-        gte: new Date(startDate as string),
-        lte: new Date(endDate as string),
+        gte: start,
+        lte: end,
       };
     } else if (startDate) {
+      const start = new Date(startDate as string);
+      start.setHours(0, 0, 0, 0);
       where.startDateTime = {
-        gte: new Date(startDate as string),
+        gte: start,
       };
     } else if (endDate) {
+      const end = new Date(endDate as string);
+      end.setHours(23, 59, 59, 999);
       where.startDateTime = {
-        lte: new Date(endDate as string),
+        lte: end,
       };
     }
 
