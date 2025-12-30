@@ -479,7 +479,6 @@ export function AddTaskModal({ onAddTask, onTaskAdded, trigger, editTask, open: 
                 </div>
               </div>
             </div>
-          </div>
 
           {/* Cliente - Full width */}
           <div className="space-y-2">
