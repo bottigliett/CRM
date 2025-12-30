@@ -572,7 +572,7 @@ model Invoice {
   taxAmount       Float?         @map("tax_amount") // Importo tasse accantonate
 
   // Legal notes
-  fiscalNotes     String?        @map("fiscal_notes") // Note fiscali personalizzate
+  fiscalNotes     String?        @db.Text @map("fiscal_notes") // Note fiscali personalizzate
 
   // PDF generation
   pdfPath         String?        @map("pdf_path") // Path al PDF generato
