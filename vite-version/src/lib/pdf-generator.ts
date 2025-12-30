@@ -333,7 +333,10 @@ function getInvoiceHTML(data: InvoicePDFData): string {
 
         .footer-disclaimer {
             margin-top: 2em;
-            padding: 0 2em;
+        }
+
+        .footer-disclaimer h4 {
+            margin-bottom: 0.5em;
         }
 
         .footer-disclaimer p {
@@ -341,6 +344,7 @@ function getInvoiceHTML(data: InvoicePDFData): string {
             font-weight: 400;
             text-transform: uppercase;
             line-height: 1.4;
+            margin: 0.3em 0;
         }
     </style>
 </head>
