@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import prisma from '../config/database';
+import { sendEventReminderEmail } from '../services/email.service';
 
 /**
  * GET /api/events
@@ -384,6 +385,56 @@ export const createEvent = async (req: Request, res: Response) => {
       });
 
       console.log(`Reminder and notification created for event ${event.id} - scheduled at ${scheduledAt.toISOString()}`);
+
+      // Send email if enabled
+      if (reminderEmail) {
+        try {
+          // Get user email and preferences
+          const assignedUser = await prisma.user.findUnique({
+            where: { id: parseInt(assignedTo) },
+            select: {
+              email: true,
+              notificationPreference: {
+                select: {
+                  emailEnabled: true,
+                  emailEventReminder: true,
+                }
+              }
+            }
+          });
+
+          const shouldSendEmail = assignedUser?.notificationPreference?.emailEnabled &&
+                                   assignedUser?.notificationPreference?.emailEventReminder;
+
+          if (assignedUser && shouldSendEmail) {
+            const eventStart = new Date(startDateTime);
+            const eventLink = `${process.env.FRONTEND_URL || 'https://www.mismo.studio'}/calendar`;
+
+            const emailSent = await sendEventReminderEmail(
+              assignedUser.email,
+              title,
+              eventStart,
+              reminderLabels[reminderType],
+              eventLink
+            );
+
+            if (emailSent) {
+              console.log(`Reminder email sent to ${assignedUser.email} for event ${event.id}`);
+              // Update reminder record to mark email as sent
+              await prisma.eventReminder.updateMany({
+                where: { eventId: event.id },
+                data: { emailSent: true }
+              });
+            } else {
+              console.error(`Failed to send reminder email for event ${event.id}`);
+            }
+          } else {
+            console.log(`Email not sent for event ${event.id} - user preferences disabled or user not found`);
+          }
+        } catch (emailError) {
+          console.error(`Error sending reminder email for event ${event.id}:`, emailError);
+        }
+      }
     }
 
     res.status(201).json({
@@ -585,6 +636,56 @@ export const updateEvent = async (req: Request, res: Response) => {
       });
 
       console.log(`Reminder and notification updated for event ${id} - scheduled at ${scheduledAt.toISOString()}`);
+
+      // Send email if enabled
+      if (reminderEmail) {
+        try {
+          // Get user email and preferences
+          const assignedUser = await prisma.user.findUnique({
+            where: { id: finalAssignedTo },
+            select: {
+              email: true,
+              notificationPreference: {
+                select: {
+                  emailEnabled: true,
+                  emailEventReminder: true,
+                }
+              }
+            }
+          });
+
+          const shouldSendEmail = assignedUser?.notificationPreference?.emailEnabled &&
+                                   assignedUser?.notificationPreference?.emailEventReminder;
+
+          if (assignedUser && shouldSendEmail) {
+            const eventStart = new Date(finalStartDateTime);
+            const eventLink = `${process.env.FRONTEND_URL || 'https://www.mismo.studio'}/calendar`;
+
+            const emailSent = await sendEventReminderEmail(
+              assignedUser.email,
+              finalTitle,
+              eventStart,
+              reminderLabels[reminderType],
+              eventLink
+            );
+
+            if (emailSent) {
+              console.log(`Reminder email sent to ${assignedUser.email} for event ${id}`);
+              // Update reminder record to mark email as sent
+              await prisma.eventReminder.updateMany({
+                where: { eventId: parseInt(id) },
+                data: { emailSent: true }
+              });
+            } else {
+              console.error(`Failed to send reminder email for event ${id}`);
+            }
+          } else {
+            console.log(`Email not sent for event ${id} - user preferences disabled or user not found`);
+          }
+        } catch (emailError) {
+          console.error(`Error sending reminder email for event ${id}:`, emailError);
+        }
+      }
     } else {
       console.log(`Reminders and notifications deleted for event ${id} - reminderEnabled: ${reminderEnabled}`);
     }
