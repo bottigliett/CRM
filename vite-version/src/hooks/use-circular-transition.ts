@@ -2,6 +2,7 @@
 
 import { useRef, useCallback } from "react"
 import { useTheme } from "@/hooks/use-theme"
+import { useAuthStore } from "@/store/auth-store"
 
 interface CircularTransitionHook {
   startTransition: (coords: { x: number; y: number }, callback: () => void) => void
@@ -11,6 +12,7 @@ interface CircularTransitionHook {
 
 export function useCircularTransition(): CircularTransitionHook {
   const { theme, setTheme } = useTheme()
+  const { updateProfile } = useAuthStore()
   const isTransitioningRef = useRef(false)
 
   const startTransition = useCallback((coords: { x: number; y: number }, callback: () => void) => {
@@ -51,10 +53,16 @@ export function useCircularTransition(): CircularTransitionHook {
       y: event.clientY
     }
 
+    const newTheme = theme === "dark" ? "light" : "dark"
+
     startTransition(coords, () => {
-      setTheme(theme === "dark" ? "light" : "dark")
+      setTheme(newTheme)
+      // Save theme to database
+      updateProfile({ theme: newTheme }).catch(error => {
+        console.error('[useCircularTransition] Error saving theme to database:', error)
+      })
     })
-  }, [theme, setTheme, startTransition])
+  }, [theme, setTheme, updateProfile, startTransition])
 
   const isTransitioning = useCallback(() => {
     return isTransitioningRef.current
