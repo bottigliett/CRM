@@ -315,36 +315,6 @@ export function EventForm({ event, open, onOpenChange, onSave, onDelete }: Event
             <div className="space-y-2">
               <Label className="flex items-center gap-2">
                 <UserCircle className="w-4 h-4" />
-                Responsabile *
-              </Label>
-              <Select
-                value={formData.assignedTo?.toString()}
-                onValueChange={(value) => setFormData(prev => ({ ...prev, assignedTo: parseInt(value) }))}
-                disabled={loading}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Seleziona responsabile" />
-                </SelectTrigger>
-                <SelectContent>
-                  {adminUsers.map(user => (
-                    <SelectItem key={user.id} value={user.id.toString()}>
-                      <div className="flex items-center gap-2">
-                        <Avatar className="w-5 h-5">
-                          <AvatarFallback className="text-[10px]">
-                            {user.firstName?.[0]}{user.lastName?.[0]}
-                          </AvatarFallback>
-                        </Avatar>
-                        {user.firstName} {user.lastName}
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2">
-                <UserCircle className="w-4 h-4" />
                 Cliente
               </Label>
               <div className="space-y-2">
