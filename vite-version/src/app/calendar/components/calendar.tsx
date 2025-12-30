@@ -45,6 +45,14 @@ export function Calendar({ events, eventDates }: CalendarProps) {
     return !event.categoryId || !calendar.hiddenCategories.has(event.categoryId)
   })
 
+  // Debug log to show filtering
+  console.log('[DEBUG] Event filtering:', {
+    totalEvents: calendar.events.length,
+    hiddenCategories: Array.from(calendar.hiddenCategories),
+    filteredEvents: filteredEvents.length,
+    hiddenEventsCount: calendar.events.length - filteredEvents.length
+  })
+
   return (
     <>
       <div className="border rounded-lg bg-background relative">
