@@ -153,6 +153,15 @@ export function useCalendar(initialEvents: CalendarEvent[] = []): UseCalendarRet
       let startDateTime: Date
       let endDateTime: Date
 
+      console.log('[DEBUG] Creating event with data:', {
+        eventDate: eventDate,
+        selectedDate: selectedDate,
+        eventDataDate: eventData.date,
+        allDay: eventData.allDay,
+        time: eventData.time,
+        participants: (eventData as any).participants
+      })
+
       if (eventData.allDay) {
         // For all-day events, use the date without specific time
         startDateTime = new Date(eventDate)
@@ -175,9 +184,14 @@ export function useCalendar(initialEvents: CalendarEvent[] = []): UseCalendarRet
         endDateTime = new Date(startDateTime.getTime() + durationMinutes * 60000)
       }
 
+      console.log('[DEBUG] Computed dates:', {
+        startDateTime: startDateTime.toISOString(),
+        endDateTime: endDateTime.toISOString()
+      })
+
       if (editingEvent?.id) {
         // Update existing event
-        await eventsAPI.updateEvent(editingEvent.id, {
+        const updatePayload = {
           title: eventData.title || '',
           description: eventData.description,
           startDateTime: startDateTime.toISOString(),
@@ -192,10 +206,12 @@ export function useCalendar(initialEvents: CalendarEvent[] = []): UseCalendarRet
           reminderType: eventData.reminderType || 'MINUTES_15',
           reminderEmail: eventData.reminderEmail || false,
           teamMembers: (eventData as any).participants || [],
-        })
+        }
+        console.log('[DEBUG] Updating event:', updatePayload)
+        await eventsAPI.updateEvent(editingEvent.id, updatePayload)
       } else {
         // Create new event
-        await eventsAPI.createEvent({
+        const createPayload = {
           title: eventData.title || '',
           description: eventData.description,
           startDateTime: startDateTime.toISOString(),
@@ -210,7 +226,10 @@ export function useCalendar(initialEvents: CalendarEvent[] = []): UseCalendarRet
           reminderType: eventData.reminderType || 'MINUTES_15',
           reminderEmail: eventData.reminderEmail || false,
           teamMembers: (eventData as any).participants || [],
-        })
+        }
+        console.log('[DEBUG] Creating event:', createPayload)
+        const response = await eventsAPI.createEvent(createPayload)
+        console.log('[DEBUG] Event created response:', response)
       }
 
       // Reload events
