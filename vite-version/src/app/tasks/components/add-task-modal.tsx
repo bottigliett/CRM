@@ -310,133 +310,134 @@ export function AddTaskModal({ onAddTask, onTaskAdded, trigger, editTask, open: 
             />
           </div>
 
-          {/* Categoria */}
-          <div className="space-y-2">
-            <Label className="flex items-center gap-2">
-              <Tag className="w-4 h-4" />
-              Categoria *
-            </Label>
-            <Select
-              value={formData.categoryId?.toString()}
-              onValueChange={(value) => setFormData(prev => ({ ...prev, categoryId: parseInt(value) }))}
-              disabled={loading}
-            >
-              <SelectTrigger className={errors.categoryId ? "border-red-500" : ""}>
-                <SelectValue placeholder="Seleziona categoria" />
-              </SelectTrigger>
-              <SelectContent>
-                {categories
-                  .filter(c => c.isActive)
-                  .sort((a, b) => a.name.localeCompare(b.name))
-                  .map(category => (
-                    <SelectItem key={category.id} value={category.id.toString()}>
-                      <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: category.color }} />
-                        {category.name}
-                      </div>
-                    </SelectItem>
-                  ))}
-              </SelectContent>
-            </Select>
-            {errors.categoryId && (
-              <p className="text-sm text-red-500">{errors.categoryId}</p>
-            )}
-          </div>
-
-          {/* Responsabili */}
-          <div className="space-y-2">
-            <Label className="flex items-center gap-2">
-              <UserCircle className="w-4 h-4" />
-              Responsabili *
-            </Label>
+          {/* Categoria e Responsabili */}
+          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              {formData.teamMembers.length > 0 && (
-                <div className="flex flex-wrap gap-2 mb-2">
-                  {formData.teamMembers.map(userId => {
-                    const user = adminUsers.find(u => u.id === userId)
-                    if (!user) return null
-                    return (
-                      <Badge key={userId} variant="secondary" className="flex items-center gap-1">
-                        <Avatar className="w-4 h-4">
-                          <AvatarFallback className="text-[8px]">
-                            {user.firstName?.[0]}{user.lastName?.[0]}
-                          </AvatarFallback>
-                        </Avatar>
-                        <span className="text-xs">{user.firstName} {user.lastName}</span>
-                        <button
-                          type="button"
-                          onClick={() => setFormData(prev => ({
-                            ...prev,
-                            teamMembers: prev.teamMembers.filter(id => id !== userId)
-                          }))}
-                          className="ml-1 hover:bg-muted rounded-full p-0.5"
-                        >
-                          <X className="w-3 h-3" />
-                        </button>
-                      </Badge>
-                    )
-                  })}
-                </div>
+              <Label className="flex items-center gap-2">
+                <Tag className="w-4 h-4" />
+                Categoria *
+              </Label>
+              <Select
+                value={formData.categoryId?.toString()}
+                onValueChange={(value) => setFormData(prev => ({ ...prev, categoryId: parseInt(value) }))}
+                disabled={loading}
+              >
+                <SelectTrigger className={errors.categoryId ? "border-red-500" : ""}>
+                  <SelectValue placeholder="Seleziona categoria" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories
+                    .filter(c => c.isActive)
+                    .sort((a, b) => a.name.localeCompare(b.name))
+                    .map(category => (
+                      <SelectItem key={category.id} value={category.id.toString()}>
+                        <div className="flex items-center gap-2">
+                          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: category.color }} />
+                          {category.name}
+                        </div>
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+              {errors.categoryId && (
+                <p className="text-sm text-red-500">{errors.categoryId}</p>
               )}
-              <Popover open={showTeamMembersSelect} onOpenChange={setShowTeamMembersSelect}>
-                <PopoverTrigger asChild>
-                  <Button type="button" variant="outline" className="w-full justify-start cursor-pointer">
-                    <UserCircle className="w-4 h-4 mr-2" />
-                    Aggiungi responsabile
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-80 p-0" align="start">
-                  <div className="p-2 border-b">
-                    <Input
-                      placeholder="Cerca utente..."
-                      value={teamMembersSearchQuery}
-                      onChange={(e) => setTeamMembersSearchQuery(e.target.value)}
-                      className="h-8"
-                    />
-                  </div>
-                  <div className="max-h-60 overflow-y-auto">
-                    {adminUsers
-                      .filter(user => {
-                        if (formData.teamMembers.includes(user.id)) return false
-                        const searchLower = teamMembersSearchQuery.toLowerCase()
-                        return (
-                          user.firstName?.toLowerCase().includes(searchLower) ||
-                          user.lastName?.toLowerCase().includes(searchLower) ||
-                          user.email?.toLowerCase().includes(searchLower)
-                        )
-                      })
-                      .map(user => (
-                        <button
-                          key={user.id}
-                          type="button"
-                          onClick={() => {
-                            setFormData(prev => ({
-                              ...prev,
-                              teamMembers: [...prev.teamMembers, user.id]
-                            }))
-                            setTeamMembersSearchQuery("")
-                            setShowTeamMembersSelect(false)
-                          }}
-                          className="w-full flex items-center gap-2 px-3 py-2 hover:bg-muted cursor-pointer"
-                        >
-                          <Avatar className="w-6 h-6">
-                            <AvatarFallback className="text-[10px]">
+            </div>
+
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                <UserCircle className="w-4 h-4" />
+                Responsabili *
+              </Label>
+              <div className="space-y-2">
+                {formData.teamMembers.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    {formData.teamMembers.map(userId => {
+                      const user = adminUsers.find(u => u.id === userId)
+                      if (!user) return null
+                      return (
+                        <Badge key={userId} variant="secondary" className="flex items-center gap-1">
+                          <Avatar className="w-4 h-4">
+                            <AvatarFallback className="text-[8px]">
                               {user.firstName?.[0]}{user.lastName?.[0]}
                             </AvatarFallback>
                           </Avatar>
-                          <div className="flex-1 text-left">
-                            <div className="text-sm font-medium">
-                              {user.firstName} {user.lastName}
-                            </div>
-                            <div className="text-xs text-muted-foreground">
-                              {user.email}
-                            </div>
-                          </div>
-                        </button>
-                      ))}
+                          <span className="text-xs">{user.firstName} {user.lastName}</span>
+                          <button
+                            type="button"
+                            onClick={() => setFormData(prev => ({
+                              ...prev,
+                              teamMembers: prev.teamMembers.filter(id => id !== userId)
+                            }))}
+                            className="ml-1 hover:bg-muted rounded-full p-0.5"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </Badge>
+                      )
+                    })}
                   </div>
-                </PopoverContent>
-              </Popover>
+                )}
+                <Popover open={showTeamMembersSelect} onOpenChange={setShowTeamMembersSelect}>
+                  <PopoverTrigger asChild>
+                    <Button type="button" variant="outline" className="w-full justify-start cursor-pointer">
+                      <UserCircle className="w-4 h-4 mr-2" />
+                      Aggiungi responsabile
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-80 p-0" align="start">
+                    <div className="p-2 border-b">
+                      <Input
+                        placeholder="Cerca utente..."
+                        value={teamMembersSearchQuery}
+                        onChange={(e) => setTeamMembersSearchQuery(e.target.value)}
+                        className="h-8"
+                      />
+                    </div>
+                    <div className="max-h-60 overflow-y-auto">
+                      {adminUsers
+                        .filter(user => {
+                          if (formData.teamMembers.includes(user.id)) return false
+                          const searchLower = teamMembersSearchQuery.toLowerCase()
+                          return (
+                            user.firstName?.toLowerCase().includes(searchLower) ||
+                            user.lastName?.toLowerCase().includes(searchLower) ||
+                            user.email?.toLowerCase().includes(searchLower)
+                          )
+                        })
+                        .map(user => (
+                          <button
+                            key={user.id}
+                            type="button"
+                            onClick={() => {
+                              setFormData(prev => ({
+                                ...prev,
+                                teamMembers: [...prev.teamMembers, user.id]
+                              }))
+                              setTeamMembersSearchQuery("")
+                              setShowTeamMembersSelect(false)
+                            }}
+                            className="w-full flex items-center gap-2 px-3 py-2 hover:bg-muted cursor-pointer"
+                          >
+                            <Avatar className="w-6 h-6">
+                              <AvatarFallback className="text-[10px]">
+                                {user.firstName?.[0]}{user.lastName?.[0]}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1 text-left">
+                              <div className="text-sm font-medium">
+                                {user.firstName} {user.lastName}
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                {user.email}
+                              </div>
+                            </div>
+                          </button>
+                        ))}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              </div>
             </div>
           </div>
 
@@ -483,74 +484,25 @@ export function AddTaskModal({ onAddTask, onTaskAdded, trigger, editTask, open: 
             </div>
           </div>
 
-          {/* Ore Stimate */}
-          <div className="space-y-2">
-            <Label htmlFor="estimatedHours">Ore Stimate</Label>
-            <Input
-              id="estimatedHours"
-              type="number"
-              step="0.5"
-              min="0"
-              placeholder="Es. 8"
-              value={formData.estimatedHours || ""}
-              onChange={(e) => setFormData(prev => ({
-                ...prev,
-                estimatedHours: e.target.value ? parseFloat(e.target.value) : undefined
-              }))}
-            />
-          </div>
-
-          {/* Priorità, Stato e Scadenza */}
-          <div className="flex gap-2">
-            <div className="flex-1 space-y-2">
-              <Label>Priorità</Label>
-              <Select
-                value={formData.priority}
-                onValueChange={(value) => setFormData(prev => ({ ...prev, priority: value as 'P1' | 'P2' | 'P3' }))}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {priorities.map((priority) => (
-                    <SelectItem key={priority.value} value={priority.value}>
-                      <div className="flex items-center">
-                        {priority.icon && (
-                          <priority.icon className="mr-2 h-4 w-4 text-muted-foreground" />
-                        )}
-                        {priority.label}
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          {/* Ore Stimate e Scadenza */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="estimatedHours">Ore Stimate</Label>
+              <Input
+                id="estimatedHours"
+                type="number"
+                step="0.5"
+                min="0"
+                placeholder="Es. 8"
+                value={formData.estimatedHours || ""}
+                onChange={(e) => setFormData(prev => ({
+                  ...prev,
+                  estimatedHours: e.target.value ? parseFloat(e.target.value) : undefined
+                }))}
+              />
             </div>
 
-            <div className="flex-1 space-y-2">
-              <Label>Stato</Label>
-              <Select
-                value={formData.status}
-                onValueChange={(value) => setFormData(prev => ({ ...prev, status: value as 'TODO' | 'IN_PROGRESS' | 'PENDING' | 'COMPLETED' }))}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {statuses.map((status) => (
-                    <SelectItem key={status.value} value={status.value}>
-                      <div className="flex items-center">
-                        {status.icon && (
-                          <status.icon className="mr-2 h-4 w-4 text-muted-foreground" />
-                        )}
-                        {status.label}
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="flex-1 space-y-2">
+            <div className="space-y-2">
               <Label className="flex items-center gap-2">
                 <CalendarIcon className="w-4 h-4" />
                 Scadenza *
@@ -579,6 +531,57 @@ export function AddTaskModal({ onAddTask, onTaskAdded, trigger, editTask, open: 
               {errors.deadline && (
                 <p className="text-sm text-red-500">{errors.deadline}</p>
               )}
+            </div>
+          </div>
+
+          {/* Priorità e Stato */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Priorità</Label>
+              <Select
+                value={formData.priority}
+                onValueChange={(value) => setFormData(prev => ({ ...prev, priority: value as 'P1' | 'P2' | 'P3' }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {priorities.map((priority) => (
+                    <SelectItem key={priority.value} value={priority.value}>
+                      <div className="flex items-center">
+                        {priority.icon && (
+                          <priority.icon className="mr-2 h-4 w-4 text-muted-foreground" />
+                        )}
+                        {priority.label}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Stato</Label>
+              <Select
+                value={formData.status}
+                onValueChange={(value) => setFormData(prev => ({ ...prev, status: value as 'TODO' | 'IN_PROGRESS' | 'PENDING' | 'COMPLETED' }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {statuses.map((status) => (
+                    <SelectItem key={status.value} value={status.value}>
+                      <div className="flex items-center">
+                        {status.icon && (
+                          <status.icon className="mr-2 h-4 w-4 text-muted-foreground" />
+                        )}
+                        {status.label}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
