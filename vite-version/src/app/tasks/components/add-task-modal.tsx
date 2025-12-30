@@ -298,16 +298,55 @@ export function AddTaskModal({ onAddTask, onTaskAdded, trigger, editTask, open: 
             )}
           </div>
 
-          {/* Descrizione */}
-          <div className="space-y-2">
-            <Label htmlFor="description">Descrizione</Label>
-            <Textarea
-              id="description"
-              placeholder="Fornisci dettagli aggiuntivi sul task..."
-              value={formData.description}
-              onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-              rows={3}
-            />
+          {/* Priorità e Stato */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Priorità</Label>
+              <Select
+                value={formData.priority}
+                onValueChange={(value) => setFormData(prev => ({ ...prev, priority: value as 'P1' | 'P2' | 'P3' }))}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {priorities.map((priority) => (
+                    <SelectItem key={priority.value} value={priority.value}>
+                      <div className="flex items-center">
+                        {priority.icon && (
+                          <priority.icon className="mr-2 h-4 w-4 text-muted-foreground" />
+                        )}
+                        {priority.label}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Stato</Label>
+              <Select
+                value={formData.status}
+                onValueChange={(value) => setFormData(prev => ({ ...prev, status: value as 'TODO' | 'IN_PROGRESS' | 'PENDING' | 'COMPLETED' }))}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {statuses.map((status) => (
+                    <SelectItem key={status.value} value={status.value}>
+                      <div className="flex items-center">
+                        {status.icon && (
+                          <status.icon className="mr-2 h-4 w-4 text-muted-foreground" />
+                        )}
+                        {status.label}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           {/* Categoria e Responsabili */}
@@ -535,55 +574,16 @@ export function AddTaskModal({ onAddTask, onTaskAdded, trigger, editTask, open: 
             </div>
           </div>
 
-          {/* Priorità e Stato */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Priorità</Label>
-              <Select
-                value={formData.priority}
-                onValueChange={(value) => setFormData(prev => ({ ...prev, priority: value as 'P1' | 'P2' | 'P3' }))}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {priorities.map((priority) => (
-                    <SelectItem key={priority.value} value={priority.value}>
-                      <div className="flex items-center">
-                        {priority.icon && (
-                          <priority.icon className="mr-2 h-4 w-4 text-muted-foreground" />
-                        )}
-                        {priority.label}
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Stato</Label>
-              <Select
-                value={formData.status}
-                onValueChange={(value) => setFormData(prev => ({ ...prev, status: value as 'TODO' | 'IN_PROGRESS' | 'PENDING' | 'COMPLETED' }))}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {statuses.map((status) => (
-                    <SelectItem key={status.value} value={status.value}>
-                      <div className="flex items-center">
-                        {status.icon && (
-                          <status.icon className="mr-2 h-4 w-4 text-muted-foreground" />
-                        )}
-                        {status.label}
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          {/* Descrizione */}
+          <div className="space-y-2">
+            <Label htmlFor="description">Descrizione</Label>
+            <Textarea
+              id="description"
+              placeholder="Fornisci dettagli aggiuntivi sul task..."
+              value={formData.description}
+              onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+              rows={3}
+            />
           </div>
 
           {/* Action Buttons */}
