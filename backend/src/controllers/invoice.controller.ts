@@ -239,7 +239,10 @@ export const createInvoice = async (req: Request, res: Response) => {
       description,
       quantity,
       unitPrice,
+      subtotal: providedSubtotal,
+      total: providedTotal,
       vatPercentage,
+      vatAmount: providedVatAmount,
       paymentDays,
       issueDate,
       dueDate,
@@ -272,14 +275,15 @@ export const createInvoice = async (req: Request, res: Response) => {
       });
     }
 
-    // Calculate amounts
+    // Use amounts calculated by frontend (which includes all services)
+    // If not provided, fall back to calculating from single quantity/unitPrice
     const qty = parseFloat(quantity);
     const price = parseFloat(unitPrice);
     const vat = parseFloat(vatPercentage || '0');
 
-    const subtotal = qty * price;
-    const vatAmount = subtotal * (vat / 100);
-    const total = subtotal + vatAmount;
+    const subtotal = providedSubtotal !== undefined ? parseFloat(providedSubtotal) : qty * price;
+    const vatAmount = providedVatAmount !== undefined ? parseFloat(providedVatAmount) : subtotal * (vat / 100);
+    const total = providedTotal !== undefined ? parseFloat(providedTotal) : subtotal + vatAmount;
 
     // Calculate due date if not provided
     let calculatedDueDate = dueDate;
@@ -361,7 +365,10 @@ export const updateInvoice = async (req: Request, res: Response) => {
       description,
       quantity,
       unitPrice,
+      subtotal: providedSubtotal,
+      total: providedTotal,
       vatPercentage,
+      vatAmount: providedVatAmount,
       paymentDays,
       issueDate,
       dueDate,
@@ -398,14 +405,15 @@ export const updateInvoice = async (req: Request, res: Response) => {
       }
     }
 
-    // Calculate amounts
+    // Use amounts calculated by frontend (which includes all services)
+    // If not provided, fall back to calculating from single quantity/unitPrice
     const qty = parseFloat(quantity);
     const price = parseFloat(unitPrice);
     const vat = parseFloat(vatPercentage || '0');
 
-    const subtotal = qty * price;
-    const vatAmount = subtotal * (vat / 100);
-    const total = subtotal + vatAmount;
+    const subtotal = providedSubtotal !== undefined ? parseFloat(providedSubtotal) : qty * price;
+    const vatAmount = providedVatAmount !== undefined ? parseFloat(providedVatAmount) : subtotal * (vat / 100);
+    const total = providedTotal !== undefined ? parseFloat(providedTotal) : subtotal + vatAmount;
 
     // Calculate due date if not provided
     let calculatedDueDate = dueDate;

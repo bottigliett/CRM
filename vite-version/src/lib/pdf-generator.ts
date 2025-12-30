@@ -300,7 +300,7 @@ function getInvoiceHTML(data: InvoicePDFData): string {
         }
 
         .payment-section {
-            margin-bottom: auto;
+            margin-bottom: 2em;
         }
 
         .payment-title {
@@ -332,10 +332,8 @@ function getInvoiceHTML(data: InvoicePDFData): string {
         }
 
         .footer-disclaimer {
-            position: absolute;
-            bottom: 2em;
-            left: 2em;
-            right: 2em;
+            margin-top: 2em;
+            padding: 0 2em;
         }
 
         .footer-disclaimer p {
