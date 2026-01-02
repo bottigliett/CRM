@@ -130,14 +130,6 @@ export default function OnDutyPage() {
   return (
     <BaseLayout>
       <div className="flex h-full flex-col gap-6 p-8">
-        {/* Page Header */}
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">On Duty</h1>
-          <p className="text-muted-foreground mt-1">
-            La tua postazione di lavoro quotidiana
-          </p>
-        </div>
-
         {/* Top Row: Daily Todos, Weekly Todos, Weather */}
         <div className="grid gap-4 md:grid-cols-3">
           <TodoList
