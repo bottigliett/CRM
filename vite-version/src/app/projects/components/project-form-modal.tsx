@@ -41,6 +41,7 @@ export function ProjectFormModal({ open, onOpenChange, project, onSuccess }: Pro
     contactId: undefined as number | undefined,
     budget: "" as string,
     estimatedHours: "" as string,
+    startDate: "" as string,
   })
 
   const [contacts, setContacts] = useState<Contact[]>([])
@@ -79,6 +80,7 @@ export function ProjectFormModal({ open, onOpenChange, project, onSuccess }: Pro
         contactId: project.contactId,
         budget: project.budget.toString(),
         estimatedHours: project.estimatedHours?.toString() || "",
+        startDate: project.startDate ? project.startDate.split('T')[0] : "",
       })
     } else if (!open) {
       // Reset form when modal closes
@@ -88,6 +90,7 @@ export function ProjectFormModal({ open, onOpenChange, project, onSuccess }: Pro
         contactId: undefined,
         budget: "",
         estimatedHours: "",
+        startDate: "",
       })
       setErrors({})
     }
@@ -136,6 +139,7 @@ export function ProjectFormModal({ open, onOpenChange, project, onSuccess }: Pro
         contactId: formData.contactId!,
         budget: parseFloat(formData.budget),
         estimatedHours: formData.estimatedHours ? parseFloat(formData.estimatedHours) : undefined,
+        startDate: formData.startDate || undefined,
       }
 
       if (isEdit) {
@@ -283,6 +287,22 @@ export function ProjectFormModal({ open, onOpenChange, project, onSuccess }: Pro
             {errors.contactId && (
               <p className="text-sm text-red-500">{errors.contactId}</p>
             )}
+          </div>
+
+          {/* Start Date */}
+          <div className="space-y-2">
+            <Label htmlFor="startDate">
+              Data Inizio
+            </Label>
+            <Input
+              id="startDate"
+              type="date"
+              value={formData.startDate}
+              onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+            />
+            <p className="text-xs text-muted-foreground">
+              Gli eventi verranno conteggiati da questa data. Lascia vuoto per usare la data odierna.
+            </p>
           </div>
 
           {/* Budget and Estimated Hours */}

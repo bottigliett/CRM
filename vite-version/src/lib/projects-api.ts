@@ -75,6 +75,7 @@ export interface CreateProjectData {
   contactId: number;
   budget: number;
   estimatedHours?: number;
+  startDate?: string;
 }
 
 export interface UpdateProjectData {
@@ -82,6 +83,7 @@ export interface UpdateProjectData {
   description?: string;
   budget?: number;
   estimatedHours?: number;
+  startDate?: string;
 }
 
 class ProjectsAPI {

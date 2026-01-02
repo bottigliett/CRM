@@ -342,7 +342,7 @@ export const createProject = async (req: AuthRequest, res: Response) => {
       });
     }
 
-    const { name, description, contactId, budget, estimatedHours } = req.body;
+    const { name, description, contactId, budget, estimatedHours, startDate } = req.body;
 
     // Validate required fields
     if (!name || !contactId || budget === undefined) {
@@ -359,6 +359,7 @@ export const createProject = async (req: AuthRequest, res: Response) => {
         contactId: parseInt(contactId),
         budget: parseFloat(budget),
         estimatedHours: estimatedHours ? parseFloat(estimatedHours) : null,
+        startDate: startDate ? new Date(startDate) : undefined,
         createdBy: req.user.userId,
       },
       include: {
@@ -409,7 +410,7 @@ export const createProject = async (req: AuthRequest, res: Response) => {
 export const updateProject = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
-    const { name, description, budget, estimatedHours } = req.body;
+    const { name, description, budget, estimatedHours, startDate } = req.body;
 
     const updateData: any = {};
     if (name !== undefined) updateData.name = name;
@@ -417,6 +418,7 @@ export const updateProject = async (req: AuthRequest, res: Response) => {
     if (budget !== undefined) updateData.budget = parseFloat(budget);
     if (estimatedHours !== undefined)
       updateData.estimatedHours = estimatedHours ? parseFloat(estimatedHours) : null;
+    if (startDate !== undefined) updateData.startDate = new Date(startDate);
 
     const project = await prisma.project.update({
       where: { id: parseInt(id) },
