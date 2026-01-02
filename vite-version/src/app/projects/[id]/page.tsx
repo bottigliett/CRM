@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useParams, useRouter } from "next/navigation"
+import { useParams, useNavigate } from "react-router-dom"
 import { ArrowLeft, Edit, CheckCircle, AlertCircle, Clock, Euro, TrendingUp, Calendar as CalendarIcon } from "lucide-react"
 import { format } from "date-fns"
 import { it } from "date-fns/locale"
@@ -35,7 +35,7 @@ import { ProjectFormModal } from "../components/project-form-modal"
 
 export default function ProjectDetailPage() {
   const params = useParams()
-  const router = useRouter()
+  const navigate = useNavigate()
   const projectId = parseInt(params.id as string)
 
   const [project, setProject] = useState<ProjectDetail | null>(null)
@@ -54,7 +54,7 @@ export default function ProjectDetailPage() {
     } catch (error) {
       console.error("Failed to load project:", error)
       toast.error("Errore nel caricamento del progetto")
-      router.push("/projects")
+      navigate("/projects")
     } finally {
       setLoading(false)
     }
@@ -124,7 +124,7 @@ export default function ProjectDetailPage() {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => router.push("/projects")}
+              onClick={() => navigate("/projects")}
             >
               <ArrowLeft className="h-5 w-5" />
             </Button>

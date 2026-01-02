@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
+import { useNavigate } from "react-router-dom"
 import { Plus, Eye, CheckCircle, AlertCircle } from "lucide-react"
 
 import { BaseLayout } from "@/components/layouts/base-layout"
@@ -20,7 +20,7 @@ import { projectsAPI, type Project } from "@/lib/projects-api"
 import { ProjectFormModal } from "./components/project-form-modal"
 
 export default function ProjectsPage() {
-  const router = useRouter()
+  const navigate = useNavigate()
   const [projects, setProjects] = useState<Project[]>([])
   const [loading, setLoading] = useState(true)
   const [formModalOpen, setFormModalOpen] = useState(false)
@@ -56,7 +56,7 @@ export default function ProjectsPage() {
   }
 
   const handleViewProject = (projectId: number) => {
-    router.push(`/projects/${projectId}`)
+    navigate(`/projects/${projectId}`)
   }
 
   const handleFormSuccess = () => {
