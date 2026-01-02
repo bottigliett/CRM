@@ -11,6 +11,7 @@ import {
   Contact,
   Settings,
   FileText,
+  FolderKanban,
 } from "lucide-react"
 import { Link } from "react-router-dom"
 import { Logo } from "@/components/logo"
@@ -85,6 +86,12 @@ const allNavGroups: NavGroup[] = [
         url: "/tasks",
         icon: CheckSquare,
         moduleName: "tasks",
+      },
+      {
+        title: "Progetti",
+        url: "/projects",
+        icon: FolderKanban,
+        moduleName: "projects",
       },
       {
         title: "Finance Tracker",
