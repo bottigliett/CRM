@@ -1,0 +1,208 @@
+"use client"
+
+import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
+import { Plus, Eye, CheckCircle, AlertCircle } from "lucide-react"
+
+import { BaseLayout } from "@/components/layouts/base-layout"
+import { Button } from "@/components/ui/button"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import { Badge } from "@/components/ui/badge"
+import { toast } from "sonner"
+import { projectsAPI, type Project } from "@/lib/projects-api"
+import { ProjectFormModal } from "./components/project-form-modal"
+
+export default function ProjectsPage() {
+  const router = useRouter()
+  const [projects, setProjects] = useState<Project[]>([])
+  const [loading, setLoading] = useState(true)
+  const [formModalOpen, setFormModalOpen] = useState(false)
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null)
+
+  const loadProjects = async () => {
+    try {
+      setLoading(true)
+      const response = await projectsAPI.getProjects()
+      if (response.success) {
+        setProjects(response.data)
+      }
+    } catch (error) {
+      console.error("Failed to load projects:", error)
+      toast.error("Errore nel caricamento dei progetti")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    loadProjects()
+  }, [])
+
+  const handleAddProject = () => {
+    setSelectedProject(null)
+    setFormModalOpen(true)
+  }
+
+  const handleEditProject = (project: Project) => {
+    setSelectedProject(project)
+    setFormModalOpen(true)
+  }
+
+  const handleViewProject = (projectId: number) => {
+    router.push(`/projects/${projectId}`)
+  }
+
+  const handleFormSuccess = () => {
+    loadProjects()
+    setFormModalOpen(false)
+    setSelectedProject(null)
+  }
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('it-IT', {
+      style: 'currency',
+      currency: 'EUR'
+    }).format(value)
+  }
+
+  const formatHours = (hours: number) => {
+    return `${hours.toFixed(1)}h`
+  }
+
+  return (
+    <BaseLayout>
+      <div className="flex h-full flex-col gap-6 p-8">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Progetti</h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Gestisci i progetti e monitora la redditività
+            </p>
+          </div>
+          <Button onClick={handleAddProject}>
+            <Plus className="mr-2 h-4 w-4" />
+            Nuovo Progetto
+          </Button>
+        </div>
+
+        {/* Projects Table */}
+        <div className="rounded-md border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Progetto</TableHead>
+                <TableHead>Cliente</TableHead>
+                <TableHead>Budget</TableHead>
+                <TableHead>Ore Stimate</TableHead>
+                <TableHead>Ore Lavorate</TableHead>
+                <TableHead>Tariffa Oraria</TableHead>
+                <TableHead>Stato</TableHead>
+                <TableHead className="text-right">Azioni</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={8} className="text-center">
+                    Caricamento...
+                  </TableCell>
+                </TableRow>
+              ) : projects.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={8} className="text-center">
+                    Nessun progetto trovato
+                  </TableCell>
+                </TableRow>
+              ) : (
+                projects.map((project) => (
+                  <TableRow
+                    key={project.id}
+                    className="cursor-pointer hover:bg-muted/50"
+                    onClick={() => handleViewProject(project.id)}
+                  >
+                    <TableCell className="font-medium">
+                      <div className="flex flex-col">
+                        <span>{project.name}</span>
+                        {project.description && (
+                          <span className="text-xs text-muted-foreground line-clamp-1">
+                            {project.description}
+                          </span>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>{project.contact?.name}</TableCell>
+                    <TableCell>{formatCurrency(project.budget)}</TableCell>
+                    <TableCell>
+                      {project.estimatedHours ? formatHours(project.estimatedHours) : '-'}
+                    </TableCell>
+                    <TableCell>
+                      {project.metrics
+                        ? formatHours(project.metrics.actualHours)
+                        : '-'}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        {project.metrics && project.metrics.actualHours > 0 ? (
+                          <>
+                            <span>{formatCurrency(project.metrics.hourlyRate)}/h</span>
+                            {project.metrics.isUnderThreshold && (
+                              <AlertCircle className="h-4 w-4 text-red-500" />
+                            )}
+                          </>
+                        ) : (
+                          '-'
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={project.status === 'ACTIVE' ? 'default' : 'secondary'}
+                      >
+                        {project.status === 'ACTIVE' ? (
+                          <>
+                            <div className="mr-1 h-2 w-2 rounded-full bg-green-500" />
+                            Attivo
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircle className="mr-1 h-3 w-3" />
+                            Completato
+                          </>
+                        )}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleViewProject(project.id)}
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      </div>
+
+      {/* Form Modal */}
+      <ProjectFormModal
+        open={formModalOpen}
+        onOpenChange={setFormModalOpen}
+        project={selectedProject}
+        onSuccess={handleFormSuccess}
+      />
+    </BaseLayout>
+  )
+}

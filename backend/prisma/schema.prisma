@@ -1,11 +1,11 @@
-// Prisma Schema for MySQL production database
+// Prisma Schema for SQLite (development) / MySQL (production)
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "mysql"
+  provider = "sqlite"
 }
 
 // ===================================
@@ -62,6 +62,7 @@ model User {
   notifications          Notification[]      // Notifications for this user
   notificationPreference NotificationPreference?
   createdInvoices        Invoice[]           @relation("InvoiceCreator") // Invoices created by this user
+  createdProjects        Project[]           @relation("ProjectCreator") // Projects created by this user
 
   @@map("users")
 }
@@ -75,7 +76,7 @@ enum UserRole {
 model Session {
   id        Int      @id @default(autoincrement())
   userId    Int      @map("user_id")
-  token     String   @unique @db.VarChar(500)
+  token     String   @unique
   expiresAt DateTime @map("expires_at")
   ipAddress String?  @map("ip_address")
   userAgent String?  @map("user_agent")
@@ -193,6 +194,7 @@ model Contact {
   tasks             Task[]               @relation("TaskContact") // Tasks linked to this contact (client)
   transactions      Transaction[]        // Transactions linked to this contact
   invoices          Invoice[]            // Invoices for this contact
+  projects          Project[]            @relation("ProjectContact") // Projects for this contact
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -369,6 +371,39 @@ model TaskTeamMember {
   @@index([taskId])
   @@index([userId])
   @@map("task_team_members")
+}
+
+// ===================================
+// PROJECTS
+// ===================================
+
+model Project {
+  id              Int            @id @default(autoincrement())
+  name            String
+  description     String?
+  contactId       Int            @map("contact_id") // FK to Contact (cliente)
+  budget          Float          // Budget totale del progetto
+  estimatedHours  Float?         @map("estimated_hours") // Ore stimate iniziali
+  status          ProjectStatus  @default(ACTIVE)
+  startDate       DateTime       @default(now()) @map("start_date")
+  completedAt     DateTime?      @map("completed_at")
+  createdAt       DateTime       @default(now()) @map("created_at")
+  updatedAt       DateTime       @updatedAt @map("updated_at")
+  createdBy       Int            @map("created_by")
+
+  // Relations
+  contact  Contact @relation("ProjectContact", fields: [contactId], references: [id], onDelete: Cascade)
+  creator  User    @relation("ProjectCreator", fields: [createdBy], references: [id], onDelete: Cascade)
+
+  @@index([contactId])
+  @@index([status])
+  @@index([createdBy])
+  @@map("projects")
+}
+
+enum ProjectStatus {
+  ACTIVE
+  COMPLETED
 }
 
 // ===================================
@@ -572,7 +607,7 @@ model Invoice {
   taxAmount       Float?         @map("tax_amount") // Importo tasse accantonate
 
   // Legal notes
-  fiscalNotes     String?        @db.Text @map("fiscal_notes") // Note fiscali personalizzate
+  fiscalNotes     String?        @map("fiscal_notes") // Note fiscali personalizzate
 
   // PDF generation
   pdfPath         String?        @map("pdf_path") // Path al PDF generato
