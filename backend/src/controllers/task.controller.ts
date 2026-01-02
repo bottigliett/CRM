@@ -26,7 +26,14 @@ export const getTasks = async (req: AuthRequest, res: Response) => {
       isArchived: isArchived === 'true',
     };
 
-    if (status) where.status = status;
+    if (status) {
+      const statusString = status as string;
+      if (statusString.includes(',')) {
+        where.status = { in: statusString.split(',') };
+      } else {
+        where.status = statusString;
+      }
+    }
     if (priority) where.priority = priority;
     if (categoryId) where.categoryId = parseInt(categoryId as string);
     if (contactId) where.contactId = parseInt(contactId as string);
