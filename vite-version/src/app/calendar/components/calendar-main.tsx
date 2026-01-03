@@ -560,25 +560,32 @@ export function CalendarMain({ selectedDate, onDateSelect, onMenuClick, events, 
                 <div key={`allday-col-${day.toISOString()}`} className="border-r last:border-r-0"></div>
               ))}
             </div>
-            {/* Overlay all-day events with grid positioning */}
-            <div className="absolute inset-0 grid pointer-events-none" style={{ gridTemplateColumns: `80px repeat(${filteredDays.length}, 1fr)` }}>
-              <div className="border-r"></div>
-              {allDayEventsWithRows.map((event) => (
-                <div
-                  key={event.id}
-                  className="pointer-events-auto px-2 py-1 m-1 rounded text-xs font-medium text-white cursor-pointer hover:opacity-90 truncate"
-                  style={{
-                    backgroundColor: event.color,
-                    gridColumnStart: event.gridColumnStart,
-                    gridColumnEnd: event.gridColumnEnd,
-                    gridRow: event.gridRow,
-                    height: '24px'
-                  }}
-                  onClick={() => handleEventClick(event)}
-                >
-                  {event.title}
-                </div>
-              ))}
+            {/* Overlay all-day events with absolute positioning */}
+            <div className="absolute inset-0 pointer-events-none">
+              {allDayEventsWithRows.map((event) => {
+                // Calculate position based on grid columns
+                const totalColumns = filteredDays.length + 1 // +1 for time label column
+                const columnWidth = 100 / totalColumns
+                const leftPercentage = (event.gridColumnStart - 1) * columnWidth
+                const widthPercentage = (event.gridColumnEnd - event.gridColumnStart) * columnWidth
+
+                return (
+                  <div
+                    key={event.id}
+                    className="absolute pointer-events-auto px-2 py-1 m-1 rounded text-xs font-medium text-white cursor-pointer hover:opacity-90 truncate"
+                    style={{
+                      backgroundColor: event.color,
+                      left: `${leftPercentage}%`,
+                      width: `${widthPercentage}%`,
+                      top: `${(event.gridRow - 1) * 32 + 4}px`,
+                      height: '24px'
+                    }}
+                    onClick={() => handleEventClick(event)}
+                  >
+                    {event.title}
+                  </div>
+                )
+              })}
             </div>
           </div>
 
