@@ -59,10 +59,15 @@ export function TaskSelector({ selectedTask, onTaskSelect, onTaskStatusChange }:
     }
   }
 
-  const filteredTasks = tasks.filter(task =>
-    task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    task.contact?.name?.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  const filteredTasks = tasks.filter(task => {
+    const query = searchQuery.toLowerCase()
+    return (
+      task.title.toLowerCase().includes(query) ||
+      task.description?.toLowerCase().includes(query) ||
+      task.contact?.name?.toLowerCase().includes(query) ||
+      task.category?.name?.toLowerCase().includes(query)
+    )
+  })
 
   const handleTaskSelect = (task: Task) => {
     onTaskSelect(task)
@@ -160,68 +165,156 @@ export function TaskSelector({ selectedTask, onTaskSelect, onTaskStatusChange }:
                 Seleziona un task...
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl max-h-[80vh]">
+            <DialogContent className="max-w-[90vw] w-full max-h-[90vh] overflow-hidden">
               <DialogHeader>
-                <DialogTitle>Seleziona un task</DialogTitle>
+                <DialogTitle className="text-2xl">Seleziona un task</DialogTitle>
               </DialogHeader>
-              <div className="space-y-4">
+              <div className="space-y-4 flex flex-col h-full">
                 <div className="relative">
-                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Search className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
                   <Input
-                    placeholder="Cerca task..."
+                    placeholder="Cerca task per titolo, cliente, categoria..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-8"
+                    className="pl-10 h-12 text-base"
                   />
                   {searchQuery && (
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="absolute right-1 top-1 h-7 w-7 p-0"
+                      className="absolute right-2 top-2 h-8 w-8 p-0"
                       onClick={() => setSearchQuery("")}
                     >
-                      <X className="h-4 w-4" />
+                      <X className="h-5 w-5" />
                     </Button>
                   )}
                 </div>
-                <div className="max-h-[50vh] overflow-y-auto space-y-2 pr-2">
+                <div className="flex-1 overflow-y-auto space-y-3 pr-2">
                   {loading ? (
-                    <div className="py-8 text-center text-sm text-muted-foreground">
-                      Caricamento...
+                    <div className="py-12 text-center text-muted-foreground">
+                      <div className="text-lg">Caricamento task...</div>
                     </div>
                   ) : filteredTasks.length === 0 ? (
-                    <div className="py-8 text-center text-sm text-muted-foreground">
-                      {tasks.length === 0 ? "Nessun task assegnato a te" : "Nessun task trovato"}
+                    <div className="py-12 text-center text-muted-foreground">
+                      <div className="text-lg">
+                        {tasks.length === 0 ? "Nessun task assegnato a te" : "Nessun task trovato con questi criteri"}
+                      </div>
                     </div>
                   ) : (
                     filteredTasks.map((task) => (
-                      <Button
+                      <div
                         key={task.id}
-                        variant="outline"
-                        className="w-full justify-start font-normal h-auto py-3 px-4"
+                        className="border rounded-lg p-5 hover:border-primary hover:shadow-md transition-all cursor-pointer"
                         onClick={() => handleTaskSelect(task)}
                       >
-                        <div className="flex flex-col items-start gap-2 w-full">
-                          <div className="flex items-center gap-2 w-full">
-                            <span className={cn("text-sm font-semibold", getPriorityColor(task.priority))}>
-                              {task.priority}
-                            </span>
-                            {getStatusBadge(task.status)}
-                            <span className="text-base flex-1 text-left font-medium">{task.title}</span>
+                        <div className="space-y-4">
+                          {/* Header */}
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="flex-1 space-y-2">
+                              <div className="flex items-center gap-3">
+                                <span className={cn("text-base font-bold", getPriorityColor(task.priority))}>
+                                  {task.priority}
+                                </span>
+                                {getStatusBadge(task.status)}
+                                {task.isFavorite && (
+                                  <Badge variant="secondary" className="gap-1">
+                                    ⭐ Preferito
+                                  </Badge>
+                                )}
+                              </div>
+                              <h3 className="text-xl font-semibold">{task.title}</h3>
+                            </div>
                           </div>
-                          <div className="flex gap-4 text-sm text-muted-foreground">
+
+                          {/* Description */}
+                          {task.description && (
+                            <p className="text-sm text-muted-foreground line-clamp-2">
+                              {task.description}
+                            </p>
+                          )}
+
+                          {/* Details Grid */}
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-2 border-t">
                             {task.contact && (
-                              <span>Cliente: {task.contact.name}</span>
+                              <div className="space-y-1">
+                                <div className="text-xs font-medium text-muted-foreground">Cliente</div>
+                                <div className="text-sm font-medium">{task.contact.name}</div>
+                                {task.contact.email && (
+                                  <div className="text-xs text-muted-foreground">{task.contact.email}</div>
+                                )}
+                              </div>
                             )}
-                            {task.estimatedHours && (
-                              <span>~{task.estimatedHours}h stimate</span>
-                            )}
+
                             {task.category && (
-                              <span>{task.category.name}</span>
+                              <div className="space-y-1">
+                                <div className="text-xs font-medium text-muted-foreground">Categoria</div>
+                                <div className="flex items-center gap-2">
+                                  {task.category.icon && <span className="text-base">{task.category.icon}</span>}
+                                  <span className="text-sm font-medium">{task.category.name}</span>
+                                </div>
+                              </div>
+                            )}
+
+                            {task.deadline && (
+                              <div className="space-y-1">
+                                <div className="text-xs font-medium text-muted-foreground">Scadenza</div>
+                                <div className="text-sm font-medium">
+                                  {new Date(task.deadline).toLocaleDateString('it-IT', {
+                                    day: '2-digit',
+                                    month: 'short',
+                                    year: 'numeric'
+                                  })}
+                                </div>
+                              </div>
+                            )}
+
+                            {task.estimatedHours !== undefined && (
+                              <div className="space-y-1">
+                                <div className="text-xs font-medium text-muted-foreground">Ore Stimate</div>
+                                <div className="text-sm font-medium">{task.estimatedHours}h</div>
+                              </div>
+                            )}
+
+                            {task.assignedUser && (
+                              <div className="space-y-1">
+                                <div className="text-xs font-medium text-muted-foreground">Assegnato a</div>
+                                <div className="text-sm font-medium">
+                                  {task.assignedUser.firstName} {task.assignedUser.lastName}
+                                </div>
+                              </div>
+                            )}
+
+                            {task.creator && (
+                              <div className="space-y-1">
+                                <div className="text-xs font-medium text-muted-foreground">Creato da</div>
+                                <div className="text-sm font-medium">
+                                  {task.creator.firstName} {task.creator.lastName}
+                                </div>
+                              </div>
+                            )}
+
+                            {task.createdAt && (
+                              <div className="space-y-1">
+                                <div className="text-xs font-medium text-muted-foreground">Data creazione</div>
+                                <div className="text-sm font-medium">
+                                  {new Date(task.createdAt).toLocaleDateString('it-IT', {
+                                    day: '2-digit',
+                                    month: 'short',
+                                    year: 'numeric'
+                                  })}
+                                </div>
+                              </div>
+                            )}
+
+                            {task.actualHours !== undefined && task.actualHours > 0 && (
+                              <div className="space-y-1">
+                                <div className="text-xs font-medium text-muted-foreground">Ore Effettive</div>
+                                <div className="text-sm font-medium">{task.actualHours}h</div>
+                              </div>
                             )}
                           </div>
                         </div>
-                      </Button>
+                      </div>
                     ))
                   )}
                 </div>
