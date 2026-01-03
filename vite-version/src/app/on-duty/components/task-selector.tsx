@@ -6,13 +6,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover"
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
 import { tasksAPI, type Task } from "@/lib/tasks-api"
+import { useAuthStore } from "@/store/auth-store"
 import { cn } from "@/lib/utils"
 
 interface TaskSelectorProps {
@@ -22,6 +25,7 @@ interface TaskSelectorProps {
 }
 
 export function TaskSelector({ selectedTask, onTaskSelect, onTaskStatusChange }: TaskSelectorProps) {
+  const { user } = useAuthStore()
   const [tasks, setTasks] = useState<Task[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
@@ -29,14 +33,19 @@ export function TaskSelector({ selectedTask, onTaskSelect, onTaskStatusChange }:
   const [updatingStatus, setUpdatingStatus] = useState(false)
 
   useEffect(() => {
-    loadTasks()
-  }, [])
+    if (user?.id) {
+      loadTasks()
+    }
+  }, [user?.id])
 
   const loadTasks = async () => {
+    if (!user?.id) return
+
     try {
       setLoading(true)
       const response = await tasksAPI.getTasks({
         status: 'TODO,IN_PROGRESS',
+        assignedTo: user.id,
         limit: 100,
       })
       if (response.success) {
@@ -144,15 +153,18 @@ export function TaskSelector({ selectedTask, onTaskSelect, onTaskStatusChange }:
       <CardContent className="space-y-3">
         {/* Task Selector */}
         {!selectedTask ? (
-          <Popover open={showTaskPicker} onOpenChange={setShowTaskPicker}>
-            <PopoverTrigger asChild>
+          <Dialog open={showTaskPicker} onOpenChange={setShowTaskPicker}>
+            <DialogTrigger asChild>
               <Button variant="outline" className="w-full justify-start">
                 <Search className="mr-2 h-4 w-4" />
                 Seleziona un task...
               </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-[400px] p-0" align="start">
-              <div className="border-b p-2">
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl max-h-[80vh]">
+              <DialogHeader>
+                <DialogTitle>Seleziona un task</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
                 <div className="relative">
                   <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
@@ -172,48 +184,50 @@ export function TaskSelector({ selectedTask, onTaskSelect, onTaskStatusChange }:
                     </Button>
                   )}
                 </div>
-              </div>
-              <div className="max-h-[300px] overflow-y-auto p-1">
-                {loading ? (
-                  <div className="py-6 text-center text-sm text-muted-foreground">
-                    Caricamento...
-                  </div>
-                ) : filteredTasks.length === 0 ? (
-                  <div className="py-6 text-center text-sm text-muted-foreground">
-                    Nessun task trovato
-                  </div>
-                ) : (
-                  filteredTasks.map((task) => (
-                    <Button
-                      key={task.id}
-                      variant="ghost"
-                      className="w-full justify-start font-normal h-auto py-2"
-                      onClick={() => handleTaskSelect(task)}
-                    >
-                      <div className="flex flex-col items-start gap-1 w-full">
-                        <div className="flex items-center gap-2 w-full">
-                          <span className={cn("text-xs", getPriorityColor(task.priority))}>
-                            {task.priority}
-                          </span>
-                          <span className="text-sm flex-1 text-left">{task.title}</span>
+                <div className="max-h-[50vh] overflow-y-auto space-y-2 pr-2">
+                  {loading ? (
+                    <div className="py-8 text-center text-sm text-muted-foreground">
+                      Caricamento...
+                    </div>
+                  ) : filteredTasks.length === 0 ? (
+                    <div className="py-8 text-center text-sm text-muted-foreground">
+                      {tasks.length === 0 ? "Nessun task assegnato a te" : "Nessun task trovato"}
+                    </div>
+                  ) : (
+                    filteredTasks.map((task) => (
+                      <Button
+                        key={task.id}
+                        variant="outline"
+                        className="w-full justify-start font-normal h-auto py-3 px-4"
+                        onClick={() => handleTaskSelect(task)}
+                      >
+                        <div className="flex flex-col items-start gap-2 w-full">
+                          <div className="flex items-center gap-2 w-full">
+                            <span className={cn("text-sm font-semibold", getPriorityColor(task.priority))}>
+                              {task.priority}
+                            </span>
+                            {getStatusBadge(task.status)}
+                            <span className="text-base flex-1 text-left font-medium">{task.title}</span>
+                          </div>
+                          <div className="flex gap-4 text-sm text-muted-foreground">
+                            {task.contact && (
+                              <span>Cliente: {task.contact.name}</span>
+                            )}
+                            {task.estimatedHours && (
+                              <span>~{task.estimatedHours}h stimate</span>
+                            )}
+                            {task.category && (
+                              <span>{task.category.name}</span>
+                            )}
+                          </div>
                         </div>
-                        {task.contact && (
-                          <span className="text-xs text-muted-foreground">
-                            {task.contact.name}
-                          </span>
-                        )}
-                        {task.estimatedHours && (
-                          <span className="text-xs text-muted-foreground">
-                            ~{task.estimatedHours}h stimate
-                          </span>
-                        )}
-                      </div>
-                    </Button>
-                  ))
-                )}
+                      </Button>
+                    ))
+                  )}
+                </div>
               </div>
-            </PopoverContent>
-          </Popover>
+            </DialogContent>
+          </Dialog>
         ) : (
           /* Selected Task Card */
           <div className="border rounded-lg p-3 space-y-3">
