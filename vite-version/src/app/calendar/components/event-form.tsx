@@ -193,6 +193,11 @@ export function EventForm({ event, open, onOpenChange, onSave, onDelete }: Event
       return
     }
 
+    if (!formData.categoryId) {
+      toast.error("La categoria è obbligatoria")
+      return
+    }
+
     const selectedCategory = categories.find(c => c.id === formData.categoryId)
     // Set the first participant as the main assignedTo for backend compatibility
     const eventData: Partial<CalendarEvent> = {
@@ -698,7 +703,7 @@ export function EventForm({ event, open, onOpenChange, onSave, onDelete }: Event
             <Button
               onClick={handleSave}
               className="flex-1 cursor-pointer"
-              disabled={!formData.title || formData.participants.length === 0}
+              disabled={!formData.title || formData.participants.length === 0 || !formData.categoryId}
             >
               {event?.id ? "Aggiorna Evento" : "Crea Evento"}
             </Button>

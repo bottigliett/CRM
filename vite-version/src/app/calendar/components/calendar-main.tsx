@@ -401,7 +401,10 @@ export function CalendarMain({ selectedDate, onDateSelect, onMenuClick, events, 
                         isSelected && "ring-2 ring-primary ring-inset",
                         isDayToday && "bg-accent/20"
                       )}
-                      onClick={() => onDateSelect?.(day)}
+                      onClick={() => {
+                        onDateSelect?.(day)
+                        onTimeSlotClick?.(day, "09:00")
+                      }}
                     >
                       <div className="absolute top-2 left-2 right-2 flex items-center justify-between">
                         <span className={cn(
