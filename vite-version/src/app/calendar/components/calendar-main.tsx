@@ -511,30 +511,25 @@ export function CalendarMain({ selectedDate, onDateSelect, onMenuClick, events, 
 
     // Calculate rows for overlapping all-day events
     const allDayEventsWithRows = allDayEventsWithSpan.map((event, index, arr) => {
-      let row = 1
-      // Check for overlaps with previous events
-      for (let i = 0; i < index; i++) {
-        const otherEvent = arr[i]
-        // Check if events overlap in columns
-        const eventsOverlap =
-          (event.gridColumnStart < otherEvent.gridColumnEnd) &&
-          (event.gridColumnEnd > otherEvent.gridColumnStart)
+      // Find all events that overlap with this one (same day or multi-day overlap)
+      const overlappingEvents = arr
+        .slice(0, index)
+        .filter(e =>
+          (e.gridColumnStart < event.gridColumnEnd) &&
+          (event.gridColumnStart < e.gridColumnEnd)
+        )
 
-        if (eventsOverlap) {
-          // Find the first available row
-          const usedRows = arr
-            .slice(0, index)
-            .filter(e =>
-              (e.gridColumnStart < event.gridColumnEnd) &&
-              (e.gridColumnEnd > event.gridColumnStart)
-            )
-            .map(e => e.gridRow || 1)
-
-          while (usedRows.includes(row)) {
-            row++
-          }
-        }
+      if (overlappingEvents.length === 0) {
+        return { ...event, gridRow: 1 }
       }
+
+      // Find the first available row
+      const usedRows = overlappingEvents.map(e => e.gridRow)
+      let row = 1
+      while (usedRows.includes(row)) {
+        row++
+      }
+
       return { ...event, gridRow: row }
     })
 
