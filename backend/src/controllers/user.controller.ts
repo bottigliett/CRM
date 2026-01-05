@@ -11,6 +11,9 @@ export const AVAILABLE_MODULES = [
   { name: 'calendar', label: 'Agenda', description: 'Calendario eventi' },
   { name: 'tasks', label: 'Task Manager', description: 'Gestione task' },
   { name: 'finance', label: 'Finance Tracker', description: 'Gestione finanze' },
+  { name: 'invoices', label: 'Fatture', description: 'Gestione fatture' },
+  { name: 'projects', label: 'Progetti', description: 'Gestione progetti' },
+  { name: 'on_duty', label: 'On Duty', description: 'Postazione di lavoro' },
 ];
 
 // Get all users (only SUPER_ADMIN)
