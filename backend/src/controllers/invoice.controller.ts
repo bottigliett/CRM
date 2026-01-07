@@ -704,14 +704,14 @@ export const generateInvoicePDF = async (req: Request, res: Response) => {
       services = parsedServices.map((s: any) => ({
         description: s.description,
         quantity: s.quantity.toString(),
-        unitPrice: s.unitPrice.toFixed(2).replace('.', ','),
+        unitPrice: s.unitPrice > 0 ? s.unitPrice.toFixed(2).replace('.', ',') : '',
       }));
     } catch (e) {
       // Fallback for old invoices without JSON format
       services = [{
         description: invoice.description || invoice.subject,
         quantity: invoice.quantity.toString(),
-        unitPrice: invoice.unitPrice.toFixed(2).replace('.', ','),
+        unitPrice: invoice.unitPrice > 0 ? invoice.unitPrice.toFixed(2).replace('.', ',') : '',
       }];
     }
 

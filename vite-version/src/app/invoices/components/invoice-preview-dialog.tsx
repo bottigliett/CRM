@@ -186,7 +186,7 @@ function getInvoicePreviewHTML(data: any): string {
             <div style="display: flex; align-items: center; font-size: 14px; font-weight: 400; text-transform: uppercase; padding: 0.5em 0;">
               <div style="flex: 6;">${service.description}</div>
               <div style="flex: 1; text-align: center;">${service.quantity}</div>
-              <div style="flex: 2; text-align: right;">${service.unitPrice} EUR</div>
+              <div style="flex: 2; text-align: right;">${service.unitPrice ? service.unitPrice + ' EUR' : ''}</div>
               <div style="flex: 1.5; text-align: right;">IVA 0%</div>
             </div>
           `).join('')
@@ -194,7 +194,7 @@ function getInvoicePreviewHTML(data: any): string {
           <div style="display: flex; align-items: center; font-size: 14px; font-weight: 400; text-transform: uppercase; padding: 0.5em 0;">
             <div style="flex: 6;">${data.description}</div>
             <div style="flex: 1; text-align: center;">${data.quantity}</div>
-            <div style="flex: 2; text-align: right;">${data.unitPrice} EUR</div>
+            <div style="flex: 2; text-align: right;">${data.unitPrice ? data.unitPrice + ' EUR' : ''}</div>
             <div style="flex: 1.5; text-align: right;">IVA ${data.vatPercentage}%</div>
           </div>
         `}
