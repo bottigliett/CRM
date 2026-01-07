@@ -256,7 +256,7 @@ export const createInvoice = async (req: Request, res: Response) => {
     const userId = (req as any).user?.userId;
 
     // Validation
-    if (!invoiceNumber || !clientName || !subject || !quantity || !unitPrice || !issueDate) {
+    if (!invoiceNumber || !clientName || !subject || quantity === undefined || unitPrice === undefined || !issueDate) {
       return res.status(400).json({
         success: false,
         message: 'Campi obbligatori mancanti',

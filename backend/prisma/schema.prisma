@@ -6,6 +6,7 @@ generator client {
 
 datasource db {
   provider = "mysql"
+  url      = env("DATABASE_URL")
 }
 
 // ===================================
@@ -578,7 +579,7 @@ model Invoice {
 
   // Invoice details
   subject         String         @map("subject") // Oggetto
-  description     String?        // Descrizione dettagliata
+  description     String?        @db.Text // Descrizione dettagliata (JSON array of services)
 
   // Link to quote (optional)
   quoteId         Int?           @map("quote_id") // FK to Quote if invoice was generated from quote

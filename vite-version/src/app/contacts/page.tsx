@@ -606,7 +606,7 @@ export default function ContactsPage() {
           <CardContent className="space-y-4">
             {/* Search and Filters */}
             <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-              <div className="relative md:w-90">
+              <div className="relative md:w-89">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Cerca contatti..."
