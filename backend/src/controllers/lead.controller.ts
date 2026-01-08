@@ -7,6 +7,20 @@ import prisma from '../config/database';
  */
 export const getLeads = async (req: Request, res: Response) => {
   try {
+    const { year } = req.query;
+
+    // Build date filter for year if provided
+    const dateFilter: any = {};
+    if (year) {
+      const yearNum = parseInt(year as string);
+      if (!isNaN(yearNum)) {
+        dateFilter.createdAt = {
+          gte: new Date(`${yearNum}-01-01`),
+          lt: new Date(`${yearNum + 1}-01-01`),
+        };
+      }
+    }
+
     // Get all leads (contacts with type PROSPECT and a funnelStage set)
     const leads = await prisma.contact.findMany({
       where: {
@@ -14,6 +28,7 @@ export const getLeads = async (req: Request, res: Response) => {
         funnelStage: {
           not: null, // Only prospects that are in the funnel (have a stage)
         },
+        ...dateFilter,
       },
       include: {
         tags: true,

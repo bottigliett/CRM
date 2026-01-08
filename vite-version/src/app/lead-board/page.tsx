@@ -238,6 +238,7 @@ export default function LeadBoardPage() {
   const [hasFormChanges, setHasFormChanges] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [stageFilter, setStageFilter] = useState<string>('')
+  const [selectedYear, setSelectedYear] = useState('2026')
   const [formData, setFormData] = useState<QuickLeadFormData>({
     selectedContactId: '',
     serviceType: '',
@@ -291,7 +292,7 @@ export default function LeadBoardPage() {
   const loadLeads = async () => {
     try {
       setIsLoading(true)
-      const response = await leadsAPI.getLeads()
+      const response = await leadsAPI.getLeads(selectedYear)
       setLeads(response.data.leads)
       setTotals(response.data.totals)
       setStages(response.data.stages)
@@ -305,7 +306,7 @@ export default function LeadBoardPage() {
 
   useEffect(() => {
     loadLeads()
-  }, [])
+  }, [selectedYear])
 
   const handleDragEnd = async (result: DropResult) => {
     const { source, destination, draggableId } = result
@@ -647,7 +648,7 @@ export default function LeadBoardPage() {
     <div className="px-4 lg:px-6 space-y-6">
       {/* Search and Filters */}
       <div className="flex flex-col gap-3">
-        {/* Top Row: Search + View Toggle */}
+        {/* Top Row: Search + Year Filter + View Toggle */}
         <div className="flex items-center justify-between gap-3">
           <div className="relative flex-1 md:max-w-md">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -658,24 +659,36 @@ export default function LeadBoardPage() {
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
-          {/* View Mode Toggle */}
-          <div className="flex gap-1 border rounded-md p-1">
-            <Button
-              variant={viewMode === 'table' ? 'default' : 'ghost'}
-              size="sm"
-              onClick={() => setViewMode('table')}
-              className="h-8"
-            >
-              <LayoutList className="h-4 w-4" />
-            </Button>
-            <Button
-              variant={viewMode === 'kanban' ? 'default' : 'ghost'}
-              size="sm"
-              onClick={() => setViewMode('kanban')}
-              className="h-8"
-            >
-              <LayoutGrid className="h-4 w-4" />
-            </Button>
+          <div className="flex items-center gap-2">
+            {/* Year Filter */}
+            <Select value={selectedYear} onValueChange={setSelectedYear}>
+              <SelectTrigger className="w-30">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="2025">2025</SelectItem>
+                <SelectItem value="2026">2026</SelectItem>
+              </SelectContent>
+            </Select>
+            {/* View Mode Toggle */}
+            <div className="flex gap-1 border rounded-md p-1">
+              <Button
+                variant={viewMode === 'table' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setViewMode('table')}
+                className="h-8"
+              >
+                <LayoutList className="h-4 w-4" />
+              </Button>
+              <Button
+                variant={viewMode === 'kanban' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setViewMode('kanban')}
+                className="h-8"
+              >
+                <LayoutGrid className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </div>
 

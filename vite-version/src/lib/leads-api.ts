@@ -101,8 +101,13 @@ class LeadsAPI {
     };
   }
 
-  async getLeads(): Promise<LeadsResponse> {
-    const response = await fetch(`${API_BASE_URL}/leads`, {
+  async getLeads(year?: string): Promise<LeadsResponse> {
+    const url = new URL(`${API_BASE_URL}/leads`, window.location.origin);
+    if (year) {
+      url.searchParams.append('year', year);
+    }
+
+    const response = await fetch(url.toString(), {
       headers: this.getAuthHeader(),
     });
 
