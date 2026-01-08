@@ -17,10 +17,11 @@ async function calculateProjectMetrics(
   startDate: Date,
   completedAt: Date | null
 ): Promise<ProjectMetrics> {
-  // Calculate actual hours from Events
+  // Calculate actual hours from Events (excluding all-day events)
   const events = await prisma.event.findMany({
     where: {
       contactId,
+      isAllDay: false, // Exclude all-day events from hour calculations
       startDateTime: {
         gte: startDate,
         ...(completedAt && { lte: completedAt }),
@@ -85,6 +86,7 @@ async function getTimeBreakdowns(
   const events = await prisma.event.findMany({
     where: {
       contactId,
+      isAllDay: false, // Exclude all-day events from hour calculations
       startDateTime: {
         gte: startDate,
         ...(completedAt && { lte: completedAt }),
