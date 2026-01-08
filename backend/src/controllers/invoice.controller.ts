@@ -126,7 +126,7 @@ export const getInvoices = async (req: Request, res: Response) => {
     });
 
     // Add isOverdue flag
-    const invoicesWithFlags = invoices.map((invoice) => ({
+    const invoicesWithFlags = invoices.map((invoice: any) => ({
       ...invoice,
       isOverdue: invoice.status === 'ISSUED' && invoice.dueDate < now,
     }));
@@ -146,21 +146,21 @@ export const getInvoices = async (req: Request, res: Response) => {
       });
 
       const totalIssued = allInvoices
-        .filter((i) => i.status !== 'DRAFT')
-        .reduce((sum, i) => sum + i.total, 0);
+        .filter((i: any) => i.status !== 'DRAFT')
+        .reduce((sum: number, i: any) => sum + i.total, 0);
 
       const totalCollected = allInvoices
-        .filter((i) => i.status === 'PAID')
-        .reduce((sum, i) => sum + i.total, 0);
+        .filter((i: any) => i.status === 'PAID')
+        .reduce((sum: number, i: any) => sum + i.total, 0);
 
       const totalPending = allInvoices
-        .filter((i) => i.status === 'ISSUED' && i.dueDate >= now)
-        .reduce((sum, i) => sum + i.total, 0);
+        .filter((i: any) => i.status === 'ISSUED' && i.dueDate >= now)
+        .reduce((sum: number, i: any) => sum + i.total, 0);
 
       const overdueInvoices = allInvoices
-        .filter((i) => i.status === 'ISSUED' && i.dueDate < now);
+        .filter((i: any) => i.status === 'ISSUED' && i.dueDate < now);
 
-      const overdueAmount = overdueInvoices.reduce((sum, i) => sum + i.total, 0);
+      const overdueAmount = overdueInvoices.reduce((sum: number, i: any) => sum + i.total, 0);
 
       statistics = {
         totalIssued,

@@ -451,7 +451,7 @@ export const getAllTags = async (req: Request, res: Response) => {
     });
 
     // Group by tag name and get the most used color for each tag
-    const uniqueTags = tags.reduce((acc: Array<{ tag: string; color: string | null }>, current) => {
+    const uniqueTags = tags.reduce((acc: Array<{ tag: string; color: string | null }>, current: any) => {
       const existing = acc.find((t) => t.tag === current.tag);
       if (!existing) {
         acc.push(current);

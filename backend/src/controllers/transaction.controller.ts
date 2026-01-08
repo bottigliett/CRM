@@ -437,17 +437,17 @@ export const getTransactionStats = async (req: Request, res: Response) => {
 
     // Calculate totals
     const income = transactions
-      .filter(t => t.type === TransactionType.INCOME)
-      .reduce((sum, t) => sum + t.amount, 0);
+      .filter((t: any) => t.type === TransactionType.INCOME)
+      .reduce((sum: number, t: any) => sum + t.amount, 0);
 
     const expenses = transactions
-      .filter(t => t.type === TransactionType.EXPENSE)
-      .reduce((sum, t) => sum + t.amount, 0);
+      .filter((t: any) => t.type === TransactionType.EXPENSE)
+      .reduce((sum: number, t: any) => sum + t.amount, 0);
 
     const balance = income - expenses;
 
     // Get category breakdown
-    const categoryBreakdown = transactions.reduce((acc: any, t) => {
+    const categoryBreakdown = transactions.reduce((acc: any, t: any) => {
       if (t.category) {
         const key = t.category.name;
         if (!acc[key]) {
@@ -483,12 +483,12 @@ export const getTransactionStats = async (req: Request, res: Response) => {
       });
 
       const prevIncome = prevTransactions
-        .filter(t => t.type === TransactionType.INCOME)
-        .reduce((sum, t) => sum + t.amount, 0);
+        .filter((t: any) => t.type === TransactionType.INCOME)
+        .reduce((sum: number, t: any) => sum + t.amount, 0);
 
       const prevExpenses = prevTransactions
-        .filter(t => t.type === TransactionType.EXPENSE)
-        .reduce((sum, t) => sum + t.amount, 0);
+        .filter((t: any) => t.type === TransactionType.EXPENSE)
+        .reduce((sum: number, t: any) => sum + t.amount, 0);
 
       // Calculate percentage changes
       incomeChange = prevIncome > 0 ? ((income - prevIncome) / prevIncome) * 100 : 0;
@@ -511,8 +511,8 @@ export const getTransactionStats = async (req: Request, res: Response) => {
         },
         categoryBreakdown: Object.values(categoryBreakdown),
         transactionCount: {
-          income: transactions.filter(t => t.type === TransactionType.INCOME).length,
-          expenses: transactions.filter(t => t.type === TransactionType.EXPENSE).length,
+          income: transactions.filter((t: any) => t.type === TransactionType.INCOME).length,
+          expenses: transactions.filter((t: any) => t.type === TransactionType.EXPENSE).length,
           total: transactions.length,
         },
       },

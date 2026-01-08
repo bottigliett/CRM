@@ -31,7 +31,7 @@ export const getLeads = async (req: Request, res: Response) => {
     const groupedLeads: Record<string, typeof leads> = {};
     const stageTotals: Record<string, number> = {};
 
-    leads.forEach((lead) => {
+    leads.forEach((lead: any) => {
       const stage = lead.funnelStage || 'daContattare';
 
       if (!groupedLeads[stage]) {

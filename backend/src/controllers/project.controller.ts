@@ -34,7 +34,7 @@ async function calculateProjectMetrics(
   });
 
   // Calculate duration in hours for each event, excluding events >= 23 hours
-  const actualHours = events.reduce((sum, event) => {
+  const actualHours = events.reduce((sum: number, event: any) => {
     const durationMs = event.endDateTime.getTime() - event.startDateTime.getTime();
     const durationHours = durationMs / (1000 * 60 * 60); // Convert milliseconds to hours
 
@@ -61,7 +61,7 @@ async function calculateProjectMetrics(
   });
 
   const estimatedHoursFromTasks = tasks.reduce(
-    (sum, task) => sum + (task.estimatedHours || 0),
+    (sum: number, task: any) => sum + (task.estimatedHours || 0),
     0
   );
 
@@ -109,7 +109,7 @@ async function getTimeBreakdowns(
 
   // Group by month
   const monthlyMap = new Map<string, { hours: number; events: number }>();
-  events.forEach((event) => {
+  events.forEach((event: any) => {
     const month = event.startDateTime.toISOString().substring(0, 7); // YYYY-MM
     const durationMs = event.endDateTime.getTime() - event.startDateTime.getTime();
     const durationHours = durationMs / (1000 * 60 * 60);
@@ -124,14 +124,14 @@ async function getTimeBreakdowns(
     });
   });
 
-  const monthly = Array.from(monthlyMap.entries()).map(([period, data]) => ({
+  const monthly = Array.from(monthlyMap.entries()).map(([period, data]: [string, any]) => ({
     period,
     ...data,
   }));
 
   // Group by week
   const weeklyMap = new Map<string, { hours: number; events: number }>();
-  events.forEach((event) => {
+  events.forEach((event: any) => {
     const date = new Date(event.startDateTime);
     const week = getWeekNumber(date);
     const year = date.getFullYear();
@@ -149,7 +149,7 @@ async function getTimeBreakdowns(
     });
   });
 
-  const weekly = Array.from(weeklyMap.entries()).map(([period, data]) => ({
+  const weekly = Array.from(weeklyMap.entries()).map(([period, data]: [string, any]) => ({
     period,
     ...data,
   }));
@@ -201,7 +201,7 @@ export const getProjects = async (req: AuthRequest, res: Response) => {
 
     // Calculate metrics for each project
     const projectsWithMetrics = await Promise.all(
-      projects.map(async (project) => {
+      projects.map(async (project: any) => {
         const metrics = await calculateProjectMetrics(
           project.id,
           project.contactId,
