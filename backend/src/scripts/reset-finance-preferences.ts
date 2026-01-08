@@ -7,7 +7,7 @@ async function resetFinancePreferences() {
     console.log('🔄 Resetting Finance page preferences...');
 
     // Elimina tutte le preferences per la pagina Finance
-    const result = await prisma.userPreference.deleteMany({
+    const result = await prisma.userPagePreference.deleteMany({
       where: {
         pageName: 'finance',
       },
