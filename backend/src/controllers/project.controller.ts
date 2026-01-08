@@ -33,10 +33,16 @@ async function calculateProjectMetrics(
     },
   });
 
-  // Calculate duration in hours for each event
+  // Calculate duration in hours for each event, excluding events >= 23 hours
   const actualHours = events.reduce((sum, event) => {
     const durationMs = event.endDateTime.getTime() - event.startDateTime.getTime();
     const durationHours = durationMs / (1000 * 60 * 60); // Convert milliseconds to hours
+
+    // Skip events that are 23+ hours (likely all-day reminders not properly flagged)
+    if (durationHours >= 23) {
+      return sum;
+    }
+
     return sum + durationHours;
   }, 0);
 
@@ -107,6 +113,10 @@ async function getTimeBreakdowns(
     const month = event.startDateTime.toISOString().substring(0, 7); // YYYY-MM
     const durationMs = event.endDateTime.getTime() - event.startDateTime.getTime();
     const durationHours = durationMs / (1000 * 60 * 60);
+
+    // Skip events that are 23+ hours (likely all-day reminders)
+    if (durationHours >= 23) return;
+
     const existing = monthlyMap.get(month) || { hours: 0, events: 0 };
     monthlyMap.set(month, {
       hours: existing.hours + durationHours,
@@ -128,6 +138,10 @@ async function getTimeBreakdowns(
     const weekKey = `${year}-W${week.toString().padStart(2, '0')}`;
     const durationMs = event.endDateTime.getTime() - event.startDateTime.getTime();
     const durationHours = durationMs / (1000 * 60 * 60);
+
+    // Skip events that are 23+ hours (likely all-day reminders)
+    if (durationHours >= 23) return;
+
     const existing = weeklyMap.get(weekKey) || { hours: 0, events: 0 };
     weeklyMap.set(weekKey, {
       hours: existing.hours + durationHours,
