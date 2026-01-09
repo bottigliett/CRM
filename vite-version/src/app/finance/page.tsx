@@ -309,8 +309,10 @@ export default function FinancePage() {
     setPagination(prev => ({ ...prev, page: newPage }))
   }
 
-  const handleTransactionCreated = () => {
+  const handleTransactionCreated = async () => {
     setPagination(prev => ({ ...prev, page: 1 }))
+    // Reload transactions and stats
+    await Promise.all([loadTransactions(), loadStats()])
   }
 
   const openNewIncomeDialog = () => {
@@ -349,35 +351,70 @@ export default function FinancePage() {
     }
   }
 
-  const handleExportCSV = () => {
-    // Convert transactions to CSV
-    const headers = ['Data', 'Tipo', 'Importo', 'Descrizione', 'Categoria', 'Metodo', 'Fornitore']
-    const csvRows = [headers.join(',')]
+  const handleExportCSV = async () => {
+    try {
+      // Load all transactions first
+      let params: GetTransactionsParams = {
+        page: 1,
+        limit: 10000,
+      }
 
-    allTransactions.forEach(t => {
-      const row = [
-        format(new Date(t.date), 'dd/MM/yyyy'),
-        t.type === 'INCOME' ? 'Entrata' : 'Uscita',
-        t.amount.toFixed(2),
-        `"${(t.description || '').replace(/"/g, '""')}"`,
-        `"${(t.category?.name || '-').replace(/"/g, '""')}"`,
-        `"${(t.paymentMethod?.name || '-').replace(/"/g, '""')}"`,
-        `"${(t.vendor || '-').replace(/"/g, '""')}"`,
-      ]
-      csvRows.push(row.join(','))
-    })
+      // Apply date filters based on selected period
+      if (selectedPeriod === 'month') {
+        const year = parseInt(selectedYear)
+        const month = parseInt(selectedMonth)
+        const start = startOfMonth(new Date(year, month - 1))
+        const end = endOfMonth(new Date(year, month - 1))
+        params.startDate = format(start, 'yyyy-MM-dd')
+        params.endDate = format(end, 'yyyy-MM-dd')
+      } else if (selectedPeriod === 'year') {
+        const year = parseInt(selectedYear)
+        const start = startOfYear(new Date(year, 0))
+        const end = endOfYear(new Date(year, 0))
+        params.startDate = format(start, 'yyyy-MM-dd')
+        params.endDate = format(end, 'yyyy-MM-dd')
+      }
 
-    const csvContent = csvRows.join('\n')
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-    const link = document.createElement('a')
-    const url = URL.createObjectURL(blob)
+      const response = await transactionsAPI.getTransactions(params)
+      if (!response.success || !response.data.transactions.length) {
+        alert('Nessuna transazione da esportare')
+        return
+      }
 
-    link.setAttribute('href', url)
-    link.setAttribute('download', `transazioni_${format(new Date(), 'yyyy-MM-dd')}.csv`)
-    link.style.visibility = 'hidden'
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
+      const transactionsToExport = response.data.transactions
+
+      // Convert transactions to CSV
+      const headers = ['Data', 'Tipo', 'Importo', 'Descrizione', 'Categoria', 'Metodo', 'Fornitore']
+      const csvRows = [headers.join(',')]
+
+      transactionsToExport.forEach(t => {
+        const row = [
+          format(new Date(t.date), 'dd/MM/yyyy'),
+          t.type === 'INCOME' ? 'Entrata' : 'Uscita',
+          t.amount.toFixed(2),
+          `"${(t.description || '').replace(/"/g, '""')}"`,
+          `"${(t.category?.name || '-').replace(/"/g, '""')}"`,
+          `"${(t.paymentMethod?.name || '-').replace(/"/g, '""')}"`,
+          `"${(t.vendor || '-').replace(/"/g, '""')}"`,
+        ]
+        csvRows.push(row.join(','))
+      })
+
+      const csvContent = csvRows.join('\n')
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+      const link = document.createElement('a')
+      const url = URL.createObjectURL(blob)
+
+      link.setAttribute('href', url)
+      link.setAttribute('download', `transazioni_${format(new Date(), 'yyyy-MM-dd')}.csv`)
+      link.style.visibility = 'hidden'
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+    } catch (error) {
+      console.error('Failed to export CSV:', error)
+      alert('Errore durante l\'esportazione del CSV')
+    }
   }
 
   // Genera lista anni (solo 2025 e 2026)
@@ -825,10 +862,7 @@ export default function FinancePage() {
               <CardDescription>Ultime {pagination.limit} transazioni del periodo</CardDescription>
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={async () => {
-                await loadAllTransactions()
-                handleExportCSV()
-              }}>
+              <Button variant="outline" size="sm" onClick={handleExportCSV}>
                 <Download className="mr-2 h-4 w-4" />
                 Esporta CSV
               </Button>
