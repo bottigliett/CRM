@@ -187,10 +187,10 @@ export const createTransaction = async (req: Request, res: Response) => {
     } = req.body;
 
     // Validation
-    if (!type || !amount || !date) {
+    if (!type || !amount || !date || !description) {
       return res.status(400).json({
         success: false,
-        message: 'Type, amount, and date are required',
+        message: 'Type, amount, date, and description are required',
       });
     }
 

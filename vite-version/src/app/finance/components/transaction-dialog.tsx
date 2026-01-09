@@ -22,21 +22,24 @@ import {
   transactionsAPI,
   transactionCategoriesAPI,
   paymentMethodsAPI,
+  type Transaction,
   type TransactionCategory,
   type PaymentMethod,
   type CreateTransactionData,
 } from "@/lib/finance-api"
 import { Loader2 } from "lucide-react"
 import { format } from "date-fns"
+import { toast } from "sonner"
 
 interface TransactionDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onSuccess?: () => void
   defaultType?: 'INCOME' | 'EXPENSE'
+  transaction?: Transaction | null
 }
 
-export function TransactionDialog({ open, onOpenChange, onSuccess, defaultType = 'INCOME' }: TransactionDialogProps) {
+export function TransactionDialog({ open, onOpenChange, onSuccess, defaultType = 'INCOME', transaction }: TransactionDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [categories, setCategories] = useState<TransactionCategory[]>([])
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([])
@@ -52,20 +55,34 @@ export function TransactionDialog({ open, onOpenChange, onSuccess, defaultType =
     paymentMethodId: undefined,
   })
 
-  // Reset form when dialog opens with new type
+  // Reset form when dialog opens with new type or load transaction data for editing
   useEffect(() => {
     if (open) {
-      setFormData({
-        type: defaultType,
-        amount: 0,
-        date: format(new Date(), 'yyyy-MM-dd'),
-        description: '',
-        vendor: '',
-        categoryId: undefined,
-        paymentMethodId: undefined,
-      })
+      if (transaction) {
+        // Edit mode - load transaction data
+        setFormData({
+          type: transaction.type,
+          amount: transaction.amount,
+          date: format(new Date(transaction.date), 'yyyy-MM-dd'),
+          description: transaction.description || '',
+          vendor: transaction.vendor || '',
+          categoryId: transaction.categoryId || undefined,
+          paymentMethodId: transaction.paymentMethodId || undefined,
+        })
+      } else {
+        // Create mode - reset form
+        setFormData({
+          type: defaultType,
+          amount: 0,
+          date: format(new Date(), 'yyyy-MM-dd'),
+          description: '',
+          vendor: '',
+          categoryId: undefined,
+          paymentMethodId: undefined,
+        })
+      }
     }
-  }, [open, defaultType])
+  }, [open, defaultType, transaction])
 
   // Load categories and payment methods
   useEffect(() => {
@@ -100,26 +117,44 @@ export function TransactionDialog({ open, onOpenChange, onSuccess, defaultType =
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
+    if (!formData.description?.trim()) {
+      toast.error("La descrizione è obbligatoria")
+      return
+    }
+
     try {
       setIsSubmitting(true)
-      const response = await transactionsAPI.createTransaction(formData)
 
-      if (response.success) {
-        onSuccess?.()
-        onOpenChange(false)
-        // Reset form
-        setFormData({
-          type: 'INCOME',
-          amount: 0,
-          date: format(new Date(), 'yyyy-MM-dd'),
-          description: '',
-          vendor: '',
-          categoryId: undefined,
-          paymentMethodId: undefined,
-        })
+      if (transaction) {
+        // Update existing transaction
+        const response = await transactionsAPI.updateTransaction(transaction.id, formData)
+        if (response.success) {
+          toast.success("Transazione aggiornata con successo")
+          onSuccess?.()
+          onOpenChange(false)
+        }
+      } else {
+        // Create new transaction
+        const response = await transactionsAPI.createTransaction(formData)
+        if (response.success) {
+          toast.success("Transazione creata con successo")
+          onSuccess?.()
+          onOpenChange(false)
+          // Reset form
+          setFormData({
+            type: 'INCOME',
+            amount: 0,
+            date: format(new Date(), 'yyyy-MM-dd'),
+            description: '',
+            vendor: '',
+            categoryId: undefined,
+            paymentMethodId: undefined,
+          })
+        }
       }
     } catch (error) {
-      console.error('Failed to create transaction:', error)
+      console.error('Failed to save transaction:', error)
+      toast.error(transaction ? "Errore nell'aggiornamento della transazione" : "Errore nella creazione della transazione")
     } finally {
       setIsSubmitting(false)
     }
@@ -129,9 +164,9 @@ export function TransactionDialog({ open, onOpenChange, onSuccess, defaultType =
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Nuova Transazione</DialogTitle>
+          <DialogTitle>{transaction ? 'Modifica Transazione' : 'Nuova Transazione'}</DialogTitle>
           <DialogDescription>
-            Inserisci i dettagli della transazione
+            {transaction ? 'Modifica i dettagli della transazione' : 'Inserisci i dettagli della transazione'}
           </DialogDescription>
         </DialogHeader>
 
@@ -259,7 +294,7 @@ export function TransactionDialog({ open, onOpenChange, onSuccess, defaultType =
               {/* Description */}
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="description" className="text-right">
-                  Descrizione
+                  Descrizione *
                 </Label>
                 <Textarea
                   id="description"
@@ -267,6 +302,8 @@ export function TransactionDialog({ open, onOpenChange, onSuccess, defaultType =
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   rows={3}
+                  required
+                  placeholder="Inserisci una descrizione..."
                 />
               </div>
             </div>
@@ -277,7 +314,7 @@ export function TransactionDialog({ open, onOpenChange, onSuccess, defaultType =
               </Button>
               <Button type="submit" disabled={isSubmitting}>
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Crea Transazione
+                {transaction ? 'Aggiorna Transazione' : 'Crea Transazione'}
               </Button>
             </DialogFooter>
           </form>

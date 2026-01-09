@@ -49,6 +49,7 @@ import {
   Pencil,
   Trash2,
   Landmark,
+  Download,
 } from "lucide-react"
 import { transactionsAPI, type Transaction, type GetTransactionsParams } from "@/lib/finance-api"
 import { format, startOfMonth, endOfMonth, startOfYear, endOfYear } from "date-fns"
@@ -78,6 +79,7 @@ export default function FinancePage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isAllTransactionsDialogOpen, setIsAllTransactionsDialogOpen] = useState(false)
   const [dialogDefaultType, setDialogDefaultType] = useState<'INCOME' | 'EXPENSE'>('INCOME')
+  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null)
 
   // Check if data should be protected
   const shouldProtectData = isProtectionEnabled && !isUnlocked
@@ -312,12 +314,20 @@ export default function FinancePage() {
   }
 
   const openNewIncomeDialog = () => {
+    setEditingTransaction(null)
     setDialogDefaultType('INCOME')
     setIsDialogOpen(true)
   }
 
   const openNewExpenseDialog = () => {
+    setEditingTransaction(null)
     setDialogDefaultType('EXPENSE')
+    setIsDialogOpen(true)
+  }
+
+  const handleEditTransaction = (transaction: Transaction) => {
+    setEditingTransaction(transaction)
+    setDialogDefaultType(transaction.type)
     setIsDialogOpen(true)
   }
 
@@ -337,6 +347,37 @@ export default function FinancePage() {
         console.error('Failed to delete transaction:', error)
       }
     }
+  }
+
+  const handleExportCSV = () => {
+    // Convert transactions to CSV
+    const headers = ['Data', 'Tipo', 'Importo', 'Descrizione', 'Categoria', 'Metodo', 'Fornitore']
+    const csvRows = [headers.join(',')]
+
+    allTransactions.forEach(t => {
+      const row = [
+        format(new Date(t.date), 'dd/MM/yyyy'),
+        t.type === 'INCOME' ? 'Entrata' : 'Uscita',
+        t.amount.toFixed(2),
+        `"${(t.description || '').replace(/"/g, '""')}"`,
+        `"${(t.category?.name || '-').replace(/"/g, '""')}"`,
+        `"${(t.paymentMethod?.name || '-').replace(/"/g, '""')}"`,
+        `"${(t.vendor || '-').replace(/"/g, '""')}"`,
+      ]
+      csvRows.push(row.join(','))
+    })
+
+    const csvContent = csvRows.join('\n')
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const link = document.createElement('a')
+    const url = URL.createObjectURL(blob)
+
+    link.setAttribute('href', url)
+    link.setAttribute('download', `transazioni_${format(new Date(), 'yyyy-MM-dd')}.csv`)
+    link.style.visibility = 'hidden'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
   }
 
   // Genera lista anni (solo 2025 e 2026)
@@ -783,10 +824,19 @@ export default function FinancePage() {
               <CardTitle>Transazioni Recenti</CardTitle>
               <CardDescription>Ultime {pagination.limit} transazioni del periodo</CardDescription>
             </div>
-            <Button variant="outline" size="sm" onClick={openAllTransactionsDialog}>
-              <List className="mr-2 h-4 w-4" />
-              Vedi Tutte
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={async () => {
+                await loadAllTransactions()
+                handleExportCSV()
+              }}>
+                <Download className="mr-2 h-4 w-4" />
+                Esporta CSV
+              </Button>
+              <Button variant="outline" size="sm" onClick={openAllTransactionsDialog}>
+                <List className="mr-2 h-4 w-4" />
+                Vedi Tutte
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -857,7 +907,7 @@ export default function FinancePage() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleEditTransaction(transaction)}>
                                 <Pencil className="mr-2 h-4 w-4" />
                                 Modifica
                               </DropdownMenuItem>
@@ -922,6 +972,7 @@ export default function FinancePage() {
         onOpenChange={setIsDialogOpen}
         onSuccess={handleTransactionCreated}
         defaultType={dialogDefaultType}
+        transaction={editingTransaction}
       />
 
       {/* All Transactions Dialog */}
@@ -990,7 +1041,10 @@ export default function FinancePage() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => {
+                            setIsAllTransactionsDialogOpen(false)
+                            handleEditTransaction(transaction)
+                          }}>
                             <Pencil className="mr-2 h-4 w-4" />
                             Modifica
                           </DropdownMenuItem>
