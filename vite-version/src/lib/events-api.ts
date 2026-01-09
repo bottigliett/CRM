@@ -47,6 +47,18 @@ export interface Event {
       role: string;
     };
   }>;
+  reminders?: Array<{
+    id: number;
+    eventId: number;
+    reminderType: 'MINUTES_15' | 'MINUTES_30' | 'HOUR_1' | 'DAY_1';
+    sendEmail: boolean;
+    emailSent: boolean;
+    sendBrowser: boolean;
+    browserSent: boolean;
+    scheduledAt: string;
+    createdAt: string;
+    updatedAt: string;
+  }>;
 }
 
 export interface EventCategory {

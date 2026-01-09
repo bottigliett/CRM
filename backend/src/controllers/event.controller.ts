@@ -136,6 +136,7 @@ export const getEvents = async (req: Request, res: Response) => {
             },
           },
         },
+        reminders: true,
       },
       orderBy: {
         startDateTime: 'asc',
@@ -231,6 +232,7 @@ export const getEventById = async (req: Request, res: Response) => {
             },
           },
         },
+        reminders: true,
       },
     });
 

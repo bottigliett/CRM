@@ -124,9 +124,9 @@ export function EventForm({ event, open, onOpenChange, onSave, onDelete }: Event
         description: event.description || "",
         color: event.color || "#3b82f6",
         allDay: event.allDay || false,
-        reminderEnabled: false,
-        reminderType: "MINUTES_15",
-        reminderEmail: false
+        reminderEnabled: event.reminderEnabled || false,
+        reminderType: event.reminderType || "MINUTES_15",
+        reminderEmail: event.reminderEmail || false
       })
     } else {
       // Reset for new event

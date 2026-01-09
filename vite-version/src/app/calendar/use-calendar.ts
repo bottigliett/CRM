@@ -45,6 +45,12 @@ function convertAPIEvent(apiEvent: APIEvent): CalendarEvent {
   const start = new Date(apiEvent.startDateTime)
   const end = new Date(apiEvent.endDateTime)
 
+  // Extract reminder data from the event's reminders array
+  const firstReminder = apiEvent.reminders?.[0]
+  const reminderEnabled = !!firstReminder
+  const reminderType = firstReminder?.reminderType || 'MINUTES_15'
+  const reminderEmail = firstReminder?.sendEmail || false
+
   return {
     id: apiEvent.id,
     title: apiEvent.title,
@@ -69,6 +75,9 @@ function convertAPIEvent(apiEvent: APIEvent): CalendarEvent {
       lastName: tm.user.lastName,
       email: tm.user.email,
     })) || [],
+    reminderEnabled,
+    reminderType,
+    reminderEmail,
   }
 }
 

@@ -22,6 +22,9 @@ export interface CalendarEvent {
     lastName: string
     email: string
   }>
+  reminderEnabled?: boolean
+  reminderType?: 'MINUTES_15' | 'MINUTES_30' | 'HOUR_1' | 'DAY_1'
+  reminderEmail?: boolean
 }
 
 export interface Calendar {
