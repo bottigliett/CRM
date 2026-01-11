@@ -5,6 +5,7 @@ import { AppSidebar } from "@/components/app-sidebar"
 import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
 import { useSidebarConfig } from "@/hooks/use-sidebar-config"
+import { useNotificationsToast } from "@/hooks/use-notifications-toast"
 import {
   SidebarInset,
   SidebarProvider,
@@ -19,6 +20,9 @@ interface BaseLayoutProps {
 
 export function BaseLayout({ children, title, description, headerAction }: BaseLayoutProps) {
   const { config } = useSidebarConfig()
+
+  // Enable real-time notification toasts
+  useNotificationsToast()
 
   return (
     <SidebarProvider
