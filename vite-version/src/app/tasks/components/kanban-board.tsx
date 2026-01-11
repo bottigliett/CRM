@@ -101,6 +101,22 @@ export function KanbanBoard({ tasks, onTaskUpdate, onAddTask, onTaskDeleted, onT
     setDeleteDialogOpen(true)
   }
 
+  const handleCompleteTask = async (task: Task) => {
+    try {
+      const response = await tasksAPI.updateTask(task.id, {
+        status: 'COMPLETED',
+        completedAt: new Date().toISOString(),
+      })
+      if (response.success) {
+        onTaskUpdated?.(response.data)
+        toast.success('Task completato con successo')
+      }
+    } catch (error) {
+      console.error('Failed to complete task:', error)
+      toast.error('Errore nel completamento del task')
+    }
+  }
+
   const handleTaskUpdated = (updatedTask: Task) => {
     onTaskUpdated?.(updatedTask)
   }
@@ -481,6 +497,7 @@ export function KanbanBoard({ tasks, onTaskUpdate, onAddTask, onTaskDeleted, onT
       onOpenChange={setDetailModalOpen}
       onEdit={handleEditTask}
       onDelete={handleDeleteTask}
+      onComplete={handleCompleteTask}
     />
 
     <AddTaskModal
