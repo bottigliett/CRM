@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import type { Row } from "@tanstack/react-table"
-import { MoreHorizontal, Eye, Star } from "lucide-react"
+import { MoreHorizontal, Eye, Star, CheckCircle2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -61,6 +61,22 @@ export function DataTableRowActions<TData>({
     }
   }
 
+  const handleComplete = async () => {
+    try {
+      const response = await tasksAPI.updateTask(task.id, {
+        status: 'COMPLETED',
+        completedAt: new Date().toISOString(),
+      })
+      if (response.success) {
+        onTaskUpdated?.(response.data)
+        toast.success('Task completato con successo')
+      }
+    } catch (error) {
+      console.error('Failed to complete task:', error)
+      toast.error('Errore nel completamento del task')
+    }
+  }
+
   const handleDelete = () => {
     setDeleteDialogOpen(true)
   }
@@ -106,6 +122,12 @@ export function DataTableRowActions<TData>({
           <Star className={`mr-2 h-4 w-4 ${task.isFavorite ? 'fill-yellow-400 text-yellow-400' : ''}`} />
           Preferiti
         </DropdownMenuItem>
+        {task.status !== 'COMPLETED' && (
+          <DropdownMenuItem className="cursor-pointer" onClick={handleComplete}>
+            <CheckCircle2 className="mr-2 h-4 w-4" />
+            Completa
+          </DropdownMenuItem>
+        )}
         <DropdownMenuSeparator />
         <DropdownMenuSub>
           <DropdownMenuSubTrigger className="cursor-pointer">Etichette</DropdownMenuSubTrigger>
