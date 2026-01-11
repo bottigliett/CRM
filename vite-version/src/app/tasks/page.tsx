@@ -157,6 +157,25 @@ export default function TaskPage() {
     setDeleteDialogOpen(true)
   }
 
+  const handleCompleteTask = async (task: Task) => {
+    try {
+      const response = await tasksAPI.updateTask(task.id, {
+        status: 'COMPLETED',
+        completedAt: new Date().toISOString(),
+      })
+
+      if (response.success) {
+        setTasks(prev => prev.map(t =>
+          t.id === task.id ? response.data : t
+        ))
+        toast.success('Task completato con successo')
+      }
+    } catch (error) {
+      console.error('Failed to complete task:', error)
+      toast.error('Errore nel completamento del task')
+    }
+  }
+
   const handleConfirmDelete = async () => {
     if (!selectedTask) return
 
@@ -313,6 +332,7 @@ export default function TaskPage() {
         onOpenChange={setDetailModalOpen}
         onEdit={handleEditTask}
         onDelete={handleDeleteTask}
+        onComplete={handleCompleteTask}
       />
 
       <AddTaskModal

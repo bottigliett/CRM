@@ -25,14 +25,16 @@ interface TaskDetailModalProps {
   onOpenChange: (open: boolean) => void
   onEdit?: (task: Task) => void
   onDelete?: (task: Task) => void
+  onComplete?: (task: Task) => void
 }
 
-export function TaskDetailModal({ task, open, onOpenChange, onEdit, onDelete }: TaskDetailModalProps) {
+export function TaskDetailModal({ task, open, onOpenChange, onEdit, onDelete, onComplete }: TaskDetailModalProps) {
   if (!task) return null
 
   const status = statuses.find(s => s.value === task.status)
   const priority = priorities.find(p => p.value === task.priority)
   const isOverdue = new Date(task.deadline) < new Date() && task.status !== 'COMPLETED'
+  const isCompleted = task.status === 'COMPLETED'
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -222,9 +224,22 @@ export function TaskDetailModal({ task, open, onOpenChange, onEdit, onDelete }: 
               Elimina
             </Button>
           )}
-          {onEdit && (
+          {onComplete && !isCompleted && (
             <Button
               variant="default"
+              onClick={() => {
+                onComplete(task)
+                onOpenChange(false)
+              }}
+              className="gap-2 bg-green-600 hover:bg-green-700"
+            >
+              <CheckCircle2 className="w-4 h-4" />
+              Completa
+            </Button>
+          )}
+          {onEdit && (
+            <Button
+              variant="outline"
               onClick={() => {
                 onEdit(task)
                 onOpenChange(false)
