@@ -3,6 +3,7 @@ import { Navigate } from 'react-router-dom'
 import { ProtectedRoute } from '@/components/protected-route'
 import { AuthRoute } from '@/components/auth-route'
 import { ModuleProtectedRoute } from '@/components/module-protected-route'
+import { ClientProtectedRoute } from '@/components/client-protected-route'
 
 // Lazy load components for better performance
 const Dashboard = lazy(() => import('@/app/dashboard/page'))
@@ -36,6 +37,7 @@ const SignIn3 = lazy(() => import('@/app/auth/sign-in-3/page'))
 // Client pages
 const ClientActivation = lazy(() => import('@/app/client/activate/page'))
 const ClientLogin = lazy(() => import('@/app/client/login/page'))
+const ClientDashboard = lazy(() => import('@/app/client/dashboard/page'))
 const SignUp = lazy(() => import('@/app/auth/sign-up/page'))
 const SignUp2 = lazy(() => import('@/app/auth/sign-up-2/page'))
 const SignUp3 = lazy(() => import('@/app/auth/sign-up-3/page'))
@@ -189,6 +191,12 @@ export const routes: RouteConfig[] = [
   {
     path: "/client/login",
     element: <ClientLogin />
+  },
+
+  // Client Routes (Protected)
+  {
+    path: "/client/dashboard",
+    element: <ClientProtectedRoute><ClientDashboard /></ClientProtectedRoute>
   },
 
   // Error Pages
