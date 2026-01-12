@@ -5,7 +5,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "mysql"
   url      = env("DATABASE_URL")
 }
 
@@ -583,7 +583,7 @@ model Invoice {
 
   // Invoice details
   subject         String         @map("subject") // Oggetto
-  description     String?         // Descrizione dettagliata (JSON array of services)
+  description     String?        @db.Text // Descrizione dettagliata (JSON array of services)
 
   // Link to quote (optional)
   quoteId         Int?           @map("quote_id") // FK to Quote if invoice was generated from quote
@@ -849,7 +849,7 @@ model ClientAccess {
 
   // Project details (for FULL_CLIENT access)
   projectName        String?   @map("project_name")
-  projectDescription String?    @map("project_description")
+  projectDescription String?   @db.Text @map("project_description")
   projectBudget      Float?    @map("project_budget")
   projectStartDate   DateTime? @map("project_start_date")
   projectEndDate     DateTime? @map("project_end_date")
@@ -866,7 +866,7 @@ model ClientAccess {
   invoiceFolder      String?   @map("invoice_folder")
 
   // Bespoke details (JSON)
-  bespokeDetails     String?    @map("bespoke_details") // JSON string
+  bespokeDetails     String?   @db.Text @map("bespoke_details") // JSON string
 
   // Linked quote for QUOTE_ONLY access
   linkedQuoteId      Int?      @map("linked_quote_id") // FK to Quote for quote-only access
@@ -901,7 +901,7 @@ model Quote {
   quoteNumber          String      @unique @map("quote_number") // Q2026-0042
   contactId            Int         @map("contact_id") // FK to Contact
   title                String
-  description          String?     
+  description          String?     @db.Text     
 
   // Financial details
   subtotal             Float       // Somma quote_items
@@ -956,7 +956,7 @@ model QuoteItem {
   quoteId     Int      @map("quote_id")
   packageId   Int?     @map("package_id") // FK to QuotePackage (if part of package)
   itemName    String   @map("item_name")
-  description String?  
+  description String?  @db.Text
   quantity    Float    @default(1)
   unitPrice   Float    @map("unit_price")
   total       Float    // quantity * unitPrice
@@ -979,7 +979,7 @@ model QuotePackage {
   id          Int         @id @default(autoincrement())
   quoteId     Int         @map("quote_id")
   name        String      // "Pacchetto Base", "Pacchetto Pro", "Pacchetto Premium"
-  description String?     
+  description String?     @db.Text
   price       Float       // Prezzo totale del pacchetto
   isRecommended Boolean   @default(false) @map("is_recommended")
   order       Int         @default(0)
@@ -1005,7 +1005,7 @@ model ClientNotification {
   clientAccessId  Int      @map("client_access_id")
   type            ClientNotificationType
   title           String
-  message         String   
+  message         String   @db.Text
   link            String?  // URL to navigate when clicking
   relatedId       Int?     @map("related_id") // ID of related resource (quote, ticket, invoice)
   relatedType     String?  @map("related_type") // Type of related resource (quote, ticket, invoice)
@@ -1047,7 +1047,7 @@ model Ticket {
   // Ticket details
   supportType        SupportType  @map("support_type")
   subject            String
-  description        String       
+  description        String       @db.Text
   priority           TicketPriority @default(NORMAL)
   status             TicketStatus @default(OPEN)
 
@@ -1058,7 +1058,7 @@ model Ticket {
   timeSpentMinutes   Int          @default(0) @map("time_spent_minutes")
 
   // Closure
-  closingNotes       String?       @map("closing_notes")
+  closingNotes       String?      @db.Text @map("closing_notes")
   closedAt           DateTime?    @map("closed_at")
 
   createdAt          DateTime     @default(now()) @map("created_at")
@@ -1108,7 +1108,7 @@ model TicketMessage {
   ticketId        Int      @map("ticket_id")
   userId          Int?     @map("user_id") // NULL if from client
   clientAccessId  Int?     @map("client_access_id") // NULL if from admin
-  message         String   
+  message         String   @db.Text
   isInternal      Boolean  @default(false) @map("is_internal") // Note interne (solo admin)
   clientReadAt    DateTime? @map("client_read_at")
 
@@ -1133,7 +1133,7 @@ model TicketActivityLog {
   action     String   // "ticket_created", "status_changed", "assigned", "message_added", "time_logged", "closed"
   oldValue   String?  @map("old_value")
   newValue   String?  @map("new_value")
-  details    String?  
+  details    String?  @db.Text  
 
   createdAt  DateTime @default(now()) @map("created_at")
 
@@ -1151,7 +1151,7 @@ model ClientActivityLog {
   id             Int      @id @default(autoincrement())
   clientAccessId Int      @map("client_access_id")
   action         String   // "login", "password_changed", "quote_viewed", "quote_accepted", etc.
-  details        String?  
+  details        String?  @db.Text
   ipAddress      String?  @map("ip_address")
   userAgent      String?  @map("user_agent")
 
