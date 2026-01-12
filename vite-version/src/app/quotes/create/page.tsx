@@ -100,7 +100,7 @@ export default function CreateQuotePage() {
         contactsAPI.getAll({ limit: 1000 }),
         quotesAPI.getPricingGuide(),
       ])
-      setContacts(contactsRes.data)
+      setContacts(contactsRes.data.contacts)
       setPricingGuide(pricingRes.data)
     } catch (error) {
       console.error('Error loading data:', error)
