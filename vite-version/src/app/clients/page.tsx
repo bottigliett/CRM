@@ -76,8 +76,8 @@ export default function ClientsPage() {
   const [contacts, setContacts] = useState<Contact[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
-  const [typeFilter, setTypeFilter] = useState<string>("")
-  const [statusFilter, setStatusFilter] = useState<string>("")
+  const [typeFilter, setTypeFilter] = useState<string>("all")
+  const [statusFilter, setStatusFilter] = useState<string>("all")
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [totalClients, setTotalClients] = useState(0)
@@ -123,7 +123,7 @@ export default function ClientsPage() {
       setLoading(true)
       const response = await clientAccessAPI.getAll({
         search: searchQuery || undefined,
-        accessType: typeFilter || undefined,
+        accessType: typeFilter !== 'all' ? typeFilter : undefined,
         isActive: statusFilter === 'active' ? true : statusFilter === 'inactive' ? false : undefined,
         page: currentPage,
         limit: 50,
@@ -406,7 +406,7 @@ export default function ClientsPage() {
               <SelectValue placeholder="Tipo accesso" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Tutti i tipi</SelectItem>
+              <SelectItem value="all">Tutti i tipi</SelectItem>
               <SelectItem value="QUOTE_ONLY">Solo Preventivo</SelectItem>
               <SelectItem value="FULL_CLIENT">Cliente Completo</SelectItem>
             </SelectContent>
@@ -416,7 +416,7 @@ export default function ClientsPage() {
               <SelectValue placeholder="Stato" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Tutti gli stati</SelectItem>
+              <SelectItem value="all">Tutti gli stati</SelectItem>
               <SelectItem value="active">Attivi</SelectItem>
               <SelectItem value="inactive">Disattivati</SelectItem>
             </SelectContent>
