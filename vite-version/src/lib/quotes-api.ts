@@ -128,8 +128,7 @@ export const quotesAPI = {
    * Get pricing guide
    */
   async getPricingGuide(): Promise<PricingGuideResponse> {
-    const response = await api.get('/quotes/pricing-guide');
-    return response.data;
+    return await api.get('/quotes/pricing-guide');
   },
 
   /**
@@ -151,39 +150,45 @@ export const quotesAPI = {
     if (params?.limit) queryParams.append('limit', params.limit.toString());
 
     const response = await api.get(`/quotes?${queryParams.toString()}`);
-    return response.data;
+
+    return {
+      success: response.success,
+      data: response.data.quotes,
+      pagination: {
+        total: response.data.total,
+        page: params?.page || 1,
+        limit: response.data.limit,
+        pages: Math.ceil(response.data.total / response.data.limit),
+      },
+    };
   },
 
   /**
    * Get single quote by ID
    */
   async getById(id: number): Promise<QuoteResponse> {
-    const response = await api.get(`/quotes/${id}`);
-    return response.data;
+    return await api.get(`/quotes/${id}`);
   },
 
   /**
    * Create new quote
    */
   async create(data: CreateQuoteData): Promise<QuoteResponse> {
-    const response = await api.post('/quotes', data);
-    return response.data;
+    return await api.post('/quotes', data);
   },
 
   /**
    * Update quote
    */
   async update(id: number, data: UpdateQuoteData): Promise<QuoteResponse> {
-    const response = await api.put(`/quotes/${id}`, data);
-    return response.data;
+    return await api.put(`/quotes/${id}`, data);
   },
 
   /**
    * Delete quote
    */
   async delete(id: number): Promise<{ success: boolean; message: string }> {
-    const response = await api.delete(`/quotes/${id}`);
-    return response.data;
+    return await api.delete(`/quotes/${id}`);
   },
 
   /**

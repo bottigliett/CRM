@@ -121,55 +121,64 @@ export const clientAccessAPI = {
     if (params?.limit) queryParams.append('limit', params.limit.toString());
 
     const response = await api.get(`/client-access?${queryParams.toString()}`);
-    return response.data;
+
+    // Transform backend response to match frontend interface
+    const clientAccesses = response.data;
+    const total = clientAccesses.length;
+    const limit = params?.limit || total;
+
+    return {
+      success: response.success,
+      data: clientAccesses,
+      pagination: {
+        total,
+        page: params?.page || 1,
+        limit,
+        pages: Math.ceil(total / limit),
+      },
+    };
   },
 
   /**
    * Get single client access by ID
    */
   async getById(id: number): Promise<ClientAccessResponse> {
-    const response = await api.get(`/client-access/${id}`);
-    return response.data;
+    return await api.get(`/client-access/${id}`);
   },
 
   /**
    * Create new client access
    */
   async create(data: CreateClientAccessData): Promise<ClientAccessResponse> {
-    const response = await api.post('/client-access', data);
-    return response.data;
+    return await api.post('/client-access', data);
   },
 
   /**
    * Update client access
    */
   async update(id: number, data: UpdateClientAccessData): Promise<ClientAccessResponse> {
-    const response = await api.put(`/client-access/${id}`, data);
-    return response.data;
+    return await api.put(`/client-access/${id}`, data);
   },
 
   /**
    * Delete client access
    */
   async delete(id: number): Promise<{ success: boolean; message: string }> {
-    const response = await api.delete(`/client-access/${id}`);
-    return response.data;
+    return await api.delete(`/client-access/${id}`);
   },
 
   /**
    * Resend activation email
    */
   async resendActivation(id: number): Promise<{ success: boolean; message: string }> {
-    const response = await api.post(`/client-access/${id}/resend-activation`);
-    return response.data;
+    return await api.post(`/client-access/${id}/resend-activation`);
   },
 
   /**
    * Upgrade from QUOTE_ONLY to FULL_CLIENT
    */
   async upgradeToFullClient(id: number, data: UpgradeToFullClientData): Promise<ClientAccessResponse> {
-    const response = await api.post(`/client-access/${id}/upgrade-to-full`, data);
-    return response.data;
+    return await api.post(`/client-access/${id}/upgrade-to-full`, data);
   },
 
   /**
