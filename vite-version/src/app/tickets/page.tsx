@@ -41,7 +41,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { ticketsAPI, Ticket, TicketMessage } from '@/lib/tickets-api'
+import { ticketsAPI } from '@/lib/tickets-api'
+import type { Ticket, TicketMessage } from '@/lib/tickets-api'
 import {
   Search,
   MoreHorizontal,

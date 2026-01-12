@@ -43,7 +43,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { quotesAPI, Quote } from '@/lib/quotes-api'
+import { quotesAPI } from '@/lib/quotes-api'
+import type { Quote } from '@/lib/quotes-api'
 import {
   Plus,
   Search,
