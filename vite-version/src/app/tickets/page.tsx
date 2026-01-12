@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Layout } from '@/components/custom/layout'
+import { BaseLayout } from '@/components/layouts/base-layout'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -229,8 +229,8 @@ export default function TicketsPage() {
   )
 
   return (
-    <Layout>
-      <Layout.Header>
+    <BaseLayout>
+      <BaseLayout.Header>
         <div className='flex items-center justify-between'>
           <div>
             <h1 className='text-2xl font-bold tracking-tight'>Ticket di Supporto</h1>
@@ -239,9 +239,9 @@ export default function TicketsPage() {
             </p>
           </div>
         </div>
-      </Layout.Header>
+      </BaseLayout.Header>
 
-      <Layout.Body>
+      <BaseLayout.Body>
         <Card>
           <CardHeader>
             <CardTitle>Lista Ticket</CardTitle>
@@ -549,7 +549,7 @@ export default function TicketsPage() {
             )}
           </DialogContent>
         </Dialog>
-      </Layout.Body>
-    </Layout>
+      </BaseLayout.Body>
+    </BaseLayout>
   )
 }
