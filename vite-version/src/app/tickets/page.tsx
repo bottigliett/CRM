@@ -230,19 +230,10 @@ export default function TicketsPage() {
   )
 
   return (
-    <BaseLayout>
-      <BaseLayout.Header>
-        <div className='flex items-center justify-between'>
-          <div>
-            <h1 className='text-2xl font-bold tracking-tight'>Ticket di Supporto</h1>
-            <p className='text-muted-foreground'>
-              Gestisci le richieste di supporto dei clienti
-            </p>
-          </div>
-        </div>
-      </BaseLayout.Header>
-
-      <BaseLayout.Body>
+    <BaseLayout
+      title="Ticket di Supporto"
+      description="Gestisci le richieste di supporto dei clienti"
+    >
         <Card>
           <CardHeader>
             <CardTitle>Lista Ticket</CardTitle>
@@ -550,7 +541,6 @@ export default function TicketsPage() {
             )}
           </DialogContent>
         </Dialog>
-      </BaseLayout.Body>
     </BaseLayout>
   )
 }

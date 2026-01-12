@@ -140,23 +140,16 @@ export default function QuotesPage() {
   )
 
   return (
-    <BaseLayout>
-      <BaseLayout.Header>
-        <div className='flex items-center justify-between'>
-          <div>
-            <h1 className='text-2xl font-bold tracking-tight'>Preventivi</h1>
-            <p className='text-muted-foreground'>
-              Gestisci i preventivi per i tuoi clienti
-            </p>
-          </div>
-          <Button onClick={() => navigate('/quotes/create')}>
-            <Plus className='mr-2 h-4 w-4' />
-            Nuovo Preventivo
-          </Button>
-        </div>
-      </BaseLayout.Header>
-
-      <BaseLayout.Body>
+    <BaseLayout
+      title="Preventivi"
+      description="Gestisci i preventivi per i tuoi clienti"
+      headerAction={
+        <Button onClick={() => navigate('/quotes/create')}>
+          <Plus className='mr-2 h-4 w-4' />
+          Nuovo Preventivo
+        </Button>
+      }
+    >
         <Card>
           <CardHeader>
             <CardTitle>Lista Preventivi</CardTitle>
@@ -313,7 +306,6 @@ export default function QuotesPage() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
-      </BaseLayout.Body>
     </BaseLayout>
   )
 }
