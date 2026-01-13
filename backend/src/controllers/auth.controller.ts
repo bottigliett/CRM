@@ -196,13 +196,13 @@ export const login = async (req: Request, res: Response) => {
         });
       }
 
-      // Genera token ADMIN con type
+      // Genera token ADMIN (senza type nel JWT per limitare dimensione)
+      // Il type viene dedotto dalla presenza di userId vs clientAccessId
       const token = generateToken({
         userId: user.id,
         email: user.email,
         role: user.role,
-        type: 'ADMIN', // IMPORTANTE: distingui tipo utente
-      } as any);
+      });
 
       // Crea sessione ADMIN
       const expiresAt = new Date();
