@@ -6,6 +6,7 @@ import { AuthRequest } from '../middleware/auth';
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import { sendEmail } from '../services/email.service';
+import { generateTokenHash } from '../utils/token-hash';
 
 export const register = async (req: Request, res: Response) => {
   try {
@@ -73,6 +74,7 @@ export const register = async (req: Request, res: Response) => {
       data: {
         userId: user.id,
         token,
+        tokenHash: generateTokenHash(token),
         expiresAt,
       },
     });
@@ -212,6 +214,7 @@ export const login = async (req: Request, res: Response) => {
         data: {
           userId: user.id,
           token,
+          tokenHash: generateTokenHash(token),
           expiresAt,
         },
       });
@@ -444,10 +447,11 @@ export const logout = async (req: AuthRequest, res: Response) => {
     }
 
     const token = authHeader.substring(7);
+    const tokenHash = generateTokenHash(token);
 
     // Elimina la sessione dal database
     await prisma.session.deleteMany({
-      where: { token },
+      where: { tokenHash },
     });
 
     // Log logout
