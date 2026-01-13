@@ -124,7 +124,71 @@ class ClientAuthAPI {
   }
 
   /**
-   * Step 3: Complete activation with username and password
+   * Manual Flow Step 1: Verify username exists and is not activated
+   */
+  async verifyUsername(username: string): Promise<VerifyTokenResponse> {
+    const response = await fetch(`${API_BASE_URL}/client/auth/verify-username`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ username }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Username non trovato o già attivato');
+    }
+
+    return response.json();
+  }
+
+  /**
+   * Manual Flow Step 2: Verify activation code
+   */
+  async verifyActivationCode(username: string, activationCode: string): Promise<VerifyCodeResponse> {
+    const response = await fetch(`${API_BASE_URL}/client/auth/verify-activation-code`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ username, activationCode }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Codice di attivazione non valido');
+    }
+
+    return response.json();
+  }
+
+  /**
+   * Manual Flow Step 3: Complete manual activation with password
+   */
+  async completeManualActivation(
+    username: string,
+    activationCode: string,
+    password: string
+  ): Promise<CompleteActivationResponse> {
+    const response = await fetch(`${API_BASE_URL}/client/auth/complete-manual-activation`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ username, activationCode, password }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || "Errore nel completamento dell'attivazione");
+    }
+
+    return response.json();
+  }
+
+  /**
+   * Step 3: Complete activation with username and password (Token flow)
    */
   async completeActivation(
     token: string,

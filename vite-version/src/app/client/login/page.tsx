@@ -125,16 +125,18 @@ export default function ClientLoginPage() {
             </Button>
           </CardContent>
         </form>
-        <CardFooter className='flex flex-col space-y-2'>
-          <div className='text-sm text-center text-muted-foreground'>
-            Hai ricevuto un link di attivazione?{' '}
-            <button
-              onClick={() => navigate('/client/activate')}
-              className='text-primary hover:underline'
-              disabled={loading}
-            >
-              Attiva il tuo account
-            </button>
+        <CardFooter className='flex flex-col space-y-3'>
+          <Button
+            variant='outline'
+            className='w-full'
+            onClick={() => navigate('/client/activate')}
+            disabled={loading}
+          >
+            <User className='mr-2 h-4 w-4' />
+            Nuovo Cliente
+          </Button>
+          <div className='text-xs text-center text-muted-foreground'>
+            Primo accesso? Attiva il tuo account con username e codice di attivazione
           </div>
           <div className='text-xs text-center text-muted-foreground'>
             Problemi di accesso?{' '}

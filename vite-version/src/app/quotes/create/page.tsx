@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
-import { useNavigate } from "react-router-dom"
+import { useNavigate, useSearchParams } from "react-router-dom"
 import { BaseLayout } from "@/components/layouts/base-layout"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -60,14 +60,18 @@ interface QuoteFormData {
 
 export default function CreateQuotePage() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const [currentStep, setCurrentStep] = useState<Step>(1)
   const [contacts, setContacts] = useState<Contact[]>([])
   const [pricingGuide, setPricingGuide] = useState<PricingGuide | null>(null)
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
 
+  // Get contactId from URL if present
+  const urlContactId = searchParams.get('contactId')
+
   const [formData, setFormData] = useState<QuoteFormData>({
-    contactId: 0,
+    contactId: urlContactId ? parseInt(urlContactId) : 0,
     title: '',
     description: '',
     validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
