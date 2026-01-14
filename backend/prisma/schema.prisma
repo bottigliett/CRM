@@ -903,7 +903,8 @@ model Quote {
   quoteNumber          String      @unique @map("quote_number") // Q2026-0042
   contactId            Int         @map("contact_id") // FK to Contact
   title                String
-  description          String?     @db.Text     
+  description          String?     @db.Text
+  objectives           String?     @db.Text // JSON array of project objectives [{title, description}]
 
   // Financial details
   subtotal             Float       // Somma quote_items
@@ -982,6 +983,7 @@ model QuotePackage {
   quoteId     Int         @map("quote_id")
   name        String      // "Pacchetto Base", "Pacchetto Pro", "Pacchetto Premium"
   description String?     @db.Text
+  features    String?     @db.Text // JSON array of package features ["Feature 1", "Feature 2"]
   price       Float       // Prezzo totale del pacchetto
   isRecommended Boolean   @default(false) @map("is_recommended")
   order       Int         @default(0)
