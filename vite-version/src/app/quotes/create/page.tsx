@@ -573,14 +573,14 @@ export default function CreateQuotePage() {
             </CardHeader>
             <CardContent className="space-y-6">
               {/* Price Range Alert */}
-              {items.length > 0 && (
+              {formData.items.length > 0 && (
                 <div className="p-4 bg-primary/10 border border-primary/20 rounded-lg">
                   <div className="flex items-center gap-2 mb-1">
                     <Calculator className="h-4 w-4 text-primary" />
                     <h4 className="font-semibold text-sm">Budget Stimato</h4>
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    Basato sulle {items.length} voci inserite: <span className="font-bold text-primary">€{totals.subtotal.toFixed(2)}</span>
+                    Basato sulle {formData.items.length} voci inserite: <span className="font-bold text-primary">€{totals.subtotal.toFixed(2)}</span>
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
                     Usa questo come riferimento per i prezzi dei pacchetti (Base, Pro, Premium)
