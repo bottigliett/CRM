@@ -49,6 +49,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 
 export default function ClientDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -59,7 +67,16 @@ export default function ClientDetailPage() {
   const [saving, setSaving] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [showActivationCode, setShowActivationCode] = useState(false)
+  const [showDashboardDialog, setShowDashboardDialog] = useState(false)
   const [activeTab, setActiveTab] = useState("overview")
+
+  // Dashboard form data
+  const [dashboardForm, setDashboardForm] = useState({
+    projectName: '',
+    projectDescription: '',
+    monthlyFee: 0,
+    supportHoursIncluded: 0,
+  })
 
   useEffect(() => {
     if (id) {
@@ -119,18 +136,36 @@ export default function ClientDetailPage() {
     }
   }
 
-  const handleActivateDashboard = async () => {
+  const handleActivateDashboard = () => {
+    if (!client) return
+
+    // Initialize form with current data or defaults
+    setDashboardForm({
+      projectName: client.projectName || '',
+      projectDescription: client.projectDescription || '',
+      monthlyFee: client.monthlyFee || 0,
+      supportHoursIncluded: client.supportHoursIncluded || 0,
+    })
+
+    // Open dialog
+    setShowDashboardDialog(true)
+  }
+
+  const handleSaveDashboard = async () => {
     if (!client) return
 
     try {
       setSaving(true)
       await clientAccessAPI.update(client.id, {
         accessType: 'FULL_CLIENT',
-        monthlyFee: 0,
-        supportHoursIncluded: 0,
+        projectName: dashboardForm.projectName || null,
+        projectDescription: dashboardForm.projectDescription || null,
+        monthlyFee: dashboardForm.monthlyFee,
+        supportHoursIncluded: dashboardForm.supportHoursIncluded,
         supportHoursUsed: 0,
       })
       toast.success('Dashboard attivata con successo')
+      setShowDashboardDialog(false)
       loadClientData()
       setActiveTab('dashboard')
     } catch (error: any) {
@@ -673,6 +708,88 @@ export default function ClientDetailPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Dashboard Activation Dialog */}
+      <Dialog open={showDashboardDialog} onOpenChange={setShowDashboardDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Attiva Dashboard Completa</DialogTitle>
+            <DialogDescription>
+              Configura le informazioni della dashboard per il cliente. Tutti i campi sono opzionali.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="projectName">Nome Progetto</Label>
+              <Input
+                id="projectName"
+                placeholder="es. Sito Web E-commerce"
+                value={dashboardForm.projectName}
+                onChange={(e) => setDashboardForm({ ...dashboardForm, projectName: e.target.value })}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="projectDescription">Descrizione Progetto</Label>
+              <Textarea
+                id="projectDescription"
+                placeholder="Descrizione dettagliata del progetto..."
+                value={dashboardForm.projectDescription}
+                onChange={(e) => setDashboardForm({ ...dashboardForm, projectDescription: e.target.value })}
+                rows={4}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="monthlyFee">Canone Mensile (€)</Label>
+                <Input
+                  id="monthlyFee"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="0.00"
+                  value={dashboardForm.monthlyFee}
+                  onChange={(e) => setDashboardForm({ ...dashboardForm, monthlyFee: parseFloat(e.target.value) || 0 })}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="supportHoursIncluded">Ore Supporto Incluse</Label>
+                <Input
+                  id="supportHoursIncluded"
+                  type="number"
+                  min="0"
+                  step="0.5"
+                  placeholder="0"
+                  value={dashboardForm.supportHoursIncluded}
+                  onChange={(e) => setDashboardForm({ ...dashboardForm, supportHoursIncluded: parseFloat(e.target.value) || 0 })}
+                />
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDashboardDialog(false)} disabled={saving}>
+              Annulla
+            </Button>
+            <Button onClick={handleSaveDashboard} disabled={saving}>
+              {saving ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Attivazione...
+                </>
+              ) : (
+                <>
+                  <LayoutDashboard className="h-4 w-4 mr-2" />
+                  Attiva Dashboard
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </BaseLayout>
   )
 }

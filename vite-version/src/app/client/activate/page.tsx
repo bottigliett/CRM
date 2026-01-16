@@ -273,9 +273,9 @@ export default function ClientActivationPage() {
               <div className='mx-auto w-12 h-12 rounded-full bg-green-100 flex items-center justify-center'>
                 <Mail className='h-6 w-6 text-green-600' />
               </div>
-              <h3 className='text-lg font-semibold'>Verifica Email</h3>
+              <h3 className='text-lg font-semibold'>Verifica Email e Codice</h3>
               <p className='text-sm text-muted-foreground'>
-                Conferma che questa è la tua email
+                Conferma la tua email e inserisci il codice di attivazione
               </p>
             </div>
 
@@ -284,12 +284,30 @@ export default function ClientActivationPage() {
                 <AlertDescription>
                   <div className='space-y-1'>
                     <p><strong>Nome:</strong> {clientData.contact.name}</p>
-                    <p><strong>Email:</strong> {email || 'Non configurata'}</p>
                     <p><strong>Username:</strong> {username}</p>
                   </div>
                 </AlertDescription>
               </Alert>
             )}
+
+            <div className='space-y-2'>
+              <Label htmlFor='email'>Email</Label>
+              <div className='relative'>
+                <Mail className='absolute left-3 top-3 h-4 w-4 text-muted-foreground' />
+                <Input
+                  id='email'
+                  type='email'
+                  placeholder='tua@email.com'
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className='pl-10'
+                  disabled={loading}
+                />
+              </div>
+              <p className='text-xs text-muted-foreground'>
+                Modifica l'email se necessario
+              </p>
+            </div>
 
             <div className='space-y-2'>
               <Label htmlFor='activationCode'>Codice di Attivazione</Label>
