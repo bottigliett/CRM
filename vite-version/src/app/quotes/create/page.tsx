@@ -284,10 +284,10 @@ export default function CreateQuotePage() {
         // Step 2: Objectives (optional but recommended)
         return true
       case 3:
-        // Step 3: Packages (optional)
+        // Step 3: Price Calculation (optional, helps define package range)
         return true
       case 4:
-        // Step 4: Items (optional)
+        // Step 4: Packages (optional)
         return true
       case 5:
         // Step 5: Discounts (always OK)
@@ -562,8 +562,8 @@ export default function CreateQuotePage() {
           </Card>
         )}
 
-        {/* Step 3: Packages */}
-        {currentStep === 3 && (
+        {/* Step 4: Packages */}
+        {currentStep === 4 && (
           <Card>
             <CardHeader>
               <CardTitle>Pacchetti Proposti</CardTitle>
@@ -572,6 +572,22 @@ export default function CreateQuotePage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
+              {/* Price Range Alert */}
+              {items.length > 0 && (
+                <div className="p-4 bg-primary/10 border border-primary/20 rounded-lg">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Calculator className="h-4 w-4 text-primary" />
+                    <h4 className="font-semibold text-sm">Budget Stimato</h4>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Basato sulle {items.length} voci inserite: <span className="font-bold text-primary">€{totals.subtotal.toFixed(2)}</span>
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Usa questo come riferimento per i prezzi dei pacchetti (Base, Pro, Premium)
+                  </p>
+                </div>
+              )}
+
               {/* Add Package Form */}
               <div className="space-y-4 p-4 border rounded-lg">
                 <div className="grid gap-4 md:grid-cols-2">
@@ -706,8 +722,8 @@ export default function CreateQuotePage() {
           </Card>
         )}
 
-        {/* Step 4: Items + Pricing Helper */}
-        {currentStep === 4 && (
+        {/* Step 3: Price Calculation */}
+        {currentStep === 3 && (
           <div className="grid gap-6 lg:grid-cols-2">
             {/* Pricing Helper */}
             <Card>
@@ -749,9 +765,9 @@ export default function CreateQuotePage() {
             <div className="space-y-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>Aggiungi Voce</CardTitle>
+                  <CardTitle>Calcola Stima Prezzo</CardTitle>
                   <CardDescription>
-                    Inserisci i dettagli della voce di preventivo
+                    Aggiungi voci per stimare il prezzo del progetto. Questo ti aiuterà a definire il range dei pacchetti nello step successivo.
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -1219,12 +1235,19 @@ export default function CreateQuotePage() {
                     )}
                     <Separator />
                     <div className="flex justify-between text-2xl font-bold">
-                      <span>TOTALE:</span>
+                      <span>{formData.packages.length > 0 ? 'A PARTIRE DA:' : 'TOTALE:'}</span>
                       <span className="text-primary flex items-center gap-1">
                         <Euro className="h-6 w-6" />
-                        {totals.total.toFixed(2)}
+                        {formData.packages.length > 0
+                          ? Math.min(...formData.packages.map(p => p.price)).toFixed(2)
+                          : totals.total.toFixed(2)}
                       </span>
                     </div>
+                    {formData.packages.length > 0 && (
+                      <p className="text-xs text-muted-foreground text-right">
+                        Il cliente potrà scegliere tra {formData.packages.length} pacchetti proposti
+                      </p>
+                    )}
                   </div>
                 </div>
               </CardContent>
