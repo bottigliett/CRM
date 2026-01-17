@@ -235,7 +235,8 @@ class ClientAuthAPI {
    * Client login
    */
   async login(username: string, password: string): Promise<LoginResponse> {
-    const response = await fetch(`${API_BASE_URL}/client-auth/login`, {
+    // Use activate endpoint for login (public route)
+    const response = await fetch(`${API_BASE_URL}/activate/login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
