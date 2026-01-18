@@ -1001,6 +1001,147 @@ export async function sendClientActivationCodeEmail(
   return sendEmail(to, template.subject, template.html, template.text);
 }
 
+/**
+ * Send email to client when a task is assigned
+ */
+export async function sendClientTaskAssignedEmail(
+  to: string,
+  clientName: string,
+  taskTitle: string,
+  taskDeadline: Date,
+  taskDescription?: string
+): Promise<boolean> {
+  const subject = `Nuovo Task Assegnato: ${taskTitle}`;
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <h2 style="color: #2563eb;">Nuovo Task Assegnato</h2>
+      <p>Gentile ${clientName},</p>
+      <p>Ti è stato assegnato un nuovo task:</p>
+      <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+        <h3 style="margin-top: 0; color: #1f2937;">${taskTitle}</h3>
+        ${taskDescription ? `<p style="color: #4b5563;">${taskDescription}</p>` : ''}
+        <p style="margin-bottom: 0;"><strong>Scadenza:</strong> ${taskDeadline.toLocaleDateString('it-IT')}</p>
+      </div>
+      <p>Accedi al tuo portale cliente per visualizzare i dettagli e seguire i progressi.</p>
+      <p>Cordiali saluti,<br>Il Team di MismoStudio</p>
+    </div>
+  `;
+  const text = `Nuovo Task Assegnato: ${taskTitle}\n\nScadenza: ${taskDeadline.toLocaleDateString('it-IT')}\n${taskDescription || ''}`;
+  return sendEmail(to, subject, html, text);
+}
+
+/**
+ * Send email to client when an event/appointment is created
+ */
+export async function sendClientEventCreatedEmail(
+  to: string,
+  clientName: string,
+  eventTitle: string,
+  eventStart: Date,
+  eventLocation?: string
+): Promise<boolean> {
+  const subject = `Nuovo Appuntamento: ${eventTitle}`;
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <h2 style="color: #2563eb;">Nuovo Appuntamento</h2>
+      <p>Gentile ${clientName},</p>
+      <p>È stato creato un nuovo appuntamento:</p>
+      <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+        <h3 style="margin-top: 0; color: #1f2937;">${eventTitle}</h3>
+        <p><strong>Data e Ora:</strong> ${eventStart.toLocaleString('it-IT')}</p>
+        ${eventLocation ? `<p><strong>Luogo:</strong> ${eventLocation}</p>` : ''}
+      </div>
+      <p>Accedi al tuo portale cliente per visualizzare tutti i dettagli.</p>
+      <p>Cordiali saluti,<br>Il Team di MismoStudio</p>
+    </div>
+  `;
+  const text = `Nuovo Appuntamento: ${eventTitle}\n\nData: ${eventStart.toLocaleString('it-IT')}\n${eventLocation ? `Luogo: ${eventLocation}` : ''}`;
+  return sendEmail(to, subject, html, text);
+}
+
+/**
+ * Send email to client when a new invoice is created
+ */
+export async function sendClientInvoiceCreatedEmail(
+  to: string,
+  clientName: string,
+  invoiceNumber: string,
+  invoiceTotal: number,
+  invoiceDueDate: Date
+): Promise<boolean> {
+  const subject = `Nuova Fattura: ${invoiceNumber}`;
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <h2 style="color: #2563eb;">Nuova Fattura Emessa</h2>
+      <p>Gentile ${clientName},</p>
+      <p>È stata emessa una nuova fattura:</p>
+      <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+        <h3 style="margin-top: 0; color: #1f2937;">Fattura ${invoiceNumber}</h3>
+        <p><strong>Importo:</strong> €${invoiceTotal.toFixed(2)}</p>
+        <p style="margin-bottom: 0;"><strong>Scadenza:</strong> ${invoiceDueDate.toLocaleDateString('it-IT')}</p>
+      </div>
+      <p>Accedi al tuo portale cliente per visualizzare e scaricare la fattura.</p>
+      <p>Cordiali saluti,<br>Il Team di MismoStudio</p>
+    </div>
+  `;
+  const text = `Nuova Fattura: ${invoiceNumber}\n\nImporto: €${invoiceTotal.toFixed(2)}\nScadenza: ${invoiceDueDate.toLocaleDateString('it-IT')}`;
+  return sendEmail(to, subject, html, text);
+}
+
+/**
+ * Send email to client when a new quote is shared
+ */
+export async function sendClientQuoteSharedEmail(
+  to: string,
+  clientName: string,
+  quoteNumber: string,
+  quoteTotal: number
+): Promise<boolean> {
+  const subject = `Nuovo Preventivo: ${quoteNumber}`;
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <h2 style="color: #2563eb;">Nuovo Preventivo Disponibile</h2>
+      <p>Gentile ${clientName},</p>
+      <p>È stato preparato un nuovo preventivo per te:</p>
+      <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+        <h3 style="margin-top: 0; color: #1f2937;">Preventivo ${quoteNumber}</h3>
+        <p style="margin-bottom: 0;"><strong>Importo Totale:</strong> €${quoteTotal.toFixed(2)}</p>
+      </div>
+      <p>Accedi al tuo portale cliente per visualizzare tutti i dettagli del preventivo.</p>
+      <p>Cordiali saluti,<br>Il Team di MismoStudio</p>
+    </div>
+  `;
+  const text = `Nuovo Preventivo: ${quoteNumber}\n\nImporto: €${quoteTotal.toFixed(2)}`;
+  return sendEmail(to, subject, html, text);
+}
+
+/**
+ * Send email to client when admin replies to their ticket
+ */
+export async function sendClientTicketReplyEmail(
+  to: string,
+  clientName: string,
+  ticketNumber: string,
+  ticketSubject: string
+): Promise<boolean> {
+  const subject = `Risposta al Ticket ${ticketNumber}`;
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <h2 style="color: #2563eb;">Nuova Risposta al Tuo Ticket</h2>
+      <p>Gentile ${clientName},</p>
+      <p>Il nostro team ha risposto al tuo ticket di supporto:</p>
+      <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+        <h3 style="margin-top: 0; color: #1f2937;">Ticket ${ticketNumber}</h3>
+        <p style="margin-bottom: 0;"><strong>Oggetto:</strong> ${ticketSubject}</p>
+      </div>
+      <p>Accedi al tuo portale cliente per visualizzare la risposta completa.</p>
+      <p>Cordiali saluti,<br>Il Team di MismoStudio</p>
+    </div>
+  `;
+  const text = `Risposta al Ticket ${ticketNumber}: ${ticketSubject}`;
+  return sendEmail(to, subject, html, text);
+}
+
 // Verify transporter configuration
 export async function verifyEmailConfig(): Promise<boolean> {
   try {

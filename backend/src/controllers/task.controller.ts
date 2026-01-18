@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import { AuthRequest } from '../middleware/auth';
 import prisma from '../config/database';
+import { sendClientTaskAssignedEmail } from '../services/email.service';
 
 // Get all tasks with filters and pagination
 export const getTasks = async (req: AuthRequest, res: Response) => {
@@ -271,6 +272,23 @@ export const createTask = async (req: AuthRequest, res: Response) => {
         },
       },
     });
+
+    // Send email notification to client if task is visible to them
+    if (task.contactId && task.visibleToClient && task.contact?.email) {
+      try {
+        await sendClientTaskAssignedEmail(
+          task.contact.email,
+          task.contact.name,
+          task.title,
+          task.deadline,
+          task.description || undefined
+        );
+        console.log(`Task assignment email sent to ${task.contact.email}`);
+      } catch (emailError) {
+        console.error('Failed to send task assignment email:', emailError);
+        // Don't fail the request if email fails
+      }
+    }
 
     res.status(201).json({
       success: true,

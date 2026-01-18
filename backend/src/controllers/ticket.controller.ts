@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import prisma from '../config/database';
+import { sendClientTicketReplyEmail } from '../services/email.service';
 
 /**
  * Generate ticket number: T{YEAR}-{NUM}
@@ -466,6 +467,18 @@ export const addTicketMessage = async (req: Request, res: Response) => {
         id: true,
         clientAccessId: true,
         status: true,
+        subject: true,
+        ticketNumber: true,
+        clientAccess: {
+          select: {
+            contact: {
+              select: {
+                name: true,
+                email: true,
+              },
+            },
+          },
+        },
       },
     });
 
@@ -538,6 +551,22 @@ export const addTicketMessage = async (req: Request, res: Response) => {
           relatedType: 'ticket',
         },
       });
+
+      // Send email notification to client
+      if (ticket.clientAccess?.contact?.email) {
+        try {
+          await sendClientTicketReplyEmail(
+            ticket.clientAccess.contact.email,
+            ticket.clientAccess.contact.name,
+            ticket.ticketNumber,
+            ticket.subject
+          );
+          console.log(`Ticket reply email sent to ${ticket.clientAccess.contact.email}`);
+        } catch (emailError) {
+          console.error('Failed to send ticket reply email:', emailError);
+          // Don't fail the request if email fails
+        }
+      }
     }
 
     res.status(201).json({
@@ -927,7 +956,6 @@ export const addClientTicketMessage = async (req: Request, res: Response) => {
       data: {
         ticketId: parseInt(id),
         clientAccessId,
-        isClientMessage: true,
         message,
       },
     });

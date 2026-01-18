@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import prisma from '../config/database';
+import { sendClientQuoteSharedEmail } from '../services/email.service';
 
 /**
  * HELPER TARIFFARIO - Prezzi base servizi
@@ -514,6 +515,22 @@ export const updateQuote = async (req: Request, res: Response) => {
         },
       },
     });
+
+    // Send email notification if quote status changed to SENT
+    if (status === 'SENT' && existingQuote.status !== 'SENT' && fullQuote?.contact?.email) {
+      try {
+        await sendClientQuoteSharedEmail(
+          fullQuote.contact.email,
+          fullQuote.contact.name,
+          fullQuote.quoteNumber,
+          fullQuote.total
+        );
+        console.log(`Quote shared email sent to ${fullQuote.contact.email}`);
+      } catch (emailError) {
+        console.error('Failed to send quote shared email:', emailError);
+        // Don't fail the request if email fails
+      }
+    }
 
     res.json({
       success: true,

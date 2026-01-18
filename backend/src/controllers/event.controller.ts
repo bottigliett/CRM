@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import prisma from '../config/database';
-import { sendEventReminderEmail } from '../services/email.service';
+import { sendEventReminderEmail, sendClientEventCreatedEmail } from '../services/email.service';
 import { createNotification } from './notification.controller';
 
 /**
@@ -444,6 +444,23 @@ export const createEvent = async (req: Request, res: Response) => {
         } catch (error) {
           console.error(`Failed to create notification for user ${teamMemberId}:`, error);
         }
+      }
+    }
+
+    // Send email notification to client if event is visible to them
+    if (event.contactId && event.visibleToClient && event.contact?.email) {
+      try {
+        await sendClientEventCreatedEmail(
+          event.contact.email,
+          event.contact.name,
+          event.title,
+          new Date(event.startDateTime),
+          event.location || undefined
+        );
+        console.log(`Event notification email sent to ${event.contact.email}`);
+      } catch (emailError) {
+        console.error('Failed to send event notification email:', emailError);
+        // Don't fail the request if email fails
       }
     }
 

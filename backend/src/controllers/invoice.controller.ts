@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import prisma from '../config/database';
 import { InvoiceStatus } from '@prisma/client';
+import { sendClientInvoiceCreatedEmail } from '../services/email.service';
 
 // Get all invoices with filters
 export const getInvoices = async (req: Request, res: Response) => {
@@ -351,6 +352,23 @@ export const createInvoice = async (req: Request, res: Response) => {
     });
 
     console.log(`Invoice created: ${invoice.invoiceNumber} (ID: ${invoice.id})`);
+
+    // Send email notification to client if invoice is issued and has contact
+    if (invoice.contactId && invoice.status === 'ISSUED' && invoice.contact?.email) {
+      try {
+        await sendClientInvoiceCreatedEmail(
+          invoice.contact.email,
+          invoice.contact.name,
+          invoice.invoiceNumber,
+          invoice.total,
+          new Date(invoice.dueDate)
+        );
+        console.log(`Invoice notification email sent to ${invoice.contact.email}`);
+      } catch (emailError) {
+        console.error('Failed to send invoice notification email:', emailError);
+        // Don't fail the request if email fails
+      }
+    }
 
     res.status(201).json({
       success: true,
