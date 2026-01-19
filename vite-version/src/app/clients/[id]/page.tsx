@@ -23,6 +23,9 @@ import {
   Euro,
   Clock,
   Plus,
+  MoreHorizontal,
+  Edit,
+  Trash2,
 } from "lucide-react"
 import { clientAccessAPI, type ClientAccess } from "@/lib/client-access-api"
 import { quotesAPI, type Quote } from "@/lib/quotes-api"
@@ -57,6 +60,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 export default function ClientDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -66,6 +76,8 @@ export default function ClientDetailPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [showDeleteQuoteDialog, setShowDeleteQuoteDialog] = useState(false)
+  const [quoteToDelete, setQuoteToDelete] = useState<number | null>(null)
   const [showActivationCode, setShowActivationCode] = useState(false)
   const [showDashboardDialog, setShowDashboardDialog] = useState(false)
   const [showFoldersDialog, setShowFoldersDialog] = useState(false)
@@ -260,6 +272,29 @@ export default function ClientDetailPage() {
       toast.error(error.message || 'Errore nel collegamento del preventivo')
     } finally {
       setSaving(false)
+    }
+  }
+
+  const confirmDeleteQuote = (quoteId: number) => {
+    setQuoteToDelete(quoteId)
+    setShowDeleteQuoteDialog(true)
+  }
+
+  const handleDeleteQuote = async () => {
+    if (!quoteToDelete) return
+
+    try {
+      setSaving(true)
+      await quotesAPI.delete(quoteToDelete)
+      toast.success('Preventivo eliminato con successo')
+      loadClientData()
+    } catch (error: any) {
+      console.error('Error deleting quote:', error)
+      toast.error(error.message || 'Errore nell\'eliminazione del preventivo')
+    } finally {
+      setSaving(false)
+      setShowDeleteQuoteDialog(false)
+      setQuoteToDelete(null)
     }
   }
 
@@ -511,26 +546,53 @@ export default function ClientDetailPage() {
                           </div>
                         </div>
 
-                        <div className="flex gap-2">
-                          {client.linkedQuoteId === quote.id ? (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleLinkQuote(null)}
-                              disabled={saving}
-                            >
-                              Nascondi al Cliente
-                            </Button>
-                          ) : (
-                            <Button
-                              size="sm"
-                              variant="default"
-                              onClick={() => handleLinkQuote(quote.id)}
-                              disabled={saving}
-                            >
-                              Mostra al Cliente
-                            </Button>
-                          )}
+                        <div className="flex gap-2 justify-between">
+                          <div className="flex gap-2">
+                            {client.linkedQuoteId === quote.id ? (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleLinkQuote(null)}
+                                disabled={saving}
+                              >
+                                Nascondi al Cliente
+                              </Button>
+                            ) : (
+                              <Button
+                                size="sm"
+                                variant="default"
+                                onClick={() => handleLinkQuote(quote.id)}
+                                disabled={saving}
+                              >
+                                Mostra al Cliente
+                              </Button>
+                            )}
+                          </div>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="sm">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuLabel>Azioni</DropdownMenuLabel>
+                              <DropdownMenuItem onClick={() => navigate(`/quotes/${quote.id}`)}>
+                                <Eye className="mr-2 h-4 w-4" />
+                                Visualizza
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => navigate(`/quotes/${quote.id}/edit`)}>
+                                <Edit className="mr-2 h-4 w-4" />
+                                Modifica
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => confirmDeleteQuote(quote.id)}
+                                className="text-destructive"
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Elimina
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
                       </div>
                     ))}
@@ -772,6 +834,24 @@ export default function ClientDetailPage() {
           <AlertDialogFooter>
             <AlertDialogCancel>Annulla</AlertDialogCancel>
             <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Elimina
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Quote Confirmation Dialog */}
+      <AlertDialog open={showDeleteQuoteDialog} onOpenChange={setShowDeleteQuoteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Elimina Preventivo</AlertDialogTitle>
+            <AlertDialogDescription>
+              Sei sicuro di voler eliminare questo preventivo? Questa azione non può essere annullata.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annulla</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteQuote} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
               Elimina
             </AlertDialogAction>
           </AlertDialogFooter>
