@@ -20,7 +20,7 @@ import {
   Clock,
 } from "lucide-react"
 import { clientAuthAPI } from "@/lib/client-auth-api"
-import { quotesAPI, type Quote } from "@/lib/quotes-api"
+import { clientQuotesAPI, type Quote } from "@/lib/client-quotes-api"
 import { format } from "date-fns"
 import { it } from "date-fns/locale"
 import { toast } from "sonner"
@@ -41,20 +41,21 @@ export default function ClientQuotesPage() {
     try {
       setLoading(true)
 
-      // Load client data (includes linkedQuote)
+      // Load client data
       const clientResponse = await clientAuthAPI.getMe()
       setClientData(clientResponse.data)
 
-      // Use linked quote from client data (already included in /me response)
-      if (clientResponse.data.linkedQuote) {
-        setQuote(clientResponse.data.linkedQuote)
+      // Load quote via client quotes API
+      const quoteResponse = await clientQuotesAPI.getQuote()
+      if (quoteResponse.success && quoteResponse.data) {
+        setQuote(quoteResponse.data)
 
         // Pre-select if already selected
-        if (clientResponse.data.linkedQuote.selectedPackageId) {
-          setSelectedPackageId(clientResponse.data.linkedQuote.selectedPackageId)
+        if (quoteResponse.data.selectedPackageId) {
+          setSelectedPackageId(quoteResponse.data.selectedPackageId)
         }
-        if (clientResponse.data.linkedQuote.selectedPaymentOption) {
-          setSelectedPaymentOption(clientResponse.data.linkedQuote.selectedPaymentOption)
+        if (quoteResponse.data.selectedPaymentOption) {
+          setSelectedPaymentOption(quoteResponse.data.selectedPaymentOption)
         }
       }
     } catch (error) {
@@ -65,8 +66,30 @@ export default function ClientQuotesPage() {
     }
   }
 
+  const parseFeatures = (features: string | string[] | null | undefined): string[] => {
+    if (!features) return []
+
+    // If already an array, return it
+    if (Array.isArray(features)) return features
+
+    // If it's a JSON array string, parse it
+    if (typeof features === 'string') {
+      try {
+        const parsed = JSON.parse(features)
+        if (Array.isArray(parsed)) return parsed
+        // If it's not a JSON array, try splitting by newlines
+        return features.split('\n').filter(f => f.trim())
+      } catch {
+        // If parsing fails, split by newlines
+        return features.split('\n').filter(f => f.trim())
+      }
+    }
+
+    return []
+  }
+
   const calculatePackageTotal = (basePrice: number, paymentOption: string) => {
-    if (!quote) return basePrice
+    if (!quote || !basePrice || isNaN(basePrice)) return 0
 
     const discounts = {
       oneTime: quote.oneTimeDiscount || 0,
@@ -122,9 +145,8 @@ export default function ClientQuotesPage() {
     try {
       setSubmitting(true)
 
-      await quotesAPI.update(quote.id, {
-        status: 'ACCEPTED',
-        selectedPackageId,
+      await clientQuotesAPI.acceptQuote({
+        selectedPackageId: selectedPackageId!,
         selectedPaymentOption,
       })
 
@@ -148,9 +170,7 @@ export default function ClientQuotesPage() {
     try {
       setSubmitting(true)
 
-      await quotesAPI.update(quote.id, {
-        status: 'REJECTED',
-      })
+      await clientQuotesAPI.rejectQuote()
 
       toast.success('Preventivo rifiutato')
       loadQuoteData()
@@ -295,6 +315,7 @@ export default function ClientQuotesPage() {
               {quote.packages.map((pkg) => {
                 const isSelected = selectedPackageId === pkg.id
                 const total = calculatePackageTotal(pkg.basePrice, selectedPaymentOption)
+                const features = parseFeatures(pkg.features)
 
                 return (
                   <Card
@@ -324,9 +345,9 @@ export default function ClientQuotesPage() {
                       <div className="text-3xl font-bold">
                         €{total.toFixed(2)}
                       </div>
-                      {pkg.features && (
+                      {features.length > 0 && (
                         <div className="space-y-2">
-                          {pkg.features.split('\n').map((feature, idx) => (
+                          {features.map((feature, idx) => (
                             <div key={idx} className="flex items-start gap-2 text-sm">
                               <Check className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
                               <span>{feature}</span>

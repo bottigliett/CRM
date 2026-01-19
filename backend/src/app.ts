@@ -25,6 +25,7 @@ import adminNotificationRoutes, { clientNotificationRouter } from './routes/clie
 import clientInvoiceRoutes from './routes/client-invoice.routes';
 import clientTaskRoutes from './routes/client-task.routes';
 import clientEventRoutes from './routes/client-event.routes';
+import clientQuoteRoutes from './routes/client-quote.routes';
 import { errorHandler, notFound } from './middleware/errorHandler';
 
 // Load .env from backend root directory (not from dist/)
@@ -87,6 +88,7 @@ app.use('/api/client/notifications', clientNotificationRouter);
 app.use('/api/client/invoices', clientInvoiceRoutes);
 app.use('/api/client/tasks', clientTaskRoutes);
 app.use('/api/client/events', clientEventRoutes);
+app.use('/api/client/quotes', clientQuoteRoutes);
 
 // Error handling
 app.use(notFound);
