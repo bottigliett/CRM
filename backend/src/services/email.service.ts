@@ -1142,6 +1142,327 @@ export async function sendClientTicketReplyEmail(
   return sendEmail(to, subject, html, text);
 }
 
+/**
+ * Send email to admin when a quote is accepted by a client
+ */
+export async function sendAdminQuoteAcceptedEmail(
+  to: string,
+  clientName: string,
+  quoteNumber: string,
+  quoteTitle: string,
+  selectedPackage: string,
+  selectedPaymentOption: string,
+  totalAmount: number
+): Promise<boolean> {
+  const paymentLabels: { [key: string]: string } = {
+    oneTime: 'Pagamento Unico',
+    payment2: '2 Rate',
+    payment3: '3 Rate',
+    payment4: '4 Rate',
+  };
+
+  const paymentLabel = paymentLabels[selectedPaymentOption] || selectedPaymentOption;
+
+  const subject = `✅ Preventivo Accettato: ${quoteNumber}`;
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <style>
+        body {
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+          line-height: 1.6;
+          color: #1a1a1a;
+          margin: 0;
+          padding: 0;
+          background-color: #f5f5f5;
+        }
+        .container {
+          max-width: 600px;
+          margin: 40px auto;
+          background: white;
+          border: 1px solid #e0e0e0;
+        }
+        .header {
+          background: #16a34a;
+          color: white;
+          padding: 30px;
+          border-bottom: 3px solid #15803d;
+        }
+        .header h1 {
+          margin: 0;
+          font-size: 24px;
+          font-weight: 600;
+          letter-spacing: -0.5px;
+        }
+        .content {
+          padding: 40px 30px;
+          background: white;
+        }
+        .content p {
+          margin: 0 0 16px 0;
+          color: #333333;
+        }
+        .quote-details {
+          background: #f0fdf4;
+          padding: 24px;
+          margin: 24px 0;
+          border: 1px solid #bbf7d0;
+          border-left: 4px solid #16a34a;
+        }
+        .quote-details h2 {
+          margin: 0 0 16px 0;
+          color: #16a34a;
+          font-size: 20px;
+          font-weight: 600;
+        }
+        .quote-details p {
+          margin: 8px 0;
+          color: #333333;
+        }
+        .highlight {
+          background: #dcfce7;
+          padding: 16px;
+          margin: 16px 0;
+          border-radius: 6px;
+          text-align: center;
+          font-size: 24px;
+          font-weight: 700;
+          color: #16a34a;
+        }
+        .footer {
+          text-align: center;
+          padding: 24px 30px;
+          background: #fafafa;
+          border-top: 1px solid #e0e0e0;
+          color: #666666;
+          font-size: 13px;
+        }
+        .footer p {
+          margin: 4px 0;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>✅ Preventivo Accettato!</h1>
+        </div>
+        <div class="content">
+          <p><strong>Buone notizie!</strong></p>
+          <p>Il cliente <strong>${clientName}</strong> ha accettato il preventivo:</p>
+
+          <div class="quote-details">
+            <h2>${quoteTitle}</h2>
+            <p><strong>Numero Preventivo:</strong> ${quoteNumber}</p>
+            <p><strong>Cliente:</strong> ${clientName}</p>
+            <p><strong>Pacchetto Selezionato:</strong> ${selectedPackage}</p>
+            <p><strong>Modalità di Pagamento:</strong> ${paymentLabel}</p>
+          </div>
+
+          <div class="highlight">
+            €${totalAmount.toFixed(2)}
+          </div>
+
+          <p>Accedi al CRM per visualizzare tutti i dettagli e organizzare i prossimi passi con il cliente.</p>
+
+          <p>Cordiali saluti,<br>Il Sistema CRM Studio Mismo</p>
+        </div>
+        <div class="footer">
+          <p><strong>Studio Mismo CRM</strong></p>
+          <p>Questa è una email automatica, si prega di non rispondere a questo messaggio.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  const text = `
+✅ Preventivo Accettato!
+
+Il cliente ${clientName} ha accettato il preventivo:
+
+Preventivo: ${quoteNumber}
+Titolo: ${quoteTitle}
+Cliente: ${clientName}
+Pacchetto: ${selectedPackage}
+Modalità di Pagamento: ${paymentLabel}
+Importo: €${totalAmount.toFixed(2)}
+
+Accedi al CRM per visualizzare tutti i dettagli.
+
+--
+Studio Mismo CRM
+Questa è una email automatica, si prega di non rispondere a questo messaggio.
+  `.trim();
+
+  return sendEmail(to, subject, html, text);
+}
+
+/**
+ * Send thank you email to client after accepting a quote
+ */
+export async function sendClientQuoteAcceptedEmail(
+  to: string,
+  clientName: string,
+  quoteNumber: string,
+  quoteTitle: string
+): Promise<boolean> {
+  const subject = `Grazie per aver accettato la nostra proposta!`;
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <style>
+        body {
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+          line-height: 1.6;
+          color: #1a1a1a;
+          margin: 0;
+          padding: 0;
+          background-color: #f5f5f5;
+        }
+        .container {
+          max-width: 600px;
+          margin: 40px auto;
+          background: white;
+          border: 1px solid #e0e0e0;
+        }
+        .header {
+          background: #000000;
+          color: white;
+          padding: 30px;
+          border-bottom: 3px solid #333333;
+        }
+        .header h1 {
+          margin: 0;
+          font-size: 24px;
+          font-weight: 600;
+          letter-spacing: -0.5px;
+        }
+        .content {
+          padding: 40px 30px;
+          background: white;
+        }
+        .content p {
+          margin: 0 0 16px 0;
+          color: #333333;
+        }
+        .highlight-box {
+          background: #fafafa;
+          padding: 24px;
+          margin: 24px 0;
+          border: 1px solid #e0e0e0;
+          border-left: 4px solid #000000;
+          text-align: center;
+        }
+        .highlight-box h2 {
+          margin: 0 0 8px 0;
+          color: #000000;
+          font-size: 20px;
+          font-weight: 600;
+        }
+        .highlight-box p {
+          margin: 4px 0;
+          color: #666666;
+          font-size: 14px;
+        }
+        .social-links {
+          text-align: center;
+          margin: 24px 0;
+          padding: 20px;
+          background: #fafafa;
+          border-radius: 8px;
+        }
+        .social-links p {
+          margin: 8px 0;
+          font-size: 14px;
+        }
+        .social-links a {
+          color: #000000;
+          text-decoration: none;
+          font-weight: 500;
+        }
+        .footer {
+          text-align: center;
+          padding: 24px 30px;
+          background: #fafafa;
+          border-top: 1px solid #e0e0e0;
+          color: #666666;
+          font-size: 13px;
+        }
+        .footer p {
+          margin: 4px 0;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>✨ Grazie per la fiducia!</h1>
+        </div>
+        <div class="content">
+          <p>Gentile ${clientName},</p>
+          <p><strong>Grazie per aver accettato la nostra proposta!</strong></p>
+          <p>Siamo entusiasti di iniziare questa collaborazione con te.</p>
+
+          <div class="highlight-box">
+            <h2>${quoteTitle}</h2>
+            <p>Preventivo ${quoteNumber}</p>
+          </div>
+
+          <p>Ti contatteremo entro <strong>2 giorni lavorativi</strong> per discutere i prossimi passi e organizzare tutto nel dettaglio.</p>
+
+          <p>Nel frattempo, se hai domande o necessiti di ulteriori informazioni, non esitare a contattarci.</p>
+
+          <div class="social-links">
+            <p><strong>Seguici sui nostri canali:</strong></p>
+            <p>
+              <a href="https://www.instagram.com/studiomismo/" target="_blank">Instagram</a> •
+              <a href="https://studiomismo.com" target="_blank">Sito Web</a>
+            </p>
+          </div>
+
+          <p>A presto!<br><strong>Il Team di Studio Mismo</strong></p>
+        </div>
+        <div class="footer">
+          <p><strong>Studio Mismo</strong></p>
+          <p>Questa è una email automatica, si prega di non rispondere a questo messaggio.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  const text = `
+Grazie per aver accettato la nostra proposta!
+
+Gentile ${clientName},
+
+Grazie per aver accettato la nostra proposta di collaborazione!
+
+Preventivo: ${quoteNumber}
+Progetto: ${quoteTitle}
+
+Ti contatteremo entro 2 giorni lavorativi per organizzare i prossimi passi.
+
+Nel frattempo, seguici sui nostri canali:
+• Instagram: https://www.instagram.com/studiomismo/
+• Sito Web: https://studiomismo.com
+
+A presto!
+Il Team di Studio Mismo
+
+--
+Studio Mismo
+Questa è una email automatica, si prega di non rispondere a questo messaggio.
+  `.trim();
+
+  return sendEmail(to, subject, html, text);
+}
+
 // Verify transporter configuration
 export async function verifyEmailConfig(): Promise<boolean> {
   try {

@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import prisma from '../config/database';
 import { ClientAuthRequest } from '../middleware/client-auth';
+import { sendAdminQuoteAcceptedEmail, sendClientQuoteAcceptedEmail } from '../services/email.service';
 
 /**
  * GET /api/client/quotes
@@ -172,7 +173,62 @@ export const acceptClientQuote = async (req: ClientAuthRequest, res: Response) =
       })),
     };
 
-    // TODO: Send email notifications to client and admin
+    // Send email notifications to client and admin
+    try {
+      // Calculate final price with discount
+      const selectedPackage = updatedQuote.packages.find(pkg => pkg.id === parseInt(selectedPackageId));
+      const basePrice = selectedPackage?.price || 0;
+
+      // Get discount based on payment option
+      let discount = 0;
+      switch (selectedPaymentOption) {
+        case 'oneTime':
+          discount = updatedQuote.oneTimeDiscount;
+          break;
+        case 'payment2':
+          discount = updatedQuote.payment2Discount;
+          break;
+        case 'payment3':
+          discount = updatedQuote.payment3Discount;
+          break;
+        case 'payment4':
+          discount = updatedQuote.payment4Discount;
+          break;
+      }
+
+      const finalPrice = basePrice - (basePrice * discount) / 100;
+
+      // Send thank you email to client
+      if (updatedQuote.contact.email) {
+        await sendClientQuoteAcceptedEmail(
+          updatedQuote.contact.email,
+          updatedQuote.contact.name,
+          updatedQuote.quoteNumber,
+          updatedQuote.title
+        );
+      }
+
+      // Send notification to super admin
+      const superAdmin = await prisma.user.findFirst({
+        where: { role: 'SUPER_ADMIN' },
+        select: { email: true },
+      });
+
+      if (superAdmin && superAdmin.email) {
+        await sendAdminQuoteAcceptedEmail(
+          superAdmin.email,
+          updatedQuote.contact.name,
+          updatedQuote.quoteNumber,
+          updatedQuote.title,
+          selectedPackage?.name || 'Pacchetto selezionato',
+          selectedPaymentOption,
+          finalPrice
+        );
+      }
+    } catch (emailError) {
+      console.error('Error sending acceptance emails:', emailError);
+      // Don't fail the request if email sending fails
+    }
 
     res.json({
       success: true,
