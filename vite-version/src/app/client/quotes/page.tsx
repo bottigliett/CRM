@@ -509,7 +509,7 @@ export default function ClientQuotesPage() {
             <CardContent>
               <RadioGroup value={selectedPaymentOption} onValueChange={setSelectedPaymentOption}>
                 <div className="grid gap-3">
-                  {['oneTime', 'payment2', 'payment3', 'payment4'].map((option) => {
+                  {(quote.enablePaymentPlans ? ['oneTime', 'payment2', 'payment3', 'payment4'] : ['oneTime']).map((option) => {
                     const discount = getPaymentDiscount(option)
                     return (
                       <div

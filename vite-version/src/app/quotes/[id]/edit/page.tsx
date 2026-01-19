@@ -13,6 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Switch } from '@/components/ui/switch'
 import { quotesAPI } from '@/lib/quotes-api'
 import type { Quote } from '@/lib/quotes-api'
 import { toast } from 'sonner'
@@ -30,6 +31,7 @@ export default function EditQuotePage() {
     description: '',
     status: 'DRAFT',
     validUntil: '',
+    enablePaymentPlans: true,
     oneTimeDiscount: 0,
     payment2Discount: 0,
     payment3Discount: 0,
@@ -53,6 +55,7 @@ export default function EditQuotePage() {
           description: response.data.description || '',
           status: response.data.status,
           validUntil: response.data.validUntil.split('T')[0], // Format for input date
+          enablePaymentPlans: response.data.enablePaymentPlans !== undefined ? response.data.enablePaymentPlans : true,
           oneTimeDiscount: response.data.oneTimeDiscount,
           payment2Discount: response.data.payment2Discount,
           payment3Discount: response.data.payment3Discount,
@@ -79,6 +82,7 @@ export default function EditQuotePage() {
         description: formData.description,
         status: formData.status as any,
         validUntil: new Date(formData.validUntil).toISOString(),
+        enablePaymentPlans: formData.enablePaymentPlans,
         oneTimeDiscount: formData.oneTimeDiscount,
         payment2Discount: formData.payment2Discount,
         payment3Discount: formData.payment3Discount,
@@ -209,9 +213,24 @@ export default function EditQuotePage() {
               </div>
             </div>
 
-            <div className="space-y-4">
-              <Label>Sconti Modalità di Pagamento (%)</Label>
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <div className="flex items-center justify-between rounded-lg border p-4">
+              <div className="space-y-0.5">
+                <Label htmlFor="enablePaymentPlans">Abilita pagamenti rateali</Label>
+                <p className="text-sm text-muted-foreground">
+                  Consenti al cliente di scegliere pagamenti a rate
+                </p>
+              </div>
+              <Switch
+                id="enablePaymentPlans"
+                checked={formData.enablePaymentPlans}
+                onCheckedChange={(checked) => setFormData({ ...formData, enablePaymentPlans: checked })}
+              />
+            </div>
+
+            {formData.enablePaymentPlans && (
+              <div className="space-y-4">
+                <Label>Sconti Modalità di Pagamento (%)</Label>
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                 <div className="space-y-2">
                   <Label htmlFor="oneTimeDiscount" className="text-sm">Pagamento Unico</Label>
                   <Input
@@ -261,7 +280,8 @@ export default function EditQuotePage() {
                   />
                 </div>
               </div>
-            </div>
+              </div>
+            )}
 
             <div className="flex justify-end gap-4 pt-4">
               <Button

@@ -14,6 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { Switch } from "@/components/ui/switch"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
@@ -62,6 +63,7 @@ interface QuoteFormData {
   items: QuoteItem[]
   discountAmount: number
   taxRate: number
+  enablePaymentPlans: boolean
   oneTimeDiscount: number
   payment2Discount: number
   payment3Discount: number
@@ -90,6 +92,7 @@ export default function CreateQuotePage() {
     items: [],
     discountAmount: 0,
     taxRate: 0,
+    enablePaymentPlans: true,
     oneTimeDiscount: 5,
     payment2Discount: 3,
     payment3Discount: 2,
@@ -323,6 +326,7 @@ export default function CreateQuotePage() {
         validUntil: formData.validUntil,
         discountAmount: formData.discountAmount,
         taxRate: formData.taxRate,
+        enablePaymentPlans: formData.enablePaymentPlans,
         oneTimeDiscount: formData.oneTimeDiscount,
         payment2Discount: formData.payment2Discount,
         payment3Discount: formData.payment3Discount,
@@ -935,9 +939,24 @@ export default function CreateQuotePage() {
 
               <Separator />
 
-              <div>
-                <h3 className="text-lg font-semibold mb-4">Sconti Modalità Pagamento (%)</h3>
-                <div className="grid gap-4 md:grid-cols-2">
+              <div className="flex items-center justify-between rounded-lg border p-4">
+                <div className="space-y-0.5">
+                  <Label htmlFor="enablePaymentPlans">Abilita pagamenti rateali</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Consenti al cliente di scegliere pagamenti a rate
+                  </p>
+                </div>
+                <Switch
+                  id="enablePaymentPlans"
+                  checked={formData.enablePaymentPlans}
+                  onCheckedChange={(checked) => setFormData({ ...formData, enablePaymentPlans: checked })}
+                />
+              </div>
+
+              {formData.enablePaymentPlans && (
+                <div>
+                  <h3 className="text-lg font-semibold mb-4">Sconti Modalità Pagamento (%)</h3>
+                  <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
                     <Label htmlFor="oneTime">Pagamento Unico</Label>
                     <Input
@@ -1010,7 +1029,8 @@ export default function CreateQuotePage() {
                     />
                   </div>
                 </div>
-              </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         )}

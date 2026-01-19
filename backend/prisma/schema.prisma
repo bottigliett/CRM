@@ -913,6 +913,7 @@ model Quote {
   total                Float       // Totale finale con IVA
 
   // Payment discounts (based on payment option)
+  enablePaymentPlans   Boolean     @default(true) @map("enable_payment_plans") // Abilita opzioni di pagamento rateale
   oneTimeDiscount      Float       @default(0) @map("one_time_discount") // Sconto % per pagamento unico
   payment2Discount     Float       @default(0) @map("payment_2_discount") // Sconto % per 2 rate
   payment3Discount     Float       @default(0) @map("payment_3_discount") // Sconto % per 3 rate

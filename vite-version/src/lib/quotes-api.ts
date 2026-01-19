@@ -51,6 +51,7 @@ export interface Quote {
   discountAmount: number;
   taxRate: number;
   total: number;
+  enablePaymentPlans: boolean;
   oneTimeDiscount: number;
   payment2Discount: number;
   payment3Discount: number;
@@ -75,6 +76,7 @@ export interface CreateQuoteData {
   validUntil: string;
   discountAmount?: number;
   taxRate?: number;
+  enablePaymentPlans?: boolean;
   oneTimeDiscount?: number;
   payment2Discount?: number;
   payment3Discount?: number;
