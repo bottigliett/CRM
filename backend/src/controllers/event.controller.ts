@@ -447,8 +447,9 @@ export const createEvent = async (req: Request, res: Response) => {
       }
     }
 
-    // Send email notification to client if event is visible to them
-    if (event.contactId && event.visibleToClient && event.contact?.email) {
+    // Send email notification to client if event has "Appuntamento Cliente" category
+    const isClientAppointment = event.category?.name === 'Appuntamento Cliente';
+    if (event.contactId && isClientAppointment && event.contact?.email) {
       try {
         await sendClientEventCreatedEmail(
           event.contact.email,

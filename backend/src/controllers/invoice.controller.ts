@@ -547,6 +547,24 @@ export const updateInvoice = async (req: Request, res: Response) => {
       console.log(`Created income transaction for invoice ${invoice.invoiceNumber}`);
     }
 
+    // Send email notification to client when invoice status changes to ISSUED
+    const isBecomingIssued = statusChanged && newStatus === 'ISSUED';
+    if (isBecomingIssued && invoice.contactId && invoice.contact?.email) {
+      try {
+        await sendClientInvoiceCreatedEmail(
+          invoice.contact.email,
+          invoice.contact.name,
+          invoice.invoiceNumber,
+          invoice.total,
+          new Date(invoice.dueDate)
+        );
+        console.log(`Invoice notification email sent to ${invoice.contact.email}`);
+      } catch (emailError) {
+        console.error('Failed to send invoice notification email:', emailError);
+        // Don't fail the request if email fails
+      }
+    }
+
     console.log(`Invoice updated: ${invoice.invoiceNumber} (ID: ${invoice.id})`);
 
     res.json({

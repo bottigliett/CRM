@@ -116,18 +116,20 @@ export default function ClientInvoicesPage() {
                       </div>
                     </div>
 
-                    {invoice.description && (
-                      <div>
-                        <p className="text-sm text-muted-foreground mb-1">Descrizione</p>
-                        <p className="text-sm">{invoice.description}</p>
-                      </div>
-                    )}
-
                     <div className="flex items-center gap-2 pt-2">
-                      {invoice.pdfPath && (
-                        <Button variant="outline" size="sm">
+                      {invoice.pdfPath ? (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => window.open(invoice.pdfPath!, '_blank')}
+                        >
                           <Download className="h-4 w-4 mr-2" />
                           Scarica PDF
+                        </Button>
+                      ) : (
+                        <Button variant="outline" size="sm" disabled>
+                          <Download className="h-4 w-4 mr-2" />
+                          PDF non disponibile
                         </Button>
                       )}
                       {invoice.paymentMethod && (
