@@ -923,6 +923,7 @@ model Quote {
   validUntil           DateTime    @map("valid_until") // Scadenza validità
   acceptedDate         DateTime?   @map("accepted_date")
   rejectedDate         DateTime?   @map("rejected_date")
+  rejectionReason      String?     @map("rejection_reason") @db.Text // Motivo del rifiuto
 
   // Client selections (filled when client accepts quote)
   selectedPackageId    Int?        @map("selected_package_id") // FK to QuotePackage

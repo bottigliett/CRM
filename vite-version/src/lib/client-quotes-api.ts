@@ -131,10 +131,10 @@ class ClientQuotesAPI {
   /**
    * Reject the quote
    */
-  async rejectQuote(): Promise<QuoteResponse> {
+  async rejectQuote(rejectionReason?: string): Promise<QuoteResponse> {
     return this.request<QuoteResponse>('/client/quotes/reject', {
       method: 'PUT',
-      body: JSON.stringify({}),
+      body: JSON.stringify({ rejectionReason }),
     });
   }
 

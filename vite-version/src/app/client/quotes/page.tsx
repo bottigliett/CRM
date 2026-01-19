@@ -7,6 +7,15 @@ import { Separator } from "@/components/ui/separator"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import {
   FileText,
   Check,
@@ -32,6 +41,9 @@ export default function ClientQuotesPage() {
   const [selectedPackageId, setSelectedPackageId] = React.useState<number | null>(null)
   const [selectedPaymentOption, setSelectedPaymentOption] = React.useState<string>("oneTime")
   const [submitting, setSubmitting] = React.useState(false)
+  const [showRejectDialog, setShowRejectDialog] = React.useState(false)
+  const [rejectionCategory, setRejectionCategory] = React.useState<string>("")
+  const [rejectionDetails, setRejectionDetails] = React.useState<string>("")
 
   React.useEffect(() => {
     loadQuoteData()
@@ -175,19 +187,35 @@ export default function ClientQuotesPage() {
     }
   }
 
-  const handleRejectQuote = async () => {
+  const handleRejectQuote = () => {
+    if (!quote) return
+    setShowRejectDialog(true)
+  }
+
+  const confirmRejectQuote = async () => {
     if (!quote) return
 
-    if (!confirm('Sei sicuro di voler rifiutare questa proposta?')) {
+    if (!rejectionCategory) {
+      toast.error('Seleziona un motivo per il rifiuto')
       return
     }
 
     try {
       setSubmitting(true)
 
-      await clientQuotesAPI.rejectQuote()
+      let rejectionReason = rejectionCategory
+      if (rejectionCategory === 'altro' && rejectionDetails) {
+        rejectionReason = `Altro: ${rejectionDetails}`
+      } else if (rejectionDetails) {
+        rejectionReason = `${rejectionCategory}: ${rejectionDetails}`
+      }
+
+      await clientQuotesAPI.rejectQuote(rejectionReason)
 
       toast.success('Proposta rifiutata')
+      setShowRejectDialog(false)
+      setRejectionCategory('')
+      setRejectionDetails('')
       loadQuoteData()
     } catch (error: any) {
       console.error('Error rejecting quote:', error)
@@ -511,6 +539,67 @@ export default function ClientQuotesPage() {
           </Card>
         )}
 
+        {/* Summary Section (if package and payment selected) */}
+        {canInteract && selectedPackageId && quote.packages.length > 0 && (
+          <Card className="border-primary">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Euro className="h-5 w-5" />
+                Riepilogo della Tua Scelta
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {(() => {
+                const selectedPackage = quote.packages.find(p => p.id === selectedPackageId)
+                if (!selectedPackage) return null
+
+                const basePrice = selectedPackage.price
+                const discount = getPaymentDiscount(selectedPaymentOption)
+                const discountAmount = (basePrice * discount) / 100
+                const finalPrice = basePrice - discountAmount
+
+                return (
+                  <div className="space-y-4">
+                    <div className="grid gap-3">
+                      <div className="flex justify-between items-center pb-2 border-b">
+                        <span className="text-sm text-muted-foreground">Pacchetto selezionato</span>
+                        <span className="font-medium">{selectedPackage.name}</span>
+                      </div>
+                      <div className="flex justify-between items-center pb-2 border-b">
+                        <span className="text-sm text-muted-foreground">Prezzo base</span>
+                        <span className="font-medium">€{basePrice.toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between items-center pb-2 border-b">
+                        <span className="text-sm text-muted-foreground">Modalità di pagamento</span>
+                        <span className="font-medium">{getPaymentLabel(selectedPaymentOption)}</span>
+                      </div>
+                      {discount > 0 && (
+                        <div className="flex justify-between items-center pb-2 border-b text-green-600">
+                          <span className="text-sm">Sconto applicato ({discount}%)</span>
+                          <span className="font-medium">-€{discountAmount.toFixed(2)}</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between items-center pt-2">
+                        <span className="text-lg font-semibold">Totale finale</span>
+                        <span className="text-2xl font-bold text-primary">€{finalPrice.toFixed(2)}</span>
+                      </div>
+                    </div>
+
+                    {selectedPaymentOption !== 'oneTime' && (
+                      <Alert>
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertDescription>
+                          <strong>Nota:</strong> La prima rata di €{(finalPrice / parseInt(selectedPaymentOption.replace('payment', ''))).toFixed(2)} sarà pagata in anticipo.
+                        </AlertDescription>
+                      </Alert>
+                    )}
+                  </div>
+                )
+              })()}
+            </CardContent>
+          </Card>
+        )}
+
         {/* Action Buttons */}
         {canInteract && (
           <Card>
@@ -543,6 +632,79 @@ export default function ClientQuotesPage() {
             </CardContent>
           </Card>
         )}
+
+        {/* Rejection Dialog */}
+        <Dialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Rifiuta Proposta</DialogTitle>
+              <DialogDescription>
+                Aiutaci a capire il motivo del rifiuto. Questo ci permetterà di migliorare le nostre proposte future.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>Motivo del rifiuto *</Label>
+                <RadioGroup value={rejectionCategory} onValueChange={setRejectionCategory}>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="prezzo_alto" id="prezzo_alto" />
+                    <Label htmlFor="prezzo_alto" className="font-normal cursor-pointer">
+                      Prezzo troppo alto
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="non_interessato" id="non_interessato" />
+                    <Label htmlFor="non_interessato" className="font-normal cursor-pointer">
+                      Non più interessato
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="altro_fornitore" id="altro_fornitore" />
+                    <Label htmlFor="altro_fornitore" className="font-normal cursor-pointer">
+                      Scelto altro fornitore
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="altro" id="altro" />
+                    <Label htmlFor="altro" className="font-normal cursor-pointer">
+                      Altro
+                    </Label>
+                  </div>
+                </RadioGroup>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="details">Dettagli aggiuntivi (opzionale)</Label>
+                <Textarea
+                  id="details"
+                  placeholder="Aggiungi eventuali dettagli..."
+                  value={rejectionDetails}
+                  onChange={(e) => setRejectionDetails(e.target.value)}
+                  rows={3}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowRejectDialog(false)
+                  setRejectionCategory('')
+                  setRejectionDetails('')
+                }}
+                disabled={submitting}
+              >
+                Annulla
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={confirmRejectQuote}
+                disabled={submitting || !rejectionCategory}
+              >
+                {submitting ? 'Invio...' : 'Conferma Rifiuto'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </ClientLayout>
   )

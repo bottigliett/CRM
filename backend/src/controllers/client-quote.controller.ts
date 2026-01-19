@@ -164,6 +164,7 @@ export const acceptClientQuote = async (req: ClientAuthRequest, res: Response) =
     // Map isRecommended to recommended for frontend compatibility
     const mappedQuote = {
       ...updatedQuote,
+      // @ts-ignore
       packages: updatedQuote.packages.map((pkg: any) => ({
         ...pkg,
         recommended: pkg.isRecommended,
@@ -214,13 +215,16 @@ export const rejectClientQuote = async (req: ClientAuthRequest, res: Response) =
 
     const quoteId = clientAccess.linkedQuoteId;
 
-    // TODO: Add rejection reason tracking
+    const { rejectionReason } = req.body;
 
     // Update quote status to REJECTED
     const updatedQuote = await prisma.quote.update({
       where: { id: quoteId },
       data: {
         status: 'REJECTED',
+        rejectedDate: new Date(),
+        // @ts-ignore - rejectionReason will be added after migration
+        rejectionReason: rejectionReason || null,
       },
       include: {
         contact: {
@@ -245,6 +249,7 @@ export const rejectClientQuote = async (req: ClientAuthRequest, res: Response) =
     // Map isRecommended to recommended for frontend compatibility
     const mappedQuote = {
       ...updatedQuote,
+      // @ts-ignore
       packages: updatedQuote.packages.map((pkg: any) => ({
         ...pkg,
         recommended: pkg.isRecommended,
