@@ -5,6 +5,8 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Receipt, Download, ExternalLink } from "lucide-react"
 import { clientInvoicesAPI, type Invoice } from "@/lib/client-invoices-api"
+import { invoicesAPI } from "@/lib/invoices-api"
+import { generateInvoicePDF } from "@/lib/pdf-generator"
 import { format } from "date-fns"
 import { it } from "date-fns/locale"
 import { toast } from "sonner"
@@ -59,6 +61,28 @@ export default function ClientInvoicesPage() {
   const isOverdue = (invoice: Invoice) => {
     if (invoice.status === 'PAID' || invoice.status === 'CANCELLED') return false
     return new Date(invoice.dueDate) < new Date()
+  }
+
+  const handleDownloadPDF = async (invoice: Invoice) => {
+    try {
+      // Try to use existing PDF path first
+      if (invoice.pdfPath) {
+        window.open(invoice.pdfPath, '_blank')
+        return
+      }
+
+      // Otherwise generate PDF on the fly
+      const response = await invoicesAPI.getInvoicePDFData(invoice.id)
+      if (response.success) {
+        await generateInvoicePDF(invoice.id, response.data)
+        toast.success('PDF generato con successo')
+      } else {
+        toast.error('Errore durante la generazione del PDF')
+      }
+    } catch (error) {
+      console.error('Failed to download PDF:', error)
+      toast.error('Errore durante il download del PDF')
+    }
   }
 
   return (
@@ -128,21 +152,14 @@ export default function ClientInvoicesPage() {
                     </div>
 
                     <div className="flex items-center gap-2 pt-2">
-                      {invoice.pdfPath ? (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => window.open(invoice.pdfPath!, '_blank')}
-                        >
-                          <Download className="h-4 w-4 mr-2" />
-                          Scarica PDF
-                        </Button>
-                      ) : (
-                        <Button variant="outline" size="sm" disabled>
-                          <Download className="h-4 w-4 mr-2" />
-                          PDF non disponibile
-                        </Button>
-                      )}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDownloadPDF(invoice)}
+                      >
+                        <Download className="h-4 w-4 mr-2" />
+                        Scarica PDF
+                      </Button>
                       {invoice.paymentMethod && (
                         <div className="text-sm text-muted-foreground">
                           Pagamento: {invoice.paymentMethod}
