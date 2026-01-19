@@ -44,7 +44,7 @@ const navItems = [
     icon: LayoutDashboard,
   },
   {
-    title: "Preventivi",
+    title: "Proposta",
     url: "/client/quotes",
     icon: FileText,
   },
@@ -105,7 +105,7 @@ export function ClientSidebar({ ...props }: React.ComponentProps<typeof Sidebar>
   const visibleNavItems = React.useMemo(() => {
     if (!clientData) return navItems
 
-    // QUOTE_ONLY clients can only see Preventivi
+    // QUOTE_ONLY clients can only see Proposta
     if (clientData.accessType === 'QUOTE_ONLY') {
       return navItems.filter(item => item.url === '/client/quotes')
     }

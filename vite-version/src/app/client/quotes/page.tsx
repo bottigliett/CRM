@@ -60,7 +60,7 @@ export default function ClientQuotesPage() {
       }
     } catch (error) {
       console.error('Error loading quote data:', error)
-      toast.error('Errore nel caricamento del preventivo')
+      toast.error('Errore nel caricamento della proposta')
     } finally {
       setLoading(false)
     }
@@ -85,6 +85,21 @@ export default function ClientQuotesPage() {
       }
     }
 
+    return []
+  }
+
+  const parseObjectives = (objectives: any): Array<{ title: string; description: string }> => {
+    if (!objectives) return []
+    if (Array.isArray(objectives)) return objectives
+    if (typeof objectives === 'string') {
+      try {
+        const parsed = JSON.parse(objectives)
+        if (Array.isArray(parsed)) return parsed
+        return []
+      } catch {
+        return []
+      }
+    }
     return []
   }
 
@@ -150,11 +165,11 @@ export default function ClientQuotesPage() {
         selectedPaymentOption,
       })
 
-      toast.success('Preventivo accettato con successo!')
+      toast.success('Proposta accettata con successo!')
       loadQuoteData()
     } catch (error: any) {
       console.error('Error accepting quote:', error)
-      toast.error(error.message || 'Errore nell\'accettazione del preventivo')
+      toast.error(error.message || 'Errore nell\'accettazione della proposta')
     } finally {
       setSubmitting(false)
     }
@@ -163,7 +178,7 @@ export default function ClientQuotesPage() {
   const handleRejectQuote = async () => {
     if (!quote) return
 
-    if (!confirm('Sei sicuro di voler rifiutare questo preventivo?')) {
+    if (!confirm('Sei sicuro di voler rifiutare questa proposta?')) {
       return
     }
 
@@ -172,11 +187,11 @@ export default function ClientQuotesPage() {
 
       await clientQuotesAPI.rejectQuote()
 
-      toast.success('Preventivo rifiutato')
+      toast.success('Proposta rifiutata')
       loadQuoteData()
     } catch (error: any) {
       console.error('Error rejecting quote:', error)
-      toast.error(error.message || 'Errore nel rifiuto del preventivo')
+      toast.error(error.message || 'Errore nel rifiuto della proposta')
     } finally {
       setSubmitting(false)
     }
@@ -198,12 +213,31 @@ export default function ClientQuotesPage() {
     }
   }
 
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'DRAFT':
+        return 'Bozza'
+      case 'SENT':
+        return 'Inviato'
+      case 'VIEWED':
+        return 'Visualizzato'
+      case 'ACCEPTED':
+        return 'Accettato'
+      case 'REJECTED':
+        return 'Rifiutato'
+      case 'EXPIRED':
+        return 'Scaduto'
+      default:
+        return status
+    }
+  }
+
   const isQuoteExpired = quote && new Date(quote.validUntil) < new Date()
   const canInteract = quote && quote.status !== 'ACCEPTED' && quote.status !== 'REJECTED' && !isQuoteExpired
 
   if (loading) {
     return (
-      <ClientLayout title="Il Tuo Preventivo" description="Visualizza e gestisci il tuo preventivo">
+      <ClientLayout title="La Tua Proposta di Collaborazione" description="Visualizza e gestisci la tua proposta">
         <div className="flex items-center justify-center py-8">
           <div className="text-center">
             <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-primary mx-auto"></div>
@@ -216,12 +250,12 @@ export default function ClientQuotesPage() {
 
   if (!quote) {
     return (
-      <ClientLayout title="Il Tuo Preventivo" description="Visualizza e gestisci il tuo preventivo">
+      <ClientLayout title="La Tua Proposta di Collaborazione" description="Visualizza e gestisci la tua proposta">
         <div className="px-4 lg:px-6">
           <Alert>
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              Nessun preventivo assegnato al momento.
+              Nessuna proposta di collaborazione assegnata al momento.
             </AlertDescription>
           </Alert>
         </div>
@@ -231,7 +265,7 @@ export default function ClientQuotesPage() {
 
   return (
     <ClientLayout
-      title="Il Tuo Preventivo"
+      title="La Tua Proposta di Collaborazione"
       description={quote.title}
     >
       <div className="px-4 lg:px-6 space-y-6">
@@ -247,7 +281,7 @@ export default function ClientQuotesPage() {
                 <CardDescription className="mt-2">{quote.description}</CardDescription>
               </div>
               <Badge variant="outline" className={getStatusColor(quote.status)}>
-                {quote.status}
+                {getStatusLabel(quote.status)}
               </Badge>
             </div>
           </CardHeader>
@@ -278,12 +312,34 @@ export default function ClientQuotesPage() {
           </CardContent>
         </Card>
 
+        {/* Objectives Section */}
+        {parseObjectives(quote.objectives).length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Package className="h-5 w-5" />
+                Obiettivi del Progetto
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {parseObjectives(quote.objectives).map((objective, index) => (
+                  <div key={index} className="border-l-2 border-primary pl-4">
+                    <h4 className="font-semibold text-base mb-1">{objective.title}</h4>
+                    <p className="text-sm text-muted-foreground">{objective.description}</p>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Alert if expired */}
         {isQuoteExpired && (
           <Alert variant="destructive">
             <Clock className="h-4 w-4" />
             <AlertDescription>
-              Questo preventivo è scaduto. Contatta il supporto per richiederne uno aggiornato.
+              Questa proposta è scaduta. Contatta il supporto per richiederne una aggiornata.
             </AlertDescription>
           </Alert>
         )}
@@ -293,7 +349,7 @@ export default function ClientQuotesPage() {
           <Alert className="border-green-500/50 bg-green-500/10">
             <CheckCircle2 className="h-4 w-4 text-green-500" />
             <AlertDescription className="text-green-700 dark:text-green-400">
-              Hai accettato questo preventivo il {format(new Date(quote.acceptedDate!), 'dd MMMM yyyy', { locale: it })}
+              Hai accettato questa proposta il {format(new Date(quote.acceptedDate!), 'dd MMMM yyyy', { locale: it })}
             </AlertDescription>
           </Alert>
         )}
@@ -302,7 +358,7 @@ export default function ClientQuotesPage() {
           <Alert variant="destructive">
             <X className="h-4 w-4" />
             <AlertDescription>
-              Hai rifiutato questo preventivo. Contatta il supporto per discutere le modifiche.
+              Hai rifiutato questa proposta. Contatta il supporto per discutere le modifiche.
             </AlertDescription>
           </Alert>
         )}
@@ -310,7 +366,7 @@ export default function ClientQuotesPage() {
         {/* Packages Section (if exists) */}
         {quote.packages && quote.packages.length > 0 ? (
           <div className="space-y-4">
-            <h2 className="text-lg font-semibold">Scegli il Tuo Pacchetto</h2>
+            <h2 className="text-lg font-semibold">Scegli la Tua Soluzione</h2>
             <div className="grid gap-4 md:grid-cols-3">
               {quote.packages.map((pkg) => {
                 const isSelected = selectedPackageId === pkg.id
@@ -365,7 +421,7 @@ export default function ClientQuotesPage() {
           /* Traditional Items Section */
           <Card>
             <CardHeader>
-              <CardTitle>Voci di Preventivo</CardTitle>
+              <CardTitle>Voci della Proposta</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
@@ -467,7 +523,7 @@ export default function ClientQuotesPage() {
                   size="lg"
                 >
                   <Check className="h-4 w-4 mr-2" />
-                  Accetta Preventivo
+                  Accetta Proposta
                 </Button>
                 <Button
                   onClick={handleRejectQuote}
@@ -481,7 +537,7 @@ export default function ClientQuotesPage() {
               </div>
               {quote.packages.length > 0 && !selectedPackageId && (
                 <p className="text-sm text-muted-foreground text-center mt-4">
-                  Seleziona un pacchetto prima di accettare il preventivo
+                  Seleziona un pacchetto prima di accettare la proposta
                 </p>
               )}
             </CardContent>

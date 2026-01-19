@@ -19,6 +19,8 @@ const Clients = lazy(() => import('@/app/clients/page'))
 const ClientDetail = lazy(() => import('@/app/clients/[id]/page'))
 const Quotes = lazy(() => import('@/app/quotes/page'))
 const QuoteCreate = lazy(() => import('@/app/quotes/create/page'))
+const QuoteDetail = lazy(() => import('@/app/quotes/[id]/page'))
+const QuoteEdit = lazy(() => import('@/app/quotes/[id]/edit/page'))
 const Finance = lazy(() => import('@/app/finance/page'))
 const Invoices = lazy(() => import('@/app/invoices/page'))
 const Tickets = lazy(() => import('@/app/tickets/page'))
@@ -111,6 +113,14 @@ export const routes: RouteConfig[] = [
   {
     path: "/quotes/create",
     element: <ProtectedRoute><ModuleProtectedRoute moduleName="quotes"><QuoteCreate /></ModuleProtectedRoute></ProtectedRoute>
+  },
+  {
+    path: "/quotes/:id",
+    element: <ProtectedRoute><ModuleProtectedRoute moduleName="quotes"><QuoteDetail /></ModuleProtectedRoute></ProtectedRoute>
+  },
+  {
+    path: "/quotes/:id/edit",
+    element: <ProtectedRoute><ModuleProtectedRoute moduleName="quotes"><QuoteEdit /></ModuleProtectedRoute></ProtectedRoute>
   },
 
   // Gestione Routes
