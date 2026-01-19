@@ -27,6 +27,11 @@ import {
   AlertCircle,
   CheckCircle2,
   Clock,
+  User,
+  Mail,
+  Phone,
+  Building2,
+  Target,
 } from "lucide-react"
 import { clientAuthAPI } from "@/lib/client-auth-api"
 import { clientQuotesAPI, type Quote } from "@/lib/client-quotes-api"
@@ -297,20 +302,36 @@ export default function ClientQuotesPage() {
       description={quote.title}
     >
       <div className="px-4 lg:px-6 space-y-6">
-        {/* Quote Header */}
+        {/* Quote Header with Client Info */}
         <Card>
           <CardHeader>
             <div className="flex items-start justify-between">
-              <div>
-                <CardTitle className="flex items-center gap-2">
-                  <FileText className="h-5 w-5" />
-                  {quote.quoteNumber}
-                </CardTitle>
-                <CardDescription className="mt-2">{quote.description}</CardDescription>
+              <div className="flex-1">
+                <div className="flex items-center gap-3 mb-3">
+                  <CardTitle className="flex items-center gap-2">
+                    <FileText className="h-5 w-5" />
+                    {quote.quoteNumber}
+                  </CardTitle>
+                  <Badge variant="outline" className={getStatusColor(quote.status)}>
+                    {getStatusLabel(quote.status)}
+                  </Badge>
+                </div>
+                <CardDescription className="mb-4">{quote.description}</CardDescription>
+
+                {/* Client Information */}
+                <div className="bg-muted/50 rounded-lg p-4 space-y-2">
+                  <div className="flex items-center gap-2 text-sm">
+                    <User className="h-4 w-4 text-muted-foreground" />
+                    <span className="font-medium">{quote.contact.name}</span>
+                  </div>
+                  {quote.contact.email && (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Mail className="h-4 w-4" />
+                      <span>{quote.contact.email}</span>
+                    </div>
+                  )}
+                </div>
               </div>
-              <Badge variant="outline" className={getStatusColor(quote.status)}>
-                {getStatusLabel(quote.status)}
-              </Badge>
             </div>
           </CardHeader>
           <CardContent>
@@ -340,21 +361,26 @@ export default function ClientQuotesPage() {
           </CardContent>
         </Card>
 
-        {/* Objectives Section */}
+        {/* Objectives Section - Max 3, in alto */}
         {parseObjectives(quote.objectives).length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Package className="h-5 w-5" />
+          <Card className="border-primary/20">
+            <CardHeader className="bg-primary/5">
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Target className="h-5 w-5" />
                 Obiettivi del Progetto
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {parseObjectives(quote.objectives).map((objective, index) => (
-                  <div key={index} className="border-l-2 border-primary pl-4">
-                    <h4 className="font-semibold text-base mb-1">{objective.title}</h4>
-                    <p className="text-sm text-muted-foreground">{objective.description}</p>
+            <CardContent className="pt-6">
+              <div className="grid gap-4 md:grid-cols-3">
+                {parseObjectives(quote.objectives).slice(0, 3).map((objective, index) => (
+                  <div key={index} className="bg-muted/30 rounded-lg p-4 border-l-4 border-primary">
+                    <h4 className="font-semibold text-base mb-2 flex items-center gap-2">
+                      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs">
+                        {index + 1}
+                      </span>
+                      {objective.title}
+                    </h4>
+                    <p className="text-sm text-muted-foreground leading-relaxed">{objective.description}</p>
                   </div>
                 ))}
               </div>

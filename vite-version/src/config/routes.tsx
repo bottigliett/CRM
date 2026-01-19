@@ -48,6 +48,7 @@ const ClientTicketDetail = lazy(() => import('@/app/client/tickets/[id]/page'))
 const ClientDocuments = lazy(() => import('@/app/client/documents/page'))
 const ClientTasks = lazy(() => import('@/app/client/tasks/page'))
 const ClientCalendar = lazy(() => import('@/app/client/calendar/page'))
+const ClientSettings = lazy(() => import('@/app/client/settings/page'))
 const SignUp = lazy(() => import('@/app/auth/sign-up/page'))
 const SignUp2 = lazy(() => import('@/app/auth/sign-up-2/page'))
 const SignUp3 = lazy(() => import('@/app/auth/sign-up-3/page'))
@@ -247,6 +248,10 @@ export const routes: RouteConfig[] = [
   {
     path: "/client/calendar",
     element: <ClientProtectedRoute><ClientCalendar /></ClientProtectedRoute>
+  },
+  {
+    path: "/client/settings",
+    element: <ClientProtectedRoute><ClientSettings /></ClientProtectedRoute>
   },
 
   // Error Pages

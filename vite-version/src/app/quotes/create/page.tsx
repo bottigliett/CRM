@@ -192,6 +192,11 @@ export default function CreateQuotePage() {
       return
     }
 
+    if (formData.objectives.length >= 3) {
+      toast.error('Puoi aggiungere massimo 3 obiettivi')
+      return
+    }
+
     setFormData({
       ...formData,
       objectives: [...formData.objectives, { ...editingObjective }],
@@ -527,10 +532,19 @@ export default function CreateQuotePage() {
                     rows={3}
                   />
                 </div>
-                <Button onClick={addObjective} className="w-full">
+                <Button
+                  onClick={addObjective}
+                  className="w-full"
+                  disabled={formData.objectives.length >= 3}
+                >
                   <Plus className="h-4 w-4 mr-2" />
-                  Aggiungi Obiettivo
+                  {formData.objectives.length >= 3 ? 'Massimo 3 obiettivi raggiunto' : 'Aggiungi Obiettivo'}
                 </Button>
+                {formData.objectives.length > 0 && formData.objectives.length < 3 && (
+                  <p className="text-xs text-muted-foreground text-center">
+                    {3 - formData.objectives.length} obiettivi rimanenti
+                  </p>
+                )}
               </div>
 
               {/* Objectives List */}
@@ -538,7 +552,7 @@ export default function CreateQuotePage() {
                 <div className="text-center py-8 text-muted-foreground">
                   <FileText className="h-12 w-12 mx-auto mb-2 opacity-50" />
                   <p>Nessun obiettivo aggiunto</p>
-                  <p className="text-sm">Gli obiettivi aiutano il cliente a comprendere il valore del progetto</p>
+                  <p className="text-sm">Gli obiettivi aiutano il cliente a comprendere il valore del progetto (max 3)</p>
                 </div>
               ) : (
                 <div className="space-y-3">
