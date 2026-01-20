@@ -87,7 +87,7 @@ export function ClientSidebar({ ...props }: React.ComponentProps<typeof Sidebar>
       } catch (error) {
         console.error('Error loading client data:', error)
         // If error, redirect to login
-        navigate('/client/login')
+        navigate('/auth/sign-in')
       }
     }
     loadClientData()
@@ -95,7 +95,7 @@ export function ClientSidebar({ ...props }: React.ComponentProps<typeof Sidebar>
 
   const handleLogout = () => {
     clientAuthAPI.logout()
-    navigate('/client/login')
+    navigate('/auth/sign-in')
   }
 
   const userName = clientData?.contact?.name || "Cliente"

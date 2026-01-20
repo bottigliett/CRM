@@ -5,7 +5,6 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Receipt, Download, ExternalLink } from "lucide-react"
 import { clientInvoicesAPI, type Invoice } from "@/lib/client-invoices-api"
-import { invoicesAPI } from "@/lib/invoices-api"
 import { generateInvoicePDF } from "@/lib/pdf-generator"
 import { format } from "date-fns"
 import { it } from "date-fns/locale"
@@ -72,7 +71,7 @@ export default function ClientInvoicesPage() {
       }
 
       // Otherwise generate PDF on the fly
-      const response = await invoicesAPI.getInvoicePDFData(invoice.id)
+      const response = await clientInvoicesAPI.getInvoicePDFData(invoice.id)
       if (response.success) {
         await generateInvoicePDF(invoice.id, response.data)
         toast.success('PDF generato con successo')

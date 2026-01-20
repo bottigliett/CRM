@@ -92,6 +92,31 @@ class ClientInvoicesAPI {
   }> {
     return this.request<any>(`/client/invoices/${id}`);
   }
+
+  async getInvoicePDFData(id: number): Promise<{
+    success: boolean;
+    data: {
+      invoiceNumber: string;
+      invoiceDate: string;
+      dueDate: string;
+      clientName: string;
+      clientAddress?: string;
+      clientPIva?: string;
+      clientCF?: string;
+      subject: string;
+      description: string;
+      quantity: string;
+      unitPrice: string;
+      subtotal: string;
+      vatPercentage: string;
+      vatAmount: string;
+      total: string;
+      fiscalNotes?: string;
+      isVatZero: boolean;
+    };
+  }> {
+    return this.request<any>(`/client/invoices/${id}/pdf`);
+  }
 }
 
 export const clientInvoicesAPI = new ClientInvoicesAPI();

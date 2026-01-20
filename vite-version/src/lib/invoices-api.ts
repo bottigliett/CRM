@@ -121,7 +121,8 @@ export interface UpdateInvoiceData extends Partial<CreateInvoiceData> {}
 
 class InvoicesAPI {
   private getAuthToken(): string | null {
-    return localStorage.getItem('auth_token');
+    // Try client token first, then admin token
+    return localStorage.getItem('client_auth_token') || localStorage.getItem('auth_token');
   }
 
   private async request<T>(
