@@ -1,4 +1,5 @@
 import * as React from "react"
+import { useNavigate } from "react-router-dom"
 import { ClientLayout } from "@/components/layouts/client-layout"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -40,6 +41,7 @@ import { it } from "date-fns/locale"
 import { toast } from "sonner"
 
 export default function ClientQuotesPage() {
+  const navigate = useNavigate()
   const [clientData, setClientData] = React.useState<any>(null)
   const [quote, setQuote] = React.useState<Quote | null>(null)
   const [loading, setLoading] = React.useState(true)
@@ -182,8 +184,8 @@ export default function ClientQuotesPage() {
         selectedPaymentOption,
       })
 
-      toast.success('Proposta accettata con successo!')
-      loadQuoteData()
+      // Redirect to thank you page
+      navigate('/client/quotes/thank-you')
     } catch (error: any) {
       console.error('Error accepting quote:', error)
       toast.error(error.message || 'Errore nell\'accettazione della proposta')
@@ -361,31 +363,23 @@ export default function ClientQuotesPage() {
           </CardContent>
         </Card>
 
-        {/* Objectives Section - Max 3, in alto */}
+        {/* Objectives Section - Max 3, come preventivo.php */}
         {parseObjectives(quote.objectives).length > 0 && (
-          <Card className="border-primary/20">
-            <CardHeader className="bg-primary/5">
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <Target className="h-5 w-5" />
-                Obiettivi del Progetto
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-6">
-              <div className="grid gap-4 md:grid-cols-3">
-                {parseObjectives(quote.objectives).slice(0, 3).map((objective, index) => (
-                  <div key={index} className="bg-muted/30 rounded-lg p-4 border-l-4 border-primary">
-                    <h4 className="font-semibold text-base mb-2 flex items-center gap-2">
-                      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs">
-                        {index + 1}
-                      </span>
-                      {objective.title}
-                    </h4>
-                    <p className="text-sm text-muted-foreground leading-relaxed">{objective.description}</p>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+          <div className="space-y-6">
+            <h2 className="text-xl font-light text-foreground">Obiettivi del progetto</h2>
+            <div className="flex flex-wrap gap-8">
+              {parseObjectives(quote.objectives).slice(0, 3).map((objective, index) => (
+                <div key={index} className="flex-1 min-w-[300px]">
+                  <h3 className="text-4xl font-light text-muted-foreground mb-2">
+                    {objective.title}
+                  </h3>
+                  <p className="text-base leading-relaxed pr-8">
+                    {objective.description}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
         )}
 
         {/* Alert if expired */}

@@ -42,6 +42,7 @@ const ClientActivation = lazy(() => import('@/app/client/activate/page'))
 const ClientLogin = lazy(() => import('@/app/client/login/page'))
 const ClientDashboard = lazy(() => import('@/app/client/dashboard/page'))
 const ClientQuotes = lazy(() => import('@/app/client/quotes/page'))
+const ClientQuotesThankYou = lazy(() => import('@/app/client/quotes/thank-you/page'))
 const ClientInvoices = lazy(() => import('@/app/client/invoices/page'))
 const ClientTickets = lazy(() => import('@/app/client/tickets/page'))
 const ClientTicketDetail = lazy(() => import('@/app/client/tickets/[id]/page'))
@@ -224,6 +225,10 @@ export const routes: RouteConfig[] = [
   {
     path: "/client/quotes",
     element: <ClientProtectedRoute><ClientQuotes /></ClientProtectedRoute>
+  },
+  {
+    path: "/client/quotes/thank-you",
+    element: <ClientProtectedRoute><ClientQuotesThankYou /></ClientProtectedRoute>
   },
   {
     path: "/client/invoices",
