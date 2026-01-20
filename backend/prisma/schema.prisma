@@ -844,6 +844,7 @@ model ClientAccess {
   // Authentication
   username           String    @unique
   passwordHash       String?   @map("password_hash") // NULL fino ad attivazione
+  temporaryPassword  String?   @map("temporary_password") // Password temporanea per accesso momentaneo
   activationToken    String?   @unique @map("activation_token")
   activationExpires  DateTime? @map("activation_expires")
   emailVerified      Boolean   @default(false) @map("email_verified")

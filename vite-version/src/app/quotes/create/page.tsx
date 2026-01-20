@@ -68,6 +68,8 @@ interface QuoteFormData {
   payment2Discount: number
   payment3Discount: number
   payment4Discount: number
+  enableTemporaryAccess: boolean
+  temporaryPassword: string
 }
 
 export default function CreateQuotePage() {
@@ -97,6 +99,8 @@ export default function CreateQuotePage() {
     payment2Discount: 3,
     payment3Discount: 2,
     payment4Discount: 0,
+    enableTemporaryAccess: false,
+    temporaryPassword: '',
   })
 
   // Objective being edited
@@ -321,6 +325,12 @@ export default function CreateQuotePage() {
       return
     }
 
+    // Validate temporary access
+    if (formData.enableTemporaryAccess && !formData.temporaryPassword.trim()) {
+      toast.error('Imposta una password temporanea o disabilita l\'accesso momentaneo')
+      return
+    }
+
     try {
       setSubmitting(true)
       const data: CreateQuoteData = {
@@ -336,6 +346,8 @@ export default function CreateQuotePage() {
         payment2Discount: formData.payment2Discount,
         payment3Discount: formData.payment3Discount,
         payment4Discount: formData.payment4Discount,
+        enableTemporaryAccess: formData.enableTemporaryAccess,
+        temporaryPassword: formData.enableTemporaryAccess ? formData.temporaryPassword : undefined,
         items: formData.items.length > 0 ? formData.items : undefined,
         packages: formData.packages.length > 0 ? formData.packages.map((pkg, index) => ({
           name: pkg.name,
@@ -1045,6 +1057,42 @@ export default function CreateQuotePage() {
                 </div>
                 </div>
               )}
+
+              <Separator />
+
+              <div className="space-y-4">
+                <div className="flex items-center justify-between rounded-lg border p-4">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="enableTemporaryAccess">Abilita Accesso Momentaneo</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Consenti al cliente di accedere subito al preventivo con una password temporanea
+                    </p>
+                  </div>
+                  <Switch
+                    id="enableTemporaryAccess"
+                    checked={formData.enableTemporaryAccess}
+                    onCheckedChange={(checked) => setFormData({ ...formData, enableTemporaryAccess: checked })}
+                  />
+                </div>
+
+                {formData.enableTemporaryAccess && (
+                  <div className="space-y-4 p-4 border rounded-lg bg-blue-50/50 dark:bg-blue-950/20">
+                    <div className="space-y-2">
+                      <Label htmlFor="temporaryPassword">Password Temporanea *</Label>
+                      <Input
+                        id="temporaryPassword"
+                        type="text"
+                        placeholder="Imposta una password temporanea"
+                        value={formData.temporaryPassword}
+                        onChange={(e) => setFormData({ ...formData, temporaryPassword: e.target.value })}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Il cliente userà questa password per accedere al preventivo. Quando attivi la Dashboard completa, l'accesso momentaneo si disattiverà.
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
             </CardContent>
           </Card>
         )}

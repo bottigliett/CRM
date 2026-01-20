@@ -192,6 +192,8 @@ export const createQuote = async (req: Request, res: Response) => {
       payment3Discount = 0,
       payment4Discount = 0,
       validityDays = 30,
+      enableTemporaryAccess = false,
+      temporaryPassword,
     } = req.body;
 
     const userId = (req as any).user.userId;
@@ -316,20 +318,72 @@ export const createQuote = async (req: Request, res: Response) => {
       return newQuote;
     });
 
-    // Auto-link quote to QUOTE_ONLY client access if not already linked
-    const quoteOnlyAccess = await prisma.clientAccess.findFirst({
-      where: {
-        contactId: parseInt(contactId),
-        accessType: 'QUOTE_ONLY',
-        linkedQuoteId: null,
-      },
-    });
-
-    if (quoteOnlyAccess) {
-      await prisma.clientAccess.update({
-        where: { id: quoteOnlyAccess.id },
-        data: { linkedQuoteId: quote.id },
+    // Gestione accesso momentaneo
+    if (enableTemporaryAccess && temporaryPassword) {
+      // Cerca ClientAccess esistente per questo contatto
+      let clientAccess = await prisma.clientAccess.findFirst({
+        where: {
+          contactId: parseInt(contactId),
+          accessType: 'QUOTE_ONLY',
+        },
       });
+
+      // Se non esiste, crealo
+      if (!clientAccess) {
+        // Genera username dal nome del contatto
+        const username = contact.name
+          .toLowerCase()
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '') // Rimuovi accenti
+          .replace(/[^a-z0-9]/g, '') // Rimuovi caratteri speciali e spazi
+          .substring(0, 20);
+
+        // Verifica unicità username
+        let finalUsername = username;
+        let counter = 1;
+        while (await prisma.clientAccess.findUnique({ where: { username: finalUsername } })) {
+          finalUsername = `${username}${counter}`;
+          counter++;
+        }
+
+        clientAccess = await prisma.clientAccess.create({
+          data: {
+            contactId: parseInt(contactId),
+            username: finalUsername,
+            accessType: 'QUOTE_ONLY',
+            linkedQuoteId: quote.id,
+            temporaryPassword: temporaryPassword,
+            isActive: true,
+            emailVerified: false,
+          },
+        });
+      } else {
+        // Aggiorna ClientAccess esistente con password temporanea
+        await prisma.clientAccess.update({
+          where: { id: clientAccess.id },
+          data: {
+            linkedQuoteId: quote.id,
+            temporaryPassword: temporaryPassword,
+            isActive: true,
+          },
+        });
+      }
+    } else {
+      // Auto-link quote to QUOTE_ONLY client access if not already linked
+      const quoteOnlyAccess = await prisma.clientAccess.findFirst({
+        where: {
+          contactId: parseInt(contactId),
+          accessType: 'QUOTE_ONLY',
+          linkedQuoteId: null,
+        },
+      });
+
+      if (quoteOnlyAccess) {
+        await prisma.clientAccess.update({
+          where: { id: quoteOnlyAccess.id },
+          data: { linkedQuoteId: quote.id },
+        });
+      }
     }
 
     // Ricarica con relazioni

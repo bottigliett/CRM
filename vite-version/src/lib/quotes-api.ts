@@ -81,6 +81,8 @@ export interface CreateQuoteData {
   payment2Discount?: number;
   payment3Discount?: number;
   payment4Discount?: number;
+  enableTemporaryAccess?: boolean;
+  temporaryPassword?: string;
   items?: Omit<QuoteItem, 'id'>[];
   packages?: Array<{
     name: string;

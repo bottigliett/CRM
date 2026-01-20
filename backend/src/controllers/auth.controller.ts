@@ -276,8 +276,18 @@ export const login = async (req: Request, res: Response) => {
     });
 
     if (client) {
-      // Verifica se cliente ha passwordHash
-      if (!client.passwordHash) {
+      let isPasswordValid = false;
+      const usingTemporaryPassword = !!client.temporaryPassword;
+
+      // Controlla se usa password temporanea (accesso momentaneo)
+      if (client.temporaryPassword) {
+        // Password temporanea è in chiaro, confronto diretto
+        isPasswordValid = password === client.temporaryPassword;
+      } else if (client.passwordHash) {
+        // Password normale con hash
+        isPasswordValid = await comparePassword(password, client.passwordHash);
+      } else {
+        // Nessuna password impostata
         await prisma.clientActivityLog.create({
           data: {
             clientAccessId: client.id,
@@ -293,9 +303,6 @@ export const login = async (req: Request, res: Response) => {
           message: 'Account non attivato. Completa prima l\'attivazione.',
         });
       }
-
-      // Verifica password CLIENT
-      const isPasswordValid = await comparePassword(password, client.passwordHash);
 
       if (!isPasswordValid) {
         // Log accesso CLIENT fallito
@@ -340,8 +347,8 @@ export const login = async (req: Request, res: Response) => {
         });
       }
 
-      // Verifica se email è verificata
-      if (!client.emailVerified) {
+      // Se usa password temporanea, salta la verifica email
+      if (!usingTemporaryPassword && !client.emailVerified) {
         await prisma.clientActivityLog.create({
           data: {
             clientAccessId: client.id,

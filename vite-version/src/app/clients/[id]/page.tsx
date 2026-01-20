@@ -79,6 +79,7 @@ export default function ClientDetailPage() {
   const [showDeleteQuoteDialog, setShowDeleteQuoteDialog] = useState(false)
   const [quoteToDelete, setQuoteToDelete] = useState<number | null>(null)
   const [showActivationCode, setShowActivationCode] = useState(false)
+  const [showTemporaryPassword, setShowTemporaryPassword] = useState(false)
   const [showDashboardDialog, setShowDashboardDialog] = useState(false)
   const [showFoldersDialog, setShowFoldersDialog] = useState(false)
   const [activeTab, setActiveTab] = useState("overview")
@@ -143,6 +144,26 @@ export default function ClientDetailPage() {
 
   const handleToggleActivationCode = () => {
     setShowActivationCode(!showActivationCode)
+  }
+
+  const handleToggleTemporaryPassword = () => {
+    setShowTemporaryPassword(!showTemporaryPassword)
+  }
+
+  const handleDisableTemporaryAccess = async () => {
+    if (!client) return
+
+    try {
+      setSaving(true)
+      await clientAccessAPI.update(client.id, { temporaryPassword: null })
+      toast.success('Accesso momentaneo disattivato')
+      loadClientData()
+    } catch (error: any) {
+      console.error('Error disabling temporary access:', error)
+      toast.error(error.message || "Errore nella disattivazione")
+    } finally {
+      setSaving(false)
+    }
   }
 
   const handleToggleActive = async () => {
@@ -224,6 +245,7 @@ export default function ClientDetailPage() {
       setSaving(true)
       await clientAccessAPI.update(client.id, {
         accessType: 'FULL_CLIENT',
+        temporaryPassword: null, // Disattiva accesso momentaneo quando si attiva dashboard
         projectName: dashboardForm.projectName || null,
         projectDescription: dashboardForm.projectDescription || null,
         monthlyFee: dashboardForm.monthlyFee,
@@ -234,7 +256,7 @@ export default function ClientDetailPage() {
         assetsFolder: dashboardForm.assetsFolder || null,
         invoiceFolder: dashboardForm.invoiceFolder || null,
       })
-      toast.success('Dashboard attivata con successo')
+      toast.success('Dashboard attivata con successo. Accesso momentaneo disattivato.')
       setShowDashboardDialog(false)
       loadClientData()
       setActiveTab('dashboard')
@@ -447,6 +469,58 @@ export default function ClientDetailPage() {
                         </p>
                       </div>
                     )}
+                  </div>
+                )}
+
+                {/* Temporary Access Section */}
+                {client.temporaryPassword && (
+                  <div className="pt-4 space-y-3 border-t">
+                    <Label>Accesso Momentaneo</Label>
+                    <div className="p-3 rounded-lg border bg-blue-50/50 dark:bg-blue-950/20 space-y-3">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="bg-blue-500/10 text-blue-500 border-blue-500/20">
+                          <CheckCircle2 className="h-3 w-3 mr-1" />
+                          Attivo
+                        </Badge>
+                        <p className="text-sm text-muted-foreground">
+                          Il cliente può accedere con password temporanea
+                        </p>
+                      </div>
+
+                      <div className="flex gap-2">
+                        <Button variant="outline" size="sm" onClick={handleToggleTemporaryPassword}>
+                          {showTemporaryPassword ? (
+                            <>
+                              <EyeOff className="h-4 w-4 mr-2" />
+                              Nascondi Password
+                            </>
+                          ) : (
+                            <>
+                              <Eye className="h-4 w-4 mr-2" />
+                              Mostra Password
+                            </>
+                          )}
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={handleDisableTemporaryAccess}
+                          disabled={saving}
+                        >
+                          Disattiva Accesso
+                        </Button>
+                      </div>
+
+                      {showTemporaryPassword && (
+                        <div className="p-3 rounded-lg border bg-muted/50">
+                          <Label className="text-xs text-muted-foreground">Password Temporanea</Label>
+                          <p className="font-mono text-lg font-semibold mt-1">{client.temporaryPassword}</p>
+                          <p className="text-xs text-muted-foreground mt-2">
+                            <strong>Credenziali:</strong> Username: {client.username} | Password: {client.temporaryPassword}
+                          </p>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
 
