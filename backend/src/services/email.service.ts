@@ -1163,7 +1163,7 @@ export async function sendAdminQuoteAcceptedEmail(
 
   const paymentLabel = paymentLabels[selectedPaymentOption] || selectedPaymentOption;
 
-  const subject = `✅ Preventivo Accettato: ${quoteNumber}`;
+  const subject = `Preventivo Accettato: ${quoteNumber}`;
   const html = `
     <!DOCTYPE html>
     <html>
@@ -1247,7 +1247,7 @@ export async function sendAdminQuoteAcceptedEmail(
     <body>
       <div class="container">
         <div class="header">
-          <h1>✅ Preventivo Accettato!</h1>
+          <h1>Preventivo Accettato!</h1>
         </div>
         <div class="content">
           <p><strong>Buone notizie!</strong></p>
@@ -1279,7 +1279,7 @@ export async function sendAdminQuoteAcceptedEmail(
   `;
 
   const text = `
-✅ Preventivo Accettato!
+Preventivo Accettato!
 
 Il cliente ${clientName} ha accettato il preventivo:
 
@@ -1401,7 +1401,7 @@ export async function sendClientQuoteAcceptedEmail(
     <body>
       <div class="container">
         <div class="header">
-          <h1>✨ Grazie per la fiducia!</h1>
+          <h1>Grazie per la fiducia!</h1>
         </div>
         <div class="content">
           <p>Gentile ${clientName},</p>
