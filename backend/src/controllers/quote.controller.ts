@@ -3,6 +3,22 @@ import prisma from '../config/database';
 import { sendClientQuoteSharedEmail } from '../services/email.service';
 
 /**
+ * Helper: Parse JSON fields in quote response
+ */
+const parseQuoteData = (quote: any) => {
+  if (!quote) return quote;
+  
+  return {
+    ...quote,
+    objectives: quote.objectives ? JSON.parse(quote.objectives) : [],
+    packages: quote.packages?.map((pkg: any) => ({
+      ...pkg,
+      features: pkg.features ? JSON.parse(pkg.features) : [],
+    })) || [],
+  };
+};
+
+/**
  * HELPER TARIFFARIO - Prezzi base servizi
  */
 const PRICING_GUIDE = {
@@ -107,10 +123,13 @@ export const getQuotes = async (req: Request, res: Response) => {
 
     const total = await prisma.quote.count({ where });
 
+    // Parse JSON fields for each quote
+    const parsedQuotes = quotes.map(parseQuoteData);
+
     res.json({
       success: true,
       data: {
-        quotes,
+        quotes: parsedQuotes,
         total,
         limit: limit ? parseInt(limit as string) : total,
         offset: offset ? parseInt(offset as string) : 0,
@@ -157,9 +176,12 @@ export const getQuoteById = async (req: Request, res: Response) => {
       });
     }
 
+    // Parse JSON fields
+    const parsedQuote = parseQuoteData(quote);
+
     res.json({
       success: true,
-      data: quote,
+      data: parsedQuote,
     });
   } catch (error: any) {
     console.error('Error fetching quote:', error);
@@ -405,10 +427,13 @@ export const createQuote = async (req: Request, res: Response) => {
       },
     });
 
+    // Parse JSON fields
+    const parsedQuote = parseQuoteData(fullQuote);
+
     res.status(201).json({
       success: true,
       message: 'Preventivo creato con successo',
-      data: fullQuote,
+      data: parsedQuote,
     });
   } catch (error: any) {
     console.error('Error creating quote:', error);
@@ -594,10 +619,13 @@ export const updateQuote = async (req: Request, res: Response) => {
       }
     }
 
+    // Parse JSON fields
+    const parsedQuote = parseQuoteData(fullQuote);
+
     res.json({
       success: true,
       message: 'Preventivo aggiornato con successo',
-      data: fullQuote,
+      data: parsedQuote,
     });
   } catch (error: any) {
     console.error('Error updating quote:', error);

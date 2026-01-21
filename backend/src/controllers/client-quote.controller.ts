@@ -4,6 +4,22 @@ import { ClientAuthRequest } from '../middleware/client-auth';
 import { sendAdminQuoteAcceptedEmail, sendClientQuoteAcceptedEmail } from '../services/email.service';
 
 /**
+ * Helper: Parse JSON fields in quote response
+ */
+const parseQuoteData = (quote: any) => {
+  if (!quote) return quote;
+  
+  return {
+    ...quote,
+    objectives: quote.objectives ? JSON.parse(quote.objectives) : [],
+    packages: quote.packages?.map((pkg: any) => ({
+      ...pkg,
+      features: pkg.features ? JSON.parse(pkg.features) : [],
+    })) || [],
+  };
+};
+
+/**
  * GET /api/client/quotes
  * Get the linked quote for the authenticated client
  */
@@ -59,10 +75,13 @@ export const getClientQuote = async (req: ClientAuthRequest, res: Response) => {
       });
     }
 
+    // Parse JSON fields
+    const parsedQuote = parseQuoteData(quote);
+
     // Map isRecommended to recommended for frontend compatibility
     const mappedQuote = {
-      ...quote,
-      packages: quote.packages.map((pkg: any) => ({
+      ...parsedQuote,
+      packages: parsedQuote.packages.map((pkg: any) => ({
         ...pkg,
         recommended: pkg.isRecommended,
         basePrice: pkg.price, // Also map price to basePrice for compatibility
@@ -162,11 +181,14 @@ export const acceptClientQuote = async (req: ClientAuthRequest, res: Response) =
       },
     });
 
+    // Parse JSON fields
+    const parsedQuote = parseQuoteData(updatedQuote);
+
     // Map isRecommended to recommended for frontend compatibility
     const mappedQuote = {
-      ...updatedQuote,
+      ...parsedQuote,
       // @ts-ignore
-      packages: updatedQuote.packages.map((pkg: any) => ({
+      packages: parsedQuote.packages.map((pkg: any) => ({
         ...pkg,
         recommended: pkg.isRecommended,
         basePrice: pkg.price,
@@ -302,11 +324,14 @@ export const rejectClientQuote = async (req: ClientAuthRequest, res: Response) =
       },
     });
 
+    // Parse JSON fields
+    const parsedQuote = parseQuoteData(updatedQuote);
+
     // Map isRecommended to recommended for frontend compatibility
     const mappedQuote = {
-      ...updatedQuote,
+      ...parsedQuote,
       // @ts-ignore
-      packages: updatedQuote.packages.map((pkg: any) => ({
+      packages: parsedQuote.packages.map((pkg: any) => ({
         ...pkg,
         recommended: pkg.isRecommended,
         basePrice: pkg.price,
