@@ -858,16 +858,21 @@ model ClientAccess {
   projectStartDate   DateTime? @map("project_start_date")
   projectEndDate     DateTime? @map("project_end_date")
   monthlyFee         Float?    @default(0) @map("monthly_fee")
+  budgetDisplayType  String?   @default("monthly_fee") @map("budget_display_type") // "monthly_fee" or "project_budget"
 
   // Support hours management
   supportHoursIncluded Float   @default(0) @map("support_hours_included") // 0 = unlimited
   supportHoursUsed     Float   @default(0) @map("support_hours_used")
 
   // Document folders (Google Drive links)
-  driveFolderLink    String?   @map("drive_folder_link")
-  documentsFolder    String?   @map("documents_folder")
-  assetsFolder       String?   @map("assets_folder")
-  invoiceFolder      String?   @map("invoice_folder")
+  driveFolderLink      String?   @map("drive_folder_link")
+  driveFolderLinkTitle String?   @map("drive_folder_link_title")
+  documentsFolder      String?   @map("documents_folder")
+  documentsFolderTitle String?   @map("documents_folder_title")
+  assetsFolder         String?   @map("assets_folder")
+  assetsFolderTitle    String?   @map("assets_folder_title")
+  invoiceFolder        String?   @map("invoice_folder")
+  invoiceFolderTitle   String?   @map("invoice_folder_title")
 
   // Bespoke details (JSON)
   bespokeDetails     String?   @db.Text @map("bespoke_details") // JSON string

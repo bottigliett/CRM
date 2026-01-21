@@ -143,17 +143,30 @@ export default function ClientDashboardPage() {
             </CardContent>
           </Card>
 
-          {/* Monthly Fee */}
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Canone Mensile</CardTitle>
-              <Euro className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">€{clientData?.monthlyFee || 0}</div>
-              <p className="text-xs text-muted-foreground mt-2">al mese</p>
-            </CardContent>
-          </Card>
+          {/* Monthly Fee or Project Budget */}
+          {(clientData as any)?.budgetDisplayType === 'project_budget' ? (
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Valore Progetto</CardTitle>
+                <Euro className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">€{(clientData as any)?.projectBudget?.toLocaleString() || 0}</div>
+                <p className="text-xs text-muted-foreground mt-2">totale</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Canone Mensile</CardTitle>
+                <Euro className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">€{clientData?.monthlyFee || 0}</div>
+                <p className="text-xs text-muted-foreground mt-2">al mese</p>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Active Tasks */}
           <Card>
@@ -263,7 +276,7 @@ export default function ClientDashboardPage() {
                   >
                     <div className="flex items-center gap-3">
                       <FolderOpen className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm font-medium">Cartella Principale</span>
+                      <span className="text-sm font-medium">{(clientData as any)?.driveFolderLinkTitle || 'Cartella Principale'}</span>
                     </div>
                     <ExternalLink className="h-4 w-4 text-muted-foreground" />
                   </a>
@@ -277,7 +290,7 @@ export default function ClientDashboardPage() {
                   >
                     <div className="flex items-center gap-3">
                       <FileText className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm font-medium">Documenti</span>
+                      <span className="text-sm font-medium">{(clientData as any)?.documentsFolderTitle || 'Documenti'}</span>
                     </div>
                     <ExternalLink className="h-4 w-4 text-muted-foreground" />
                   </a>
@@ -291,7 +304,7 @@ export default function ClientDashboardPage() {
                   >
                     <div className="flex items-center gap-3">
                       <FolderOpen className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm font-medium">Assets</span>
+                      <span className="text-sm font-medium">{(clientData as any)?.assetsFolderTitle || 'Assets'}</span>
                     </div>
                     <ExternalLink className="h-4 w-4 text-muted-foreground" />
                   </a>
@@ -305,7 +318,7 @@ export default function ClientDashboardPage() {
                   >
                     <div className="flex items-center gap-3">
                       <Receipt className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm font-medium">Fatture</span>
+                      <span className="text-sm font-medium">{(clientData as any)?.invoiceFolderTitle || 'Fatture'}</span>
                     </div>
                     <ExternalLink className="h-4 w-4 text-muted-foreground" />
                   </a>

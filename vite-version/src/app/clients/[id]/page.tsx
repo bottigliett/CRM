@@ -89,11 +89,17 @@ export default function ClientDetailPage() {
     projectName: '',
     projectDescription: '',
     monthlyFee: 0,
+    projectBudget: 0,
+    budgetDisplayType: 'monthly_fee' as 'monthly_fee' | 'project_budget',
     supportHoursIncluded: 0,
     driveFolderLink: '',
+    driveFolderLinkTitle: '',
     documentsFolder: '',
+    documentsFolderTitle: '',
     assetsFolder: '',
+    assetsFolderTitle: '',
     invoiceFolder: '',
+    invoiceFolderTitle: '',
   })
 
   // Folders form data
@@ -190,11 +196,17 @@ export default function ClientDetailPage() {
       projectName: client.projectName || '',
       projectDescription: client.projectDescription || '',
       monthlyFee: client.monthlyFee || 0,
+      projectBudget: (client as any).projectBudget || 0,
+      budgetDisplayType: (client as any).budgetDisplayType || 'monthly_fee',
       supportHoursIncluded: client.supportHoursIncluded || 0,
       driveFolderLink: client.driveFolderLink || '',
+      driveFolderLinkTitle: (client as any).driveFolderLinkTitle || '',
       documentsFolder: client.documentsFolder || '',
+      documentsFolderTitle: (client as any).documentsFolderTitle || '',
       assetsFolder: client.assetsFolder || '',
+      assetsFolderTitle: (client as any).assetsFolderTitle || '',
       invoiceFolder: client.invoiceFolder || '',
+      invoiceFolderTitle: (client as any).invoiceFolderTitle || '',
     })
 
     // Open dialog
@@ -249,12 +261,18 @@ export default function ClientDetailPage() {
         projectName: dashboardForm.projectName || null,
         projectDescription: dashboardForm.projectDescription || null,
         monthlyFee: dashboardForm.monthlyFee,
+        projectBudget: dashboardForm.projectBudget,
+        budgetDisplayType: dashboardForm.budgetDisplayType,
         supportHoursIncluded: dashboardForm.supportHoursIncluded,
         supportHoursUsed: 0,
         driveFolderLink: dashboardForm.driveFolderLink || null,
+        driveFolderLinkTitle: dashboardForm.driveFolderLinkTitle || null,
         documentsFolder: dashboardForm.documentsFolder || null,
+        documentsFolderTitle: dashboardForm.documentsFolderTitle || null,
         assetsFolder: dashboardForm.assetsFolder || null,
+        assetsFolderTitle: dashboardForm.assetsFolderTitle || null,
         invoiceFolder: dashboardForm.invoiceFolder || null,
+        invoiceFolderTitle: dashboardForm.invoiceFolderTitle || null,
       })
       toast.success('Dashboard attivata con successo. Accesso momentaneo disattivato.')
       setShowDashboardDialog(false)
@@ -974,6 +992,22 @@ export default function ClientDetailPage() {
               />
             </div>
 
+            <div className="space-y-2">
+              <Label htmlFor="budgetDisplayType">Tipo Visualizzazione Budget</Label>
+              <Select
+                value={dashboardForm.budgetDisplayType}
+                onValueChange={(value) => setDashboardForm({ ...dashboardForm, budgetDisplayType: value as 'monthly_fee' | 'project_budget' })}
+              >
+                <SelectTrigger id="budgetDisplayType">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="monthly_fee">Canone Mensile</SelectItem>
+                  <SelectItem value="project_budget">Valore Progetto</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="monthlyFee">Canone Mensile (€)</Label>
@@ -989,17 +1023,30 @@ export default function ClientDetailPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="supportHoursIncluded">Ore Supporto Incluse</Label>
+                <Label htmlFor="projectBudget">Valore Progetto (€)</Label>
                 <Input
-                  id="supportHoursIncluded"
+                  id="projectBudget"
                   type="number"
                   min="0"
-                  step="0.5"
-                  placeholder="0"
-                  value={dashboardForm.supportHoursIncluded}
-                  onChange={(e) => setDashboardForm({ ...dashboardForm, supportHoursIncluded: parseFloat(e.target.value) || 0 })}
+                  step="0.01"
+                  placeholder="0.00"
+                  value={dashboardForm.projectBudget}
+                  onChange={(e) => setDashboardForm({ ...dashboardForm, projectBudget: parseFloat(e.target.value) || 0 })}
                 />
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="supportHoursIncluded">Ore Supporto Incluse</Label>
+              <Input
+                id="supportHoursIncluded"
+                type="number"
+                min="0"
+                step="0.5"
+                placeholder="0"
+                value={dashboardForm.supportHoursIncluded}
+                onChange={(e) => setDashboardForm({ ...dashboardForm, supportHoursIncluded: parseFloat(e.target.value) || 0 })}
+              />
             </div>
 
             <div className="border-t pt-4 mt-4">
@@ -1013,6 +1060,12 @@ export default function ClientDetailPage() {
                     value={dashboardForm.driveFolderLink}
                     onChange={(e) => setDashboardForm({ ...dashboardForm, driveFolderLink: e.target.value })}
                   />
+                  <Input
+                    placeholder="Titolo link (es. Cartella Principale)"
+                    value={dashboardForm.driveFolderLinkTitle}
+                    onChange={(e) => setDashboardForm({ ...dashboardForm, driveFolderLinkTitle: e.target.value })}
+                    className="text-sm"
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="documentsFolder" className="text-sm">Cartella Documenti</Label>
@@ -1021,6 +1074,12 @@ export default function ClientDetailPage() {
                     placeholder="https://drive.google.com/..."
                     value={dashboardForm.documentsFolder}
                     onChange={(e) => setDashboardForm({ ...dashboardForm, documentsFolder: e.target.value })}
+                  />
+                  <Input
+                    placeholder="Titolo link (es. Documenti)"
+                    value={dashboardForm.documentsFolderTitle}
+                    onChange={(e) => setDashboardForm({ ...dashboardForm, documentsFolderTitle: e.target.value })}
+                    className="text-sm"
                   />
                 </div>
                 <div className="space-y-2">
@@ -1031,6 +1090,12 @@ export default function ClientDetailPage() {
                     value={dashboardForm.assetsFolder}
                     onChange={(e) => setDashboardForm({ ...dashboardForm, assetsFolder: e.target.value })}
                   />
+                  <Input
+                    placeholder="Titolo link (es. Assets)"
+                    value={dashboardForm.assetsFolderTitle}
+                    onChange={(e) => setDashboardForm({ ...dashboardForm, assetsFolderTitle: e.target.value })}
+                    className="text-sm"
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="invoiceFolder" className="text-sm">Cartella Fatture</Label>
@@ -1039,6 +1104,12 @@ export default function ClientDetailPage() {
                     placeholder="https://drive.google.com/..."
                     value={dashboardForm.invoiceFolder}
                     onChange={(e) => setDashboardForm({ ...dashboardForm, invoiceFolder: e.target.value })}
+                  />
+                  <Input
+                    placeholder="Titolo link (es. Fatture)"
+                    value={dashboardForm.invoiceFolderTitle}
+                    onChange={(e) => setDashboardForm({ ...dashboardForm, invoiceFolderTitle: e.target.value })}
+                    className="text-sm"
                   />
                 </div>
               </div>
