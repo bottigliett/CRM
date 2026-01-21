@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { BaseLayout } from '@/components/layouts/base-layout'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
@@ -15,9 +16,9 @@ import {
 } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { quotesAPI } from '@/lib/quotes-api'
-import type { Quote } from '@/lib/quotes-api'
+import type { Quote, QuoteObjective, QuotePackage } from '@/lib/quotes-api'
 import { toast } from 'sonner'
-import { Loader2, Save, ArrowLeft } from 'lucide-react'
+import { Loader2, Save, ArrowLeft, Plus, Trash2 } from 'lucide-react'
 
 export default function EditQuotePage() {
   const { id } = useParams<{ id: string }>()
@@ -31,6 +32,8 @@ export default function EditQuotePage() {
     description: '',
     status: 'DRAFT',
     validUntil: '',
+    objectives: [] as QuoteObjective[],
+    packages: [] as QuotePackage[],
     enablePaymentPlans: true,
     oneTimeDiscount: 0,
     payment2Discount: 0,
@@ -40,6 +43,16 @@ export default function EditQuotePage() {
     discountAmount: 0,
     taxRate: 22,
   })
+
+  const [editingObjective, setEditingObjective] = useState({ title: '', description: '' })
+  const [editingPackage, setEditingPackage] = useState({
+    name: '',
+    description: '',
+    features: [] as string[],
+    price: 0,
+    isRecommended: false,
+  })
+  const [currentFeature, setCurrentFeature] = useState('')
 
   useEffect(() => {
     if (id) {
@@ -58,6 +71,8 @@ export default function EditQuotePage() {
           description: response.data.description || '',
           status: response.data.status,
           validUntil: response.data.validUntil.split('T')[0], // Format for input date
+          objectives: response.data.objectives || [],
+          packages: response.data.packages || [],
           enablePaymentPlans: response.data.enablePaymentPlans !== undefined ? response.data.enablePaymentPlans : true,
           oneTimeDiscount: response.data.oneTimeDiscount,
           payment2Discount: response.data.payment2Discount,
@@ -77,6 +92,87 @@ export default function EditQuotePage() {
     }
   }
 
+  // Objective management
+  const addObjective = () => {
+    if (!editingObjective.title) {
+      toast.error('Inserisci un titolo per l\'obiettivo')
+      return
+    }
+
+    if (formData.objectives.length >= 3) {
+      toast.error('Puoi aggiungere massimo 3 obiettivi')
+      return
+    }
+
+    setFormData({
+      ...formData,
+      objectives: [...formData.objectives, { ...editingObjective }],
+    })
+
+    setEditingObjective({ title: '', description: '' })
+    toast.success('Obiettivo aggiunto')
+  }
+
+  const removeObjective = (index: number) => {
+    setFormData({
+      ...formData,
+      objectives: formData.objectives.filter((_, i) => i !== index),
+    })
+    toast.success('Obiettivo rimosso')
+  }
+
+  // Package management
+  const addFeature = () => {
+    if (currentFeature.trim()) {
+      setEditingPackage({
+        ...editingPackage,
+        features: [...editingPackage.features, currentFeature.trim()],
+      })
+      setCurrentFeature('')
+    }
+  }
+
+  const removeFeature = (index: number) => {
+    setEditingPackage({
+      ...editingPackage,
+      features: editingPackage.features.filter((_, i) => i !== index),
+    })
+  }
+
+  const addPackage = () => {
+    if (!editingPackage.name) {
+      toast.error('Inserisci un nome per il pacchetto')
+      return
+    }
+
+    if (editingPackage.price <= 0) {
+      toast.error('Inserisci un prezzo valido')
+      return
+    }
+
+    setFormData({
+      ...formData,
+      packages: [...formData.packages, { ...editingPackage }],
+    })
+
+    setEditingPackage({
+      name: '',
+      description: '',
+      features: [],
+      price: 0,
+      isRecommended: false,
+    })
+    toast.success('Pacchetto aggiunto')
+  }
+
+  const removePackage = (index: number) => {
+    setFormData({
+      ...formData,
+      packages: formData.packages.filter((_, i) => i !== index),
+    })
+    toast.success('Pacchetto rimosso')
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!id || !quote) return
@@ -88,6 +184,8 @@ export default function EditQuotePage() {
         description: formData.description,
         status: formData.status as any,
         validUntil: new Date(formData.validUntil).toISOString(),
+        objectives: formData.objectives,
+        packages: formData.packages,
         enablePaymentPlans: formData.enablePaymentPlans,
         oneTimeDiscount: formData.oneTimeDiscount,
         payment2Discount: formData.payment2Discount,
@@ -145,7 +243,7 @@ export default function EditQuotePage() {
           <CardHeader>
             <CardTitle>Modifica Preventivo</CardTitle>
             <CardDescription>
-              Modifica le informazioni del preventivo. Nota: per modificare obiettivi, pacchetti o voci esistenti, è consigliabile creare un nuovo preventivo.
+              Modifica tutte le informazioni del preventivo, inclusi obiettivi e pacchetti.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -189,6 +287,207 @@ export default function EditQuotePage() {
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 rows={4}
               />
+            </div>
+
+            {/* Objectives Section */}
+            <div className="space-y-4 rounded-lg border p-4">
+              <div>
+                <Label className="text-base font-semibold">Obiettivi del Progetto</Label>
+                <p className="text-sm text-muted-foreground">Aggiungi fino a 3 obiettivi principali</p>
+              </div>
+
+              {formData.objectives.length > 0 && (
+                <div className="space-y-2">
+                  {formData.objectives.map((obj, index) => (
+                    <div key={index} className="flex items-start gap-2 rounded-lg border p-3">
+                      <div className="flex-1">
+                        <p className="font-medium">{obj.title}</p>
+                        {obj.description && (
+                          <p className="text-sm text-muted-foreground">{obj.description}</p>
+                        )}
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeObjective(index)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {formData.objectives.length < 3 && (
+                <div className="space-y-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="objTitle">Titolo Obiettivo</Label>
+                    <Input
+                      id="objTitle"
+                      value={editingObjective.title}
+                      onChange={(e) => setEditingObjective({ ...editingObjective, title: e.target.value })}
+                      placeholder="es. Aumentare il traffico organico"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="objDesc">Descrizione (opzionale)</Label>
+                    <Textarea
+                      id="objDesc"
+                      value={editingObjective.description}
+                      onChange={(e) => setEditingObjective({ ...editingObjective, description: e.target.value })}
+                      placeholder="Dettagli sull'obiettivo..."
+                      rows={2}
+                    />
+                  </div>
+                  <Button type="button" onClick={addObjective} variant="outline" size="sm">
+                    <Plus className="mr-2 h-4 w-4" />
+                    Aggiungi Obiettivo
+                  </Button>
+                </div>
+              )}
+            </div>
+
+            {/* Packages Section */}
+            <div className="space-y-4 rounded-lg border p-4">
+              <div>
+                <Label className="text-base font-semibold">Pacchetti</Label>
+                <p className="text-sm text-muted-foreground">Crea i pacchetti offerti al cliente</p>
+              </div>
+
+              {formData.packages.length > 0 && (
+                <div className="space-y-2">
+                  {formData.packages.map((pkg, index) => (
+                    <div key={index} className="rounded-lg border p-4">
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <p className="font-semibold">{pkg.name}</p>
+                            {pkg.isRecommended && (
+                              <Badge variant="secondary">Consigliato</Badge>
+                            )}
+                          </div>
+                          {pkg.description && (
+                            <p className="text-sm text-muted-foreground mb-2">{pkg.description}</p>
+                          )}
+                          <p className="text-lg font-bold text-primary">€{pkg.price.toFixed(2)}</p>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removePackage(index)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      {pkg.features && pkg.features.length > 0 && (
+                        <div className="mt-2">
+                          <p className="text-sm font-medium mb-1">Caratteristiche:</p>
+                          <ul className="text-sm text-muted-foreground space-y-1">
+                            {(typeof pkg.features === 'string'
+                              ? JSON.parse(pkg.features)
+                              : pkg.features
+                            ).map((feature: string, fIndex: number) => (
+                              <li key={fIndex}>• {feature}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="space-y-3">
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="pkgName">Nome Pacchetto *</Label>
+                    <Input
+                      id="pkgName"
+                      value={editingPackage.name}
+                      onChange={(e) => setEditingPackage({ ...editingPackage, name: e.target.value })}
+                      placeholder="es. Pacchetto Base"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="pkgPrice">Prezzo (€) *</Label>
+                    <Input
+                      id="pkgPrice"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={editingPackage.price}
+                      onChange={(e) => setEditingPackage({ ...editingPackage, price: parseFloat(e.target.value) || 0 })}
+                      placeholder="0.00"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="pkgDesc">Descrizione (opzionale)</Label>
+                  <Textarea
+                    id="pkgDesc"
+                    value={editingPackage.description}
+                    onChange={(e) => setEditingPackage({ ...editingPackage, description: e.target.value })}
+                    placeholder="Descrizione del pacchetto..."
+                    rows={2}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Caratteristiche Incluse</Label>
+                  {editingPackage.features.length > 0 && (
+                    <div className="space-y-1 mb-2">
+                      {editingPackage.features.map((feature, index) => (
+                        <div key={index} className="flex items-center gap-2 text-sm">
+                          <span className="flex-1">• {feature}</span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeFeature(index)}
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <div className="flex gap-2">
+                    <Input
+                      value={currentFeature}
+                      onChange={(e) => setCurrentFeature(e.target.value)}
+                      placeholder="Aggiungi una caratteristica..."
+                      onKeyPress={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault()
+                          addFeature()
+                        }
+                      }}
+                    />
+                    <Button type="button" onClick={addFeature} variant="outline" size="sm">
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Switch
+                    id="pkgRecommended"
+                    checked={editingPackage.isRecommended}
+                    onCheckedChange={(checked) => setEditingPackage({ ...editingPackage, isRecommended: checked })}
+                  />
+                  <Label htmlFor="pkgRecommended" className="cursor-pointer">
+                    Contrassegna come consigliato
+                  </Label>
+                </div>
+
+                <Button type="button" onClick={addPackage} variant="outline">
+                  <Plus className="mr-2 h-4 w-4" />
+                  Aggiungi Pacchetto
+                </Button>
+              </div>
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">
