@@ -380,6 +380,24 @@ class ApiService {
     return response.json();
   }
 
+  async patch(endpoint: string, data?: any): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        ...this.getAuthHeader(),
+      },
+      body: data ? JSON.stringify(data) : undefined,
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || `HTTP Error ${response.status}`);
+    }
+
+    return response.json();
+  }
+
   async delete(endpoint: string): Promise<any> {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
       method: 'DELETE',
