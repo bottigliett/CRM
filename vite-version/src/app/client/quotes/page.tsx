@@ -540,6 +540,14 @@ export default function ClientQuotesPage() {
                 <div className="grid gap-3">
                   {(quote.enablePaymentPlans ? ['oneTime', 'payment2', 'payment3', 'payment4'] : ['oneTime']).map((option) => {
                     const discount = getPaymentDiscount(option)
+                    // Calculate installment amount if package is selected
+                    const selectedPackage = selectedPackageId ? quote.packages.find(p => p.id === selectedPackageId) : null
+                    const basePrice = selectedPackage?.price || 0
+                    const discountAmount = (basePrice * discount) / 100
+                    const finalPrice = basePrice - discountAmount
+                    const numPayments = option === 'oneTime' ? 1 : parseInt(option.replace('payment', ''))
+                    const installmentAmount = finalPrice / numPayments
+
                     return (
                       <div
                         key={option}
@@ -550,7 +558,7 @@ export default function ClientQuotesPage() {
                       >
                         <RadioGroupItem value={option} id={option} />
                         <Label htmlFor={option} className="flex-1 cursor-pointer">
-                          <div className="flex items-center justify-between">
+                          <div className="flex items-center justify-between mb-1">
                             <span className="font-medium">{getPaymentLabel(option)}</span>
                             {discount > 0 && (
                               <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-500/20">
@@ -558,6 +566,11 @@ export default function ClientQuotesPage() {
                               </Badge>
                             )}
                           </div>
+                          {selectedPackageId && option !== 'oneTime' && (
+                            <div className="text-sm text-muted-foreground">
+                              {numPayments} rate da €{installmentAmount.toFixed(2)} cad.
+                            </div>
+                          )}
                         </Label>
                       </div>
                     )

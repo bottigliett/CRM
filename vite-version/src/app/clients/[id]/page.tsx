@@ -631,7 +631,7 @@ export default function ClientDetailPage() {
                           </div>
                         </div>
 
-                        <div className="grid gap-3 md:grid-cols-3 mb-4">
+                        <div className={`grid gap-3 ${quote.status === 'ACCEPTED' ? 'md:grid-cols-4' : 'md:grid-cols-3'} mb-4`}>
                           <div>
                             <Label className="text-xs text-muted-foreground">Totale</Label>
                             <p className="font-semibold text-lg">€{quote.total.toFixed(2)}</p>
@@ -648,6 +648,22 @@ export default function ClientDetailPage() {
                               {format(new Date(quote.createdAt), 'dd MMM yyyy', { locale: it })}
                             </p>
                           </div>
+                          {quote.status === 'ACCEPTED' && (quote as any).selectedPaymentOption && (
+                            <div>
+                              <Label className="text-xs text-muted-foreground">Piano Pagamento</Label>
+                              <p className="font-medium text-sm">
+                                {(quote as any).selectedPaymentOption === 'one_time'
+                                  ? 'Pagamento unico'
+                                  : (quote as any).selectedPaymentOption === 'payment_2'
+                                  ? '2 rate'
+                                  : (quote as any).selectedPaymentOption === 'payment_3'
+                                  ? '3 rate'
+                                  : (quote as any).selectedPaymentOption === 'payment_4'
+                                  ? '4 rate'
+                                  : 'Non specificato'}
+                              </p>
+                            </div>
+                          )}
                         </div>
 
                         <div className="flex gap-2 justify-between">
