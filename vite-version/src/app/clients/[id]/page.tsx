@@ -648,17 +648,17 @@ export default function ClientDetailPage() {
                               {format(new Date(quote.createdAt), 'dd MMM yyyy', { locale: it })}
                             </p>
                           </div>
-                          {quote.status === 'ACCEPTED' && (quote as any).selectedPaymentOption && (
+                          {quote.status === 'ACCEPTED' && quote.selectedPaymentOption && (
                             <div>
                               <Label className="text-xs text-muted-foreground">Piano Pagamento</Label>
                               <p className="font-medium text-sm">
-                                {(quote as any).selectedPaymentOption === 'one_time'
+                                {quote.selectedPaymentOption === 'oneTime'
                                   ? 'Pagamento unico'
-                                  : (quote as any).selectedPaymentOption === 'payment_2'
+                                  : quote.selectedPaymentOption === 'payment2'
                                   ? '2 rate'
-                                  : (quote as any).selectedPaymentOption === 'payment_3'
+                                  : quote.selectedPaymentOption === 'payment3'
                                   ? '3 rate'
-                                  : (quote as any).selectedPaymentOption === 'payment_4'
+                                  : quote.selectedPaymentOption === 'payment4'
                                   ? '4 rate'
                                   : 'Non specificato'}
                               </p>

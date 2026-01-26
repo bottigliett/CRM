@@ -103,7 +103,7 @@ export default function ClientTicketsPage() {
   const translateStatus = (status: string) => {
     const statusMap: Record<string, string> = {
       'OPEN': 'Aperto',
-      'IN_PROGRESS': 'In Lavorazione',
+      'IN_PROGRESS': 'In Corso',
       'CLOSED': 'Chiuso'
     }
     return statusMap[status] || status

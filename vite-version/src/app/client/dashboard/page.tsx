@@ -105,6 +105,51 @@ export default function ClientDashboardPage() {
     }
   }
 
+  const getInvoiceStatusLabel = (status: string) => {
+    switch (status?.toUpperCase()) {
+      case 'PAID':
+        return 'Pagata'
+      case 'ISSUED':
+        return 'Emessa'
+      case 'DRAFT':
+        return 'Bozza'
+      case 'OVERDUE':
+        return 'Scaduta'
+      default:
+        return status
+    }
+  }
+
+  const getTaskStatusLabel = (status: string) => {
+    switch (status?.toUpperCase()) {
+      case 'COMPLETED':
+        return 'Completato'
+      case 'IN_PROGRESS':
+        return 'In Corso'
+      case 'TODO':
+        return 'Da Fare'
+      case 'PENDING':
+        return 'In Attesa'
+      default:
+        return status
+    }
+  }
+
+  const getTicketStatusLabel = (status: string) => {
+    switch (status?.toUpperCase()) {
+      case 'OPEN':
+        return 'Aperto'
+      case 'IN_PROGRESS':
+        return 'In Corso'
+      case 'CLOSED':
+        return 'Chiuso'
+      case 'PENDING':
+        return 'In Attesa'
+      default:
+        return status
+    }
+  }
+
   if (loading) {
     return (
       <ClientLayout title="Dashboard" description="Panoramica del tuo progetto">
@@ -357,7 +402,7 @@ export default function ClientDashboardPage() {
                     <div className="text-right">
                       <p className="text-sm font-medium">€{invoice.total.toFixed(2)}</p>
                       <Badge variant="outline" className={getStatusColor(invoice.status)}>
-                        {invoice.status}
+                        {getInvoiceStatusLabel(invoice.status)}
                       </Badge>
                     </div>
                   </div>
@@ -396,7 +441,7 @@ export default function ClientDashboardPage() {
                       <p className="text-sm font-medium">{task.title}</p>
                       <div className="flex items-center gap-2 mt-1">
                         <Badge variant="outline" className={getStatusColor(task.status)} size="sm">
-                          {task.status}
+                          {getTaskStatusLabel(task.status)}
                         </Badge>
                         <Badge variant="outline" className={getPriorityColor(task.priority)} size="sm">
                           {task.priority}
@@ -486,7 +531,7 @@ export default function ClientDashboardPage() {
                     <p className="text-sm font-medium">{ticket.title}</p>
                     <div className="flex items-center gap-2 mt-1">
                       <Badge variant="outline" className={getStatusColor(ticket.status)} size="sm">
-                        {ticket.status}
+                        {getTicketStatusLabel(ticket.status)}
                       </Badge>
                       <Badge variant="outline" className={getPriorityColor(ticket.priority)} size="sm">
                         {ticket.priority}
