@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Navigate, useLocation } from 'react-router-dom'
+import { Navigate, useLocation, useSearchParams } from 'react-router-dom'
 import { clientAuthAPI } from '@/lib/client-auth-api'
 import { Loader2 } from 'lucide-react'
 
@@ -8,13 +8,21 @@ interface ClientProtectedRouteProps {
 }
 
 export function ClientProtectedRoute({ children }: ClientProtectedRouteProps) {
+  const [searchParams] = useSearchParams()
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null)
   const [clientData, setClientData] = useState<any>(null)
   const location = useLocation()
 
   useEffect(() => {
+    // Check for preview token in URL first
+    const previewToken = searchParams.get('preview_token')
+    if (previewToken) {
+      // Save preview token to sessionStorage immediately
+      sessionStorage.setItem('client_preview_token', previewToken)
+    }
+
     checkAuth()
-  }, [])
+  }, [searchParams])
 
   const checkAuth = async () => {
     try {
