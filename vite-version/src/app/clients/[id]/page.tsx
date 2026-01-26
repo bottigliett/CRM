@@ -82,7 +82,6 @@ export default function ClientDetailPage() {
   const [showTemporaryPassword, setShowTemporaryPassword] = useState(false)
   const [showDashboardDialog, setShowDashboardDialog] = useState(false)
   const [showFoldersDialog, setShowFoldersDialog] = useState(false)
-  const [showPreviewDialog, setShowPreviewDialog] = useState(false)
   const [activeTab, setActiveTab] = useState("overview")
 
   // Dashboard form data
@@ -188,6 +187,28 @@ export default function ClientDetailPage() {
     } catch (error: any) {
       console.error('Error updating client:', error)
       toast.error(error.message || "Errore nell'aggiornamento")
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handlePreviewDashboard = async () => {
+    if (!client) return
+
+    try {
+      setSaving(true)
+      // Genera il token di preview
+      const response = await clientAccessAPI.generatePreviewToken(client.id)
+
+      if (response.success && response.data.token) {
+        // Apri la dashboard cliente in una nuova finestra con il token
+        const previewUrl = `/client/dashboard?preview_token=${response.data.token}`
+        window.open(previewUrl, '_blank')
+        toast.success('Anteprima aperta in una nuova finestra')
+      }
+    } catch (error: any) {
+      console.error('Error generating preview token:', error)
+      toast.error(error.message || "Errore nell'apertura dell'anteprima")
     } finally {
       setSaving(false)
     }
@@ -739,7 +760,7 @@ export default function ClientDetailPage() {
               <>
                 {/* Preview Button */}
                 <div className="flex justify-end">
-                  <Button variant="outline" onClick={() => setShowPreviewDialog(true)}>
+                  <Button variant="outline" onClick={handlePreviewDashboard} disabled={saving}>
                     <Eye className="h-4 w-4 mr-2" />
                     Anteprima Dashboard Cliente
                   </Button>
@@ -1268,211 +1289,6 @@ export default function ClientDetailPage() {
               )}
             </Button>
           </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Dashboard Preview Dialog */}
-      <Dialog open={showPreviewDialog} onOpenChange={setShowPreviewDialog}>
-        <DialogContent className="max-w-[95vw] max-h-[95vh] overflow-y-auto p-0">
-          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-gray-900 dark:to-gray-800">
-            {/* Preview Header */}
-            <div className="border-b bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm sticky top-0 z-10 px-6 py-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-2xl font-bold">{client.projectName || 'Dashboard Cliente'}</h2>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Anteprima - Vista Cliente
-                  </p>
-                </div>
-                <Badge variant="outline" className="bg-blue-500/10 text-blue-500 border-blue-500/20">
-                  <Eye className="h-3 w-3 mr-1" />
-                  Modalità Anteprima
-                </Badge>
-              </div>
-            </div>
-
-            {/* Preview Content */}
-            <div className="p-6 space-y-6">
-              {/* Stats Cards */}
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                {/* Support Hours Card */}
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Ore di Supporto</CardTitle>
-                    <Clock className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">
-                      {client.supportHoursUsed || 0} / {client.supportHoursIncluded || 0}
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-2">
-                      {(client.supportHoursIncluded || 0) - (client.supportHoursUsed || 0)} ore rimanenti
-                    </p>
-                  </CardContent>
-                </Card>
-
-                {/* Budget Card */}
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">
-                      {client.budgetDisplayType === 'project_budget' ? 'Valore Progetto' : 'Canone Mensile'}
-                    </CardTitle>
-                    <Euro className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">
-                      €{client.budgetDisplayType === 'project_budget'
-                        ? (client.projectBudget?.toLocaleString() || 0)
-                        : (client.monthlyFee || 0)}
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-2">
-                      {client.budgetDisplayType === 'project_budget' ? 'totale' : 'al mese'}
-                    </p>
-                  </CardContent>
-                </Card>
-
-                {/* Placeholder Cards */}
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Task Attivi</CardTitle>
-                    <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">0</div>
-                    <p className="text-xs text-muted-foreground mt-2">0 completati</p>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Ticket Aperti</CardTitle>
-                    <FileText className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">0</div>
-                    <p className="text-xs text-muted-foreground mt-2">0 chiusi</p>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Project Info & Documents Grid */}
-              <div className="grid gap-6 md:grid-cols-2">
-                {/* Project Info */}
-                {client.projectDescription && (
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Informazioni Progetto</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-4">
-                        <div>
-                          <p className="text-sm font-medium text-muted-foreground mb-1">Descrizione</p>
-                          <p className="text-sm">{client.projectDescription}</p>
-                        </div>
-                        {(client.projectStartDate || client.projectEndDate) && (
-                          <div className="flex gap-6">
-                            {client.projectStartDate && (
-                              <div>
-                                <p className="text-sm font-medium text-muted-foreground mb-1">Data Inizio</p>
-                                <p className="text-sm">
-                                  {format(new Date(client.projectStartDate), 'dd MMMM yyyy', { locale: it })}
-                                </p>
-                              </div>
-                            )}
-                            {client.projectEndDate && (
-                              <div>
-                                <p className="text-sm font-medium text-muted-foreground mb-1">Data Fine Prevista</p>
-                                <p className="text-sm">
-                                  {format(new Date(client.projectEndDate), 'dd MMMM yyyy', { locale: it })}
-                                </p>
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-
-                {/* Documents Card */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <FolderOpen className="h-5 w-5" />
-                      Documenti
-                    </CardTitle>
-                    <CardDescription>Accedi ai tuoi file e cartelle</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      {client.driveFolderLink && (
-                        <div className="flex items-center justify-between p-3 rounded-lg border">
-                          <div className="flex items-center gap-3">
-                            <FolderOpen className="h-4 w-4 text-muted-foreground" />
-                            <span className="text-sm font-medium">
-                              {client.driveFolderLinkTitle || 'Cartella Principale'}
-                            </span>
-                          </div>
-                        </div>
-                      )}
-                      {client.documentsFolder && (
-                        <div className="flex items-center justify-between p-3 rounded-lg border">
-                          <div className="flex items-center gap-3">
-                            <FileText className="h-4 w-4 text-muted-foreground" />
-                            <span className="text-sm font-medium">
-                              {client.documentsFolderTitle || 'Documenti'}
-                            </span>
-                          </div>
-                        </div>
-                      )}
-                      {client.assetsFolder && (
-                        <div className="flex items-center justify-between p-3 rounded-lg border">
-                          <div className="flex items-center gap-3">
-                            <FolderOpen className="h-4 w-4 text-muted-foreground" />
-                            <span className="text-sm font-medium">
-                              {client.assetsFolderTitle || 'Assets'}
-                            </span>
-                          </div>
-                        </div>
-                      )}
-                      {client.invoiceFolder && (
-                        <div className="flex items-center justify-between p-3 rounded-lg border">
-                          <div className="flex items-center gap-3">
-                            <FileText className="h-4 w-4 text-muted-foreground" />
-                            <span className="text-sm font-medium">
-                              {client.invoiceFolderTitle || 'Fatture'}
-                            </span>
-                          </div>
-                        </div>
-                      )}
-                      {!client.driveFolderLink && !client.documentsFolder && !client.assetsFolder && !client.invoiceFolder && (
-                        <div className="text-center py-6 text-sm text-muted-foreground">
-                          Nessuna cartella configurata
-                        </div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Info Banner */}
-              <Card className="border-blue-200 bg-blue-50/50 dark:bg-blue-950/20">
-                <CardContent className="pt-6">
-                  <div className="flex items-start gap-3">
-                    <Eye className="h-5 w-5 text-blue-500 mt-0.5" />
-                    <div>
-                      <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
-                        Questa è un'anteprima della dashboard cliente
-                      </p>
-                      <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
-                        Il cliente vedrà anche task, eventi, fatture e ticket in tempo reale quando accede al proprio account.
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
         </DialogContent>
       </Dialog>
     </BaseLayout>

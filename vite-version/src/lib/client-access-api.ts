@@ -188,4 +188,11 @@ export const clientAccessAPI = {
     const baseUrl = window.location.origin;
     return `${baseUrl}/client/activate?token=${token}`;
   },
+
+  /**
+   * Generate preview token for admin to view client dashboard
+   */
+  async generatePreviewToken(id: number): Promise<{ success: boolean; data: { token: string; expiresIn: number } }> {
+    return await api.post(`/client-access/${id}/preview-token`);
+  },
 };

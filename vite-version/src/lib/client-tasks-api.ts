@@ -34,6 +34,12 @@ export interface Task {
 
 class ClientTasksAPI {
   private getAuthToken(): string | null {
+    // Check for preview token first (sessionStorage)
+    const previewToken = sessionStorage.getItem('client_preview_token');
+    if (previewToken) {
+      return previewToken;
+    }
+    // Fallback to regular auth token (localStorage)
     return localStorage.getItem('client_auth_token');
   }
 

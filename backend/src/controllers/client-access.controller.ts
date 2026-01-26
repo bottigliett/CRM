@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import prisma from '../config/database';
 import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 
 /**
  * Helper: Genera username da nome contatto
@@ -550,6 +551,74 @@ export const deleteClientAccess = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Errore nell\'eliminazione dell\'accesso client',
+      error: error.message,
+    });
+  }
+};
+
+/**
+ * POST /api/client-access/:id/preview-token
+ * Genera un token temporaneo per l'anteprima admin della dashboard cliente
+ */
+export const generatePreviewToken = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    // Trova il client access
+    const clientAccess = await prisma.clientAccess.findUnique({
+      where: { id: parseInt(id) },
+      include: {
+        contact: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
+
+    if (!clientAccess) {
+      return res.status(404).json({
+        success: false,
+        message: 'Accesso client non trovato',
+      });
+    }
+
+    // Verifica che sia un FULL_CLIENT
+    if (clientAccess.accessType !== 'FULL_CLIENT') {
+      return res.status(400).json({
+        success: false,
+        message: 'L\'anteprima è disponibile solo per clienti con accesso completo',
+      });
+    }
+
+    // Genera token JWT temporaneo (5 minuti)
+    const secret = process.env.JWT_SECRET || 'fallback-secret-key';
+    const token = jwt.sign(
+      {
+        clientAccessId: clientAccess.id,
+        contactId: clientAccess.contactId,
+        username: clientAccess.username,
+        accessType: clientAccess.accessType,
+        type: 'CLIENT',
+        preview: true, // Flag per indicare che è un preview token
+      },
+      secret,
+      { expiresIn: '5m' } // Scade dopo 5 minuti
+    );
+
+    res.json({
+      success: true,
+      data: {
+        token,
+        expiresIn: 300, // 5 minuti in secondi
+      },
+    });
+  } catch (error: any) {
+    console.error('Error generating preview token:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Errore nella generazione del token di anteprima',
       error: error.message,
     });
   }

@@ -19,7 +19,7 @@ import {
   Euro,
   Timer,
 } from "lucide-react"
-import { Link } from "react-router-dom"
+import { Link, useSearchParams } from "react-router-dom"
 import { clientAuthAPI } from "@/lib/client-auth-api"
 import { clientInvoicesAPI, type Invoice } from "@/lib/client-invoices-api"
 import { clientTasksAPI, type Task } from "@/lib/client-tasks-api"
@@ -30,12 +30,28 @@ import { it } from "date-fns/locale"
 import { ClientProjectProgress } from "@/components/client-project-progress"
 
 export default function ClientDashboardPage() {
+  const [searchParams, setSearchParams] = useSearchParams()
   const [clientData, setClientData] = React.useState<any>(null)
   const [invoices, setInvoices] = React.useState<Invoice[]>([])
   const [tasks, setTasks] = React.useState<Task[]>([])
   const [events, setEvents] = React.useState<Event[]>([])
   const [tickets, setTickets] = React.useState<Ticket[]>([])
   const [loading, setLoading] = React.useState(true)
+  const [isPreviewMode, setIsPreviewMode] = React.useState(false)
+
+  // Handle preview token from URL
+  React.useEffect(() => {
+    const previewToken = searchParams.get('preview_token')
+    if (previewToken) {
+      // Save preview token to sessionStorage
+      sessionStorage.setItem('client_preview_token', previewToken)
+      setIsPreviewMode(true)
+
+      // Remove token from URL for security
+      searchParams.delete('preview_token')
+      setSearchParams(searchParams, { replace: true })
+    }
+  }, [searchParams, setSearchParams])
 
   React.useEffect(() => {
     loadDashboardData()
@@ -169,6 +185,22 @@ export default function ClientDashboardPage() {
       description={clientData?.projectName || "Panoramica del tuo progetto"}
     >
       <div className="px-4 lg:px-6 space-y-6">
+        {/* Preview Mode Banner */}
+        {isPreviewMode && (
+          <Card className="border-blue-500 bg-blue-50/50 dark:bg-blue-950/20">
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3">
+                <Badge variant="outline" className="bg-blue-500 text-white border-blue-500">
+                  MODALITÀ ANTEPRIMA
+                </Badge>
+                <p className="text-sm text-blue-900 dark:text-blue-100">
+                  Stai visualizzando la dashboard come amministratore. Questa sessione scadrà tra 5 minuti.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Project Overview Cards */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {/* Support Hours */}
