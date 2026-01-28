@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import prisma from '../config/database';
-import { sendClientTicketReplyEmail } from '../services/email.service';
+import { sendClientTicketReplyEmail, sendAdminNewTicketEmail } from '../services/email.service';
 
 /**
  * Generate ticket number: T{YEAR}-{NUM}
@@ -444,7 +444,7 @@ export const deleteTicket = async (req: Request, res: Response) => {
 export const addTicketMessage = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { message, userId, clientAccessId, isInternal = false } = req.body;
+    const { message, isInternal = false } = req.body;
 
     if (!message) {
       return res.status(400).json({
@@ -453,11 +453,14 @@ export const addTicketMessage = async (req: Request, res: Response) => {
       });
     }
 
-    // Verifica che sia specificato userId (admin) O clientAccessId (client)
-    if (!userId && !clientAccessId) {
-      return res.status(400).json({
+    // Get userId from authenticated admin user (from middleware)
+    const userId = (req as any).user?.userId;
+    const clientAccessId = null; // This endpoint is admin-only
+
+    if (!userId) {
+      return res.status(401).json({
         success: false,
-        message: 'Specificare userId (admin) o clientAccessId (client)',
+        message: 'Utente non autenticato',
       });
     }
 
@@ -844,6 +847,13 @@ export const createClientTicket = async (req: Request, res: Response) => {
         priority,
         status: 'OPEN',
       },
+      include: {
+        contact: {
+          select: {
+            name: true,
+          },
+        },
+      },
     });
 
     // Log creazione
@@ -855,7 +865,37 @@ export const createClientTicket = async (req: Request, res: Response) => {
       },
     });
 
-    // TODO: Notifica admin
+    // Notifica admin - Invia email a tutti gli admin e super admin
+    try {
+      const admins = await prisma.user.findMany({
+        where: {
+          role: {
+            in: ['ADMIN', 'SUPER_ADMIN'],
+          },
+          isActive: true,
+        },
+        select: {
+          email: true,
+        },
+      });
+
+      const adminEmails = admins.map(admin => admin.email).filter(email => !!email);
+
+      if (adminEmails.length > 0) {
+        await sendAdminNewTicketEmail(
+          adminEmails,
+          ticket.contact.name,
+          ticket.ticketNumber,
+          ticket.subject,
+          ticket.priority,
+          ticket.supportType
+        );
+        console.log(`Notifica nuovo ticket inviata a ${adminEmails.length} admin`);
+      }
+    } catch (emailError) {
+      console.error('Errore nell\'invio della notifica email agli admin:', emailError);
+      // Non blocca la creazione del ticket se l'email fallisce
+    }
 
     res.status(201).json({
       success: true,

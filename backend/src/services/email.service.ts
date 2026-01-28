@@ -1463,6 +1463,187 @@ Questa è una email automatica, si prega di non rispondere a questo messaggio.
   return sendEmail(to, subject, html, text);
 }
 
+/**
+ * Send email to admins when a client creates a new ticket
+ */
+export async function sendAdminNewTicketEmail(
+  adminEmails: string[],
+  clientName: string,
+  ticketNumber: string,
+  ticketSubject: string,
+  ticketPriority: string,
+  ticketType: string
+): Promise<boolean> {
+  const priorityLabels: { [key: string]: string } = {
+    LOW: 'Bassa',
+    NORMAL: 'Normale',
+    HIGH: 'Alta',
+    URGENT: 'Urgente',
+  };
+
+  const typeLabels: { [key: string]: string } = {
+    TECHNICAL: 'Tecnico',
+    DESIGN: 'Design',
+    CONTENT: 'Contenuti',
+    BILLING: 'Fatturazione',
+    OTHER: 'Altro',
+  };
+
+  const priorityLabel = priorityLabels[ticketPriority] || ticketPriority;
+  const typeLabel = typeLabels[ticketType] || ticketType;
+
+  const subject = `Nuovo Ticket: ${ticketNumber} da ${clientName}`;
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <style>
+        body {
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+          line-height: 1.6;
+          color: #1a1a1a;
+          margin: 0;
+          padding: 0;
+          background-color: #f5f5f5;
+        }
+        .container {
+          max-width: 600px;
+          margin: 40px auto;
+          background: white;
+          border: 1px solid #e0e0e0;
+        }
+        .header {
+          background: #2563eb;
+          color: white;
+          padding: 30px;
+          border-bottom: 3px solid #1e40af;
+        }
+        .header h1 {
+          margin: 0;
+          font-size: 24px;
+          font-weight: 600;
+          letter-spacing: -0.5px;
+        }
+        .content {
+          padding: 40px 30px;
+          background: white;
+        }
+        .content p {
+          margin: 0 0 16px 0;
+          color: #333333;
+        }
+        .ticket-details {
+          background: #eff6ff;
+          padding: 24px;
+          margin: 24px 0;
+          border: 1px solid #bfdbfe;
+          border-left: 4px solid #2563eb;
+        }
+        .ticket-details h2 {
+          margin: 0 0 16px 0;
+          color: #2563eb;
+          font-size: 20px;
+          font-weight: 600;
+        }
+        .ticket-details p {
+          margin: 8px 0;
+          color: #333333;
+        }
+        .badge {
+          display: inline-block;
+          padding: 4px 12px;
+          border-radius: 12px;
+          font-size: 12px;
+          font-weight: 600;
+          margin-right: 8px;
+        }
+        .badge-priority-high, .badge-priority-urgent {
+          background: #fee2e2;
+          color: #991b1b;
+        }
+        .badge-priority-normal {
+          background: #fef3c7;
+          color: #92400e;
+        }
+        .badge-priority-low {
+          background: #dbeafe;
+          color: #1e40af;
+        }
+        .footer {
+          text-align: center;
+          padding: 24px 30px;
+          background: #fafafa;
+          border-top: 1px solid #e0e0e0;
+          color: #666666;
+          font-size: 13px;
+        }
+        .footer p {
+          margin: 4px 0;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>Nuovo Ticket di Supporto</h1>
+        </div>
+        <div class="content">
+          <p><strong>Un cliente ha aperto un nuovo ticket di supporto:</strong></p>
+
+          <div class="ticket-details">
+            <h2>${ticketSubject}</h2>
+            <p><strong>Ticket:</strong> ${ticketNumber}</p>
+            <p><strong>Cliente:</strong> ${clientName}</p>
+            <p><strong>Tipo:</strong> ${typeLabel}</p>
+            <p>
+              <span class="badge badge-priority-${ticketPriority.toLowerCase()}">${priorityLabel}</span>
+            </p>
+          </div>
+
+          <p>Accedi al CRM per visualizzare tutti i dettagli e rispondere al cliente.</p>
+
+          <p>Cordiali saluti,<br>Il Sistema CRM Studio Mismo</p>
+        </div>
+        <div class="footer">
+          <p><strong>Studio Mismo CRM</strong></p>
+          <p>Questa è una email automatica, si prega di non rispondere a questo messaggio.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  const text = `
+Nuovo Ticket di Supporto
+
+Un cliente ha aperto un nuovo ticket di supporto:
+
+Ticket: ${ticketNumber}
+Oggetto: ${ticketSubject}
+Cliente: ${clientName}
+Tipo: ${typeLabel}
+Priorità: ${priorityLabel}
+
+Accedi al CRM per visualizzare tutti i dettagli e rispondere al cliente.
+
+--
+Studio Mismo CRM
+Questa è una email automatica, si prega di non rispondere a questo messaggio.
+  `.trim();
+
+  // Send email to all admins
+  try {
+    for (const adminEmail of adminEmails) {
+      await sendEmail(adminEmail, subject, html, text);
+    }
+    return true;
+  } catch (error) {
+    console.error('Error sending admin notification emails:', error);
+    return false;
+  }
+}
+
 // Verify transporter configuration
 export async function verifyEmailConfig(): Promise<boolean> {
   try {
