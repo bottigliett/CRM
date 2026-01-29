@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { X, Upload, File, FileImage, FileText } from 'lucide-react';
+import { X, Paperclip, File, FileImage, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface FileWithPreview extends File {
@@ -119,38 +119,7 @@ export function FileUpload({
   };
 
   return (
-    <div className={cn('space-y-4', className)}>
-      {/* Drop Zone */}
-      <div
-        className={cn(
-          'border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors',
-          dragActive ? 'border-primary bg-primary/5' : 'border-muted-foreground/25',
-          disabled && 'opacity-50 cursor-not-allowed'
-        )}
-        onDragEnter={handleDrag}
-        onDragLeave={handleDrag}
-        onDragOver={handleDrag}
-        onDrop={handleDrop}
-        onClick={() => !disabled && inputRef.current?.click()}
-      >
-        <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-        <p className="text-sm text-muted-foreground mb-1">
-          Trascina file qui o clicca per selezionare
-        </p>
-        <p className="text-xs text-muted-foreground">
-          Max {maxSize}MB - Formati: JPG, PNG, GIF, PDF
-        </p>
-        <input
-          ref={inputRef}
-          type="file"
-          multiple
-          accept={acceptedTypes.join(',')}
-          onChange={(e) => handleFileSelect(e.target.files)}
-          className="hidden"
-          disabled={disabled}
-        />
-      </div>
-
+    <div className={cn('space-y-2', className)}>
       {/* File List */}
       {files.length > 0 && (
         <div className="space-y-2">
@@ -188,6 +157,29 @@ export function FileUpload({
           ))}
         </div>
       )}
+
+      {/* Attach Button */}
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        onClick={() => !disabled && inputRef.current?.click()}
+        disabled={disabled}
+        className="gap-2"
+      >
+        <Paperclip className="h-4 w-4" />
+        Allega file
+      </Button>
+
+      <input
+        ref={inputRef}
+        type="file"
+        multiple
+        accept={acceptedTypes.join(',')}
+        onChange={(e) => handleFileSelect(e.target.files)}
+        className="hidden"
+        disabled={disabled}
+      />
     </div>
   );
 }

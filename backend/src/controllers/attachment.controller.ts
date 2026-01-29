@@ -130,7 +130,34 @@ export const uploadAttachments = async (req: Request, res: Response) => {
 export const downloadAttachment = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+
+    // Get token from header or query parameter
+    let token = req.headers.authorization?.replace('Bearer ', '');
+    if (!token && req.query.token) {
+      token = req.query.token as string;
+    }
+
+    // Verify token manually if from query param
+    if (token && !req.headers.authorization) {
+      try {
+        const jwt = require('jsonwebtoken');
+        const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as any;
+        (req as any).user = { userId: decoded.userId };
+      } catch (error) {
+        return res.status(401).json({
+          success: false,
+          message: 'Token non valido'
+        });
+      }
+    }
+
     const userId = (req as any).user?.userId;
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: 'Token non fornito'
+      });
+    }
 
     const attachment = await prisma.ticketAttachment.findUnique({
       where: { id: parseInt(id) },
@@ -180,7 +207,37 @@ export const downloadAttachment = async (req: Request, res: Response) => {
 export const downloadClientAttachment = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+
+    // Get token from header or query parameter
+    let token = req.headers.authorization?.replace('Bearer ', '');
+    if (!token && req.query.token) {
+      token = req.query.token as string;
+    }
+
+    // Verify token manually if from query param
+    if (token && !req.headers.authorization) {
+      try {
+        const jwt = require('jsonwebtoken');
+        const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as any;
+        (req as any).client = {
+          clientAccessId: decoded.clientAccessId,
+          contactId: decoded.contactId
+        };
+      } catch (error) {
+        return res.status(401).json({
+          success: false,
+          message: 'Token non valido'
+        });
+      }
+    }
+
     const clientAccessId = (req as any).client?.clientAccessId;
+    if (!clientAccessId) {
+      return res.status(401).json({
+        success: false,
+        message: 'Token non fornito'
+      });
+    }
 
     const attachment = await prisma.ticketAttachment.findUnique({
       where: { id: parseInt(id) },
