@@ -154,7 +154,14 @@ export const getTicketById = async (req: Request, res: Response) => {
                 },
               },
             },
+            attachments: {
+              orderBy: { uploadedAt: 'asc' },
+            },
           },
+        },
+        attachments: {
+          where: { ticketMessageId: null },
+          orderBy: { uploadedAt: 'asc' },
         },
         activityLogs: {
           orderBy: { createdAt: 'desc' },
@@ -1029,7 +1036,20 @@ export const getClientTicketById = async (req: Request, res: Response) => {
                 username: true,
               },
             },
+            attachments: {
+              where: {
+                isInternal: false, // Escludi allegati interni
+              },
+              orderBy: { uploadedAt: 'asc' },
+            },
           },
+        },
+        attachments: {
+          where: {
+            ticketMessageId: null,
+            isInternal: false, // Escludi allegati interni
+          },
+          orderBy: { uploadedAt: 'asc' },
         },
         contact: {
           select: {

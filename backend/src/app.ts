@@ -21,6 +21,7 @@ import clientAuthRoutes from './routes/client-auth.routes';
 import publicRoutes from './routes/public.routes';
 import activateRoutes from './routes/activate.routes';
 import ticketRoutes, { clientTicketRouter } from './routes/ticket.routes';
+import attachmentRoutes, { clientAttachmentRouter } from './routes/attachment.routes';
 import adminNotificationRoutes, { clientNotificationRouter } from './routes/client-notification.routes';
 import clientInvoiceRoutes from './routes/client-invoice.routes';
 import clientTaskRoutes from './routes/client-task.routes';
@@ -29,6 +30,7 @@ import clientQuoteRoutes from './routes/client-quote.routes';
 import projectTaskRoutes from './routes/project-task.routes';
 import clientProjectTaskRoutes from './routes/client-project-task.routes';
 import { errorHandler, notFound } from './middleware/errorHandler';
+import { initializeUploadsDirectory } from './utils/file-upload';
 
 // Load .env from backend root directory (not from dist/)
 const envPath = path.join(__dirname, '../.env');
@@ -54,6 +56,9 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Initialize uploads directory
+initializeUploadsDirectory().catch(console.error);
 
 // Health check
 app.get('/health', (req, res) => {
@@ -83,10 +88,12 @@ app.use('/api/client-access', clientAccessRoutes);
 app.use('/api/client-auth', clientAuthRoutes);
 app.use('/api/public', publicRoutes); // Public endpoints (workaround for 401 issue)
 app.use('/api/tickets', ticketRoutes);
+app.use('/api', attachmentRoutes);
 app.use('/api/admin/notifications', adminNotificationRoutes);
 
 // Client-specific routes (require client authentication)
 app.use('/api/client/tickets', clientTicketRouter);
+app.use('/api/client', clientAttachmentRouter);
 app.use('/api/client/notifications', clientNotificationRouter);
 app.use('/api/client/invoices', clientInvoiceRoutes);
 app.use('/api/client/tasks', clientTaskRoutes);

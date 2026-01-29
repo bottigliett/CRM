@@ -1110,6 +1110,7 @@ model Ticket {
   contact            Contact      @relation(fields: [contactId], references: [id], onDelete: Cascade)
   messages           TicketMessage[]
   activityLogs       TicketActivityLog[]
+  attachments        TicketAttachment[]
 
   @@index([clientAccessId])
   @@index([contactId])
@@ -1159,6 +1160,7 @@ model TicketMessage {
   ticket          Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
   user            User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
   clientAccess    ClientAccess? @relation(fields: [clientAccessId], references: [id], onDelete: Cascade)
+  attachments     TicketAttachment[]
 
   @@index([ticketId])
   @@index([userId])
@@ -1187,6 +1189,34 @@ model TicketActivityLog {
   @@index([clientAccessId])
   @@index([createdAt])
   @@map("ticket_activity_logs")
+}
+
+model TicketAttachment {
+  id               Int       @id @default(autoincrement())
+  ticketId         Int       @map("ticket_id")
+  ticketMessageId  Int?      @map("ticket_message_id") // NULL for ticket-level attachments
+
+  // File metadata
+  fileName         String    @map("file_name") // Sanitized filename stored on disk
+  originalFileName String    @map("original_file_name") // Original filename from user
+  fileSize         Int       @map("file_size") // Size in bytes
+  mimeType         String    @map("mime_type") // image/jpeg, image/png, application/pdf
+  storagePath      String    @map("storage_path") // Relative path: tickets/{ticketId}/{timestamp}-{filename}
+
+  // Visibility & ownership
+  isInternal       Boolean   @default(false) @map("is_internal") // Admin-only visibility
+  uploadedBy       String    @map("uploaded_by") // "admin" or "client"
+  uploadedById     Int?      @map("uploaded_by_id") // userId (if admin) or clientAccessId (if client)
+  uploadedAt       DateTime  @default(now()) @map("uploaded_at")
+
+  // Relations
+  ticket           Ticket    @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  ticketMessage    TicketMessage? @relation(fields: [ticketMessageId], references: [id], onDelete: Cascade)
+
+  @@index([ticketId])
+  @@index([ticketMessageId])
+  @@index([ticketId, isInternal])
+  @@map("ticket_attachments")
 }
 
 model ClientActivityLog {
