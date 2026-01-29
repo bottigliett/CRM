@@ -35,6 +35,7 @@ export default function ClientTicketDetailPage() {
   const [loading, setLoading] = React.useState(true)
   const [newMessage, setNewMessage] = React.useState('')
   const [sending, setSending] = React.useState(false)
+  const previousMessageCountRef = React.useRef<number>(0)
 
   React.useEffect(() => {
     if (id) {
@@ -42,12 +43,40 @@ export default function ClientTicketDetailPage() {
     }
   }, [id])
 
+  // Auto-refresh per rilevare nuovi messaggi
+  React.useEffect(() => {
+    if (!id || !ticket) return
+
+    const interval = setInterval(async () => {
+      try {
+        const response = await clientTicketsAPI.getById(parseInt(id))
+        const newMessages = response.data.messages || []
+
+        // Controlla se ci sono nuovi messaggi
+        if (previousMessageCountRef.current > 0 && newMessages.length > previousMessageCountRef.current) {
+          const newMessageCount = newMessages.length - previousMessageCountRef.current
+          toast.success(`${newMessageCount} ${newMessageCount === 1 ? 'nuovo messaggio' : 'nuovi messaggi'}`)
+        }
+
+        previousMessageCountRef.current = newMessages.length
+        setTicket(response.data)
+        setMessages(newMessages)
+      } catch (error) {
+        console.error('Error refreshing ticket:', error)
+      }
+    }, 15000) // Refresh ogni 15 secondi
+
+    return () => clearInterval(interval)
+  }, [id, ticket])
+
   const loadTicketData = async () => {
     try {
       setLoading(true)
       const response = await clientTicketsAPI.getById(parseInt(id!))
       setTicket(response.data)
-      setMessages(response.data.messages || [])
+      const loadedMessages = response.data.messages || []
+      setMessages(loadedMessages)
+      previousMessageCountRef.current = loadedMessages.length
     } catch (error: any) {
       console.error('Error loading ticket:', error)
       toast.error(error.message || 'Errore nel caricamento del ticket')

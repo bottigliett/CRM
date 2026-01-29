@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { BaseLayout } from '@/components/layouts/base-layout'
 import { Button } from '@/components/ui/button'
 import {
@@ -97,10 +97,36 @@ export default function TicketsPage() {
   const [isInternal, setIsInternal] = useState(false)
   const [newStatus, setNewStatus] = useState<string>('')
   const [timeToLog, setTimeToLog] = useState('')
+  const previousMessageCountRef = useRef<number>(0)
 
   useEffect(() => {
     loadTickets()
   }, [statusFilter, priorityFilter])
+
+  // Auto-refresh per rilevare nuovi messaggi quando il dialog è aperto
+  useEffect(() => {
+    if (!detailsOpen || !selectedTicket) return
+
+    const interval = setInterval(async () => {
+      try {
+        const response = await ticketsAPI.getById(selectedTicket.id)
+        const newMessages = response.data.messages || []
+
+        // Controlla se ci sono nuovi messaggi
+        if (previousMessageCountRef.current > 0 && newMessages.length > previousMessageCountRef.current) {
+          const newMessageCount = newMessages.length - previousMessageCountRef.current
+          toast.success(`${newMessageCount} ${newMessageCount === 1 ? 'nuovo messaggio' : 'nuovi messaggi'}`)
+        }
+
+        previousMessageCountRef.current = newMessages.length
+        setSelectedTicket(response.data)
+      } catch (error) {
+        console.error('Error refreshing ticket:', error)
+      }
+    }, 15000) // Refresh ogni 15 secondi
+
+    return () => clearInterval(interval)
+  }, [detailsOpen, selectedTicket])
 
   const loadTickets = async () => {
     try {
@@ -128,6 +154,7 @@ export default function TicketsPage() {
       const response = await ticketsAPI.getById(ticketId)
       setSelectedTicket(response.data)
       setNewStatus(response.data.status)
+      previousMessageCountRef.current = response.data.messages?.length || 0
       setDetailsOpen(true)
     } catch (error) {
       console.error('Failed to load ticket details:', error)
