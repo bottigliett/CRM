@@ -57,10 +57,14 @@ export function useCircularTransition(): CircularTransitionHook {
 
     startTransition(coords, () => {
       setTheme(newTheme)
-      // Save theme to database
-      updateProfile({ theme: newTheme }).catch(error => {
-        console.error('[useCircularTransition] Error saving theme to database:', error)
-      })
+
+      // Save theme to database only if user is admin (not client)
+      const userType = localStorage.getItem('user_type')
+      if (userType === 'ADMIN') {
+        updateProfile({ theme: newTheme }).catch(error => {
+          console.error('[useCircularTransition] Error saving theme to database:', error)
+        })
+      }
     })
   }, [theme, setTheme, updateProfile, startTransition])
 

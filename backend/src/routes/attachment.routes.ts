@@ -22,10 +22,9 @@ router.post(
   uploadAttachments
 );
 
-// Download attachment
+// Download attachment (no middleware - auth handled in controller to support query token)
 router.get(
   '/tickets/attachments/:id',
-  authenticate,
   downloadAttachment
 );
 
@@ -49,10 +48,9 @@ clientAttachmentRouter.post(
   uploadAttachments
 );
 
-// Download attachment (client)
+// Download attachment (client - no middleware, auth handled in controller to support query token)
 clientAttachmentRouter.get(
   '/tickets/attachments/:id',
-  authenticateClient,
   downloadClientAttachment
 );
 

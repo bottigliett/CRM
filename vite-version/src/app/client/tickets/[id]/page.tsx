@@ -281,7 +281,19 @@ export default function ClientTicketDetailPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {messages.length === 0 ? (
+              {/* Allegati del ticket (caricati alla creazione) */}
+              {ticket.attachments && ticket.attachments.length > 0 && (
+                <div className="pb-4 border-b">
+                  <div className="text-sm font-medium text-muted-foreground mb-2">Allegati iniziali</div>
+                  <AttachmentList
+                    attachments={ticket.attachments}
+                    onDownload={handleDownloadAttachment}
+                    showDelete={false}
+                  />
+                </div>
+              )}
+
+              {messages.length === 0 && (!ticket.attachments || ticket.attachments.length === 0) ? (
                 <div className="text-center py-8 text-sm text-muted-foreground">
                   Nessun messaggio ancora
                 </div>

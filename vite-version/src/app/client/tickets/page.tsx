@@ -274,53 +274,22 @@ export default function ClientTicketsPage() {
             </CardContent>
           </Card>
         ) : (
-          <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {tickets.map((ticket) => (
-              <Card key={ticket.id}>
+              <Card key={ticket.id} className="flex flex-col">
                 <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <CardTitle className="text-lg">{ticket.title}</CardTitle>
-                      <CardDescription className="mt-1">
-                        Creato il {format(new Date(ticket.createdAt), 'dd MMMM yyyy', { locale: it })}
-                      </CardDescription>
-                    </div>
-                    <div className="flex gap-2">
-                      <Badge variant="outline" className={getStatusColor(ticket.status)}>
-                        {translateStatus(ticket.status)}
-                      </Badge>
-                      <Badge variant="outline" className={getPriorityColor(ticket.priority)}>
-                        {translatePriority(ticket.priority)}
-                      </Badge>
-                    </div>
-                  </div>
+                  <CardTitle className="text-base line-clamp-2">{ticket.title}</CardTitle>
+                  <CardDescription className="text-xs">
+                    {format(new Date(ticket.createdAt), 'dd MMM yyyy', { locale: it })}
+                  </CardDescription>
                 </CardHeader>
-                {ticket.description && (
-                  <CardContent>
-                    <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                      {ticket.description}
-                    </p>
-                  </CardContent>
-                )}
-                <CardContent className="pt-0">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                      {ticket.assignedUser && (
-                        <div>
-                          Assegnato a: <span className="font-medium">{ticket.assignedUser.firstName} {ticket.assignedUser.lastName}</span>
-                        </div>
-                      )}
-                      {ticket.timeSpent !== null && ticket.timeSpent > 0 && (
-                        <div className="flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
-                          {ticket.timeSpent}h spese
-                        </div>
-                      )}
-                    </div>
-                    <Button variant="outline" size="sm" asChild>
-                      <Link to={`/client/tickets/${ticket.id}`}>Visualizza</Link>
-                    </Button>
-                  </div>
+                <CardContent className="flex-1 flex flex-col justify-between gap-3">
+                  <Badge variant="outline" className={getStatusColor(ticket.status)} style={{ width: 'fit-content' }}>
+                    {translateStatus(ticket.status)}
+                  </Badge>
+                  <Button variant="outline" size="sm" asChild className="w-full">
+                    <Link to={`/client/tickets/${ticket.id}`}>Visualizza</Link>
+                  </Button>
                 </CardContent>
               </Card>
             ))}

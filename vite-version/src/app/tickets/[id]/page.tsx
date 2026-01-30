@@ -374,6 +374,19 @@ export default function TicketDetailPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-3 max-h-[500px] overflow-y-auto mb-4">
+              {/* Allegati del ticket (caricati alla creazione) */}
+              {ticket.attachments && ticket.attachments.length > 0 && (
+                <div className="rounded-lg p-4 bg-gray-50 border border-gray-200 mb-3">
+                  <div className="text-xs font-medium text-muted-foreground mb-2">Allegati iniziali</div>
+                  <AttachmentList
+                    attachments={ticket.attachments}
+                    onDownload={handleDownloadAttachment}
+                    onDelete={handleDeleteAttachment}
+                    showDelete={true}
+                  />
+                </div>
+              )}
+
               {ticket.messages.map((message) => {
                 // Determina il nome di chi ha scritto il messaggio
                 let senderName = '';
