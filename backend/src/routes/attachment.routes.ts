@@ -11,12 +11,6 @@ import { uploadTicketAttachments } from '../utils/file-upload';
 
 const router = express.Router();
 
-// Debug middleware to log all requests to this router
-router.use((req, res, next) => {
-  console.log('[ATTACHMENT ROUTER] Method:', req.method, 'Path:', req.path, 'Query:', req.query);
-  next();
-});
-
 /**
  * ADMIN ROUTES
  */

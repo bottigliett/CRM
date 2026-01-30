@@ -178,9 +178,14 @@ class ClientTicketsAPI {
     return response.json();
   }
 
-  downloadAttachment(attachmentId: number): string {
+  getPreviewUrl(attachmentId: number): string {
     const token = this.getAuthToken();
     return `${API_BASE_URL}/client/attachments/${attachmentId}?token=${token}`;
+  }
+
+  downloadAttachment(attachmentId: number): string {
+    const token = this.getAuthToken();
+    return `${API_BASE_URL}/client/attachments/${attachmentId}?token=${token}&download=true`;
   }
 }
 

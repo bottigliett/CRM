@@ -109,6 +109,10 @@ export default function ClientTicketDetailPage() {
     }
   }
 
+  const getPreviewUrl = (attachmentId: number) => {
+    return clientTicketsAPI.getPreviewUrl(attachmentId)
+  }
+
   const handleDownloadAttachment = (attachmentId: number) => {
     const url = clientTicketsAPI.downloadAttachment(attachmentId)
     window.open(url, '_blank')
@@ -288,6 +292,7 @@ export default function ClientTicketDetailPage() {
                   <AttachmentList
                     attachments={ticket.attachments}
                     onDownload={handleDownloadAttachment}
+                    getPreviewUrl={getPreviewUrl}
                     showDelete={false}
                   />
                 </div>
@@ -337,6 +342,7 @@ export default function ClientTicketDetailPage() {
                             <AttachmentList
                               attachments={message.attachments}
                               onDownload={handleDownloadAttachment}
+                              getPreviewUrl={getPreviewUrl}
                               showDelete={false}
                             />
                           </div>

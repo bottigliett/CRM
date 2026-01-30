@@ -178,6 +178,10 @@ export default function TicketDetailPage() {
     }
   }
 
+  const getPreviewUrl = (attachmentId: number) => {
+    return ticketsAPI.getPreviewUrl(attachmentId)
+  }
+
   const handleDownloadAttachment = (attachmentId: number) => {
     const url = ticketsAPI.downloadAttachment(attachmentId)
     window.open(url, '_blank')
@@ -381,6 +385,7 @@ export default function TicketDetailPage() {
                   <AttachmentList
                     attachments={ticket.attachments}
                     onDownload={handleDownloadAttachment}
+                    getPreviewUrl={getPreviewUrl}
                     onDelete={handleDeleteAttachment}
                     showDelete={true}
                   />
@@ -426,6 +431,7 @@ export default function TicketDetailPage() {
                         <AttachmentList
                           attachments={message.attachments}
                           onDownload={handleDownloadAttachment}
+                          getPreviewUrl={getPreviewUrl}
                           onDelete={handleDeleteAttachment}
                           showDelete={true}
                         />

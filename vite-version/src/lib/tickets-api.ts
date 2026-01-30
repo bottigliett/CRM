@@ -270,12 +270,21 @@ export const ticketsAPI = {
   },
 
   /**
-   * Get download URL for attachment
+   * Get preview URL for attachment (inline view)
+   */
+  getPreviewUrl(attachmentId: number): string {
+    const token = localStorage.getItem('auth_token');
+    const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+    return `${baseURL}/attachments/${attachmentId}?token=${token}`;
+  },
+
+  /**
+   * Get download URL for attachment (force download)
    */
   downloadAttachment(attachmentId: number): string {
     const token = localStorage.getItem('auth_token');
     const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
-    return `${baseURL}/attachments/${attachmentId}?token=${token}`;
+    return `${baseURL}/attachments/${attachmentId}?token=${token}&download=true`;
   },
 
   /**

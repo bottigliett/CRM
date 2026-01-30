@@ -193,7 +193,17 @@ export const downloadAttachment = async (req: Request, res: Response) => {
 
     // Set appropriate headers
     res.setHeader('Content-Type', attachment.mimeType);
-    res.setHeader('Content-Disposition', `attachment; filename="${attachment.originalFileName}"`);
+
+    // If download=true query param, force download; otherwise show inline for images
+    const forceDownload = req.query.download === 'true';
+    const isImage = attachment.mimeType.startsWith('image/');
+
+    if (forceDownload || !isImage) {
+      res.setHeader('Content-Disposition', `attachment; filename="${attachment.originalFileName}"`);
+    } else {
+      res.setHeader('Content-Disposition', `inline; filename="${attachment.originalFileName}"`);
+    }
+
     res.sendFile(filePath);
   } catch (error: any) {
     console.error('Error downloading attachment:', error);
@@ -293,7 +303,17 @@ export const downloadClientAttachment = async (req: Request, res: Response) => {
     }
 
     res.setHeader('Content-Type', attachment.mimeType);
-    res.setHeader('Content-Disposition', `attachment; filename="${attachment.originalFileName}"`);
+
+    // If download=true query param, force download; otherwise show inline for images
+    const forceDownload = req.query.download === 'true';
+    const isImage = attachment.mimeType.startsWith('image/');
+
+    if (forceDownload || !isImage) {
+      res.setHeader('Content-Disposition', `attachment; filename="${attachment.originalFileName}"`);
+    } else {
+      res.setHeader('Content-Disposition', `inline; filename="${attachment.originalFileName}"`);
+    }
+
     res.sendFile(filePath);
   } catch (error: any) {
     console.error('Error downloading client attachment:', error);
