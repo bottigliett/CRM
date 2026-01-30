@@ -3,8 +3,7 @@ import { ClientLayout } from "@/components/layouts/client-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
-import { CheckSquare, Clock, Calendar } from "lucide-react"
-import { clientAuthAPI } from "@/lib/client-auth-api"
+import { CheckSquare, Clock, Calendar, CheckCircle, Circle, PlayCircle, AlertCircle } from "lucide-react"
 import { clientTasksAPI, type Task } from "@/lib/client-tasks-api"
 import { format } from "date-fns"
 import { it } from "date-fns/locale"
@@ -85,52 +84,24 @@ export default function ClientTasksPage() {
     return new Date(deadline) < new Date()
   }
 
-  const completedCount = tasks.filter(t => t.status === 'COMPLETED').length
-  const totalCount = tasks.length
-  const completionPercentage = totalCount > 0 ? (completedCount / totalCount) * 100 : 0
+  // Calculate statistics
+  const completedTasks = tasks.filter(t => t.status === 'COMPLETED')
+  const inProgressTasks = tasks.filter(t => t.status === 'IN_PROGRESS')
+  const todoTasks = tasks.filter(t => t.status === 'TODO')
+  const pendingTasks = tasks.filter(t => t.status === 'PENDING')
+  const overdueTasks = tasks.filter(t => t.status !== 'COMPLETED' && isOverdue(t.deadline))
+
+  const completionPercentage = tasks.length > 0 ? (completedTasks.length / tasks.length) * 100 : 0
+
+  const totalEstimatedHours = tasks.reduce((sum, t) => sum + (t.estimatedHours || 0), 0)
+  const totalActualHours = tasks.reduce((sum, t) => sum + (t.actualHours || 0), 0)
 
   return (
     <ClientLayout
       title="I Tuoi Task"
       description="Segui i progressi del tuo progetto"
     >
-      <div className="px-4 lg:px-6 space-y-6">
-        {/* Summary Card */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Riepilogo Task</CardTitle>
-            <CardDescription>Progressi complessivi del progetto</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Completamento</span>
-                <span className="font-medium">{completedCount} / {totalCount} task</span>
-              </div>
-              <Progress value={completionPercentage} />
-              <div className="grid grid-cols-3 gap-4 pt-2">
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-green-500">{completedCount}</div>
-                  <div className="text-xs text-muted-foreground">Completati</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-blue-500">
-                    {tasks.filter(t => t.status === 'IN_PROGRESS').length}
-                  </div>
-                  <div className="text-xs text-muted-foreground">In Corso</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-gray-500">
-                    {tasks.filter(t => t.status === 'TODO').length}
-                  </div>
-                  <div className="text-xs text-muted-foreground">Da Fare</div>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Tasks List */}
+      <div className="px-4 lg:px-6">
         {loading ? (
           <div className="text-center py-8">
             <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-primary mx-auto"></div>
@@ -149,81 +120,168 @@ export default function ClientTasksPage() {
             </CardContent>
           </Card>
         ) : (
-          <div className="space-y-4">
-            {tasks.map((task) => {
-              const overdue = task.status !== 'COMPLETED' && isOverdue(task.deadline)
+          <div className="grid gap-6 lg:grid-cols-2">
+            {/* Left Side - Summary */}
+            <Card className="h-fit">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <CheckSquare className="h-5 w-5" />
+                  Riepilogo Task
+                </CardTitle>
+                <CardDescription>Progressi complessivi del progetto</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Progress */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">Completamento</span>
+                    <span className="text-sm font-medium">{completedTasks.length} / {tasks.length} task</span>
+                  </div>
+                  <Progress value={completionPercentage} className="h-3" />
+                  <p className="text-center text-2xl font-bold">{completionPercentage.toFixed(0)}%</p>
+                </div>
 
-              return (
-                <Card key={task.id}>
-                  <CardHeader>
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <CardTitle className="text-lg flex items-center gap-2">
-                          {task.title}
-                          {overdue && (
-                            <Badge variant="outline" className="bg-red-500/10 text-red-500 border-red-500/20">
-                              In Ritardo
+                {/* Stats Grid */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="p-3 bg-green-500/10 rounded-lg">
+                    <div className="flex items-center gap-2 mb-1">
+                      <CheckCircle className="h-4 w-4 text-green-600" />
+                      <span className="text-xs font-medium text-green-600">Completati</span>
+                    </div>
+                    <p className="text-2xl font-bold">{completedTasks.length}</p>
+                  </div>
+
+                  <div className="p-3 bg-blue-500/10 rounded-lg">
+                    <div className="flex items-center gap-2 mb-1">
+                      <PlayCircle className="h-4 w-4 text-blue-600" />
+                      <span className="text-xs font-medium text-blue-600">In Corso</span>
+                    </div>
+                    <p className="text-2xl font-bold">{inProgressTasks.length}</p>
+                  </div>
+
+                  <div className="p-3 bg-gray-500/10 rounded-lg">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Circle className="h-4 w-4 text-gray-600" />
+                      <span className="text-xs font-medium text-gray-600">Da Fare</span>
+                    </div>
+                    <p className="text-2xl font-bold">{todoTasks.length}</p>
+                  </div>
+
+                  <div className="p-3 bg-yellow-500/10 rounded-lg">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Clock className="h-4 w-4 text-yellow-600" />
+                      <span className="text-xs font-medium text-yellow-600">In Attesa</span>
+                    </div>
+                    <p className="text-2xl font-bold">{pendingTasks.length}</p>
+                  </div>
+                </div>
+
+                {/* Overdue Warning */}
+                {overdueTasks.length > 0 && (
+                  <div className="p-4 bg-red-500/10 rounded-lg border border-red-500/20">
+                    <div className="flex items-center gap-2">
+                      <AlertCircle className="h-5 w-5 text-red-600" />
+                      <span className="font-medium text-red-600">
+                        {overdueTasks.length} task in ritardo
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Hours Summary */}
+                <div className="border-t pt-6 space-y-4">
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-5 w-5 text-muted-foreground" />
+                    <span className="font-medium">Ore di Lavoro</span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="text-center p-3 bg-muted rounded-lg">
+                      <p className="text-2xl font-bold">{totalEstimatedHours}h</p>
+                      <p className="text-xs text-muted-foreground">Stimate</p>
+                    </div>
+                    <div className="text-center p-3 bg-muted rounded-lg">
+                      <p className="text-2xl font-bold">{totalActualHours}h</p>
+                      <p className="text-xs text-muted-foreground">Effettive</p>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Right Side - Tasks List */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="font-medium">Elenco Task</h3>
+                <span className="text-sm text-muted-foreground">{tasks.length} task</span>
+              </div>
+
+              <div className="space-y-3 max-h-[calc(100vh-280px)] overflow-y-auto pr-2">
+                {tasks.map((task) => {
+                  const overdue = task.status !== 'COMPLETED' && isOverdue(task.deadline)
+
+                  return (
+                    <Card key={task.id} className={overdue ? 'border-red-500/30' : ''}>
+                      <CardContent className="p-4">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1 flex-wrap">
+                              <span className="font-medium">{task.title}</span>
+                              {overdue && (
+                                <Badge variant="outline" className="bg-red-500/10 text-red-500 border-red-500/20 text-xs">
+                                  In Ritardo
+                                </Badge>
+                              )}
+                            </div>
+                            {task.description && (
+                              <p className="text-sm text-muted-foreground line-clamp-2 mb-2">
+                                {task.description}
+                              </p>
+                            )}
+                          </div>
+
+                          <div className="flex flex-col items-end gap-1 shrink-0">
+                            <Badge variant="outline" className={getStatusColor(task.status)}>
+                              {translateStatus(task.status)}
                             </Badge>
+                            <Badge variant="outline" className={`${getPriorityColor(task.priority)} text-xs`}>
+                              {translatePriority(task.priority)}
+                            </Badge>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-4 mt-3 pt-3 border-t text-xs text-muted-foreground flex-wrap">
+                          <div className="flex items-center gap-1">
+                            <Calendar className="h-3 w-3" />
+                            <span>Scadenza: {format(new Date(task.deadline), 'dd/MM/yyyy', { locale: it })}</span>
+                          </div>
+
+                          {task.estimatedHours && (
+                            <div className="flex items-center gap-1">
+                              <Clock className="h-3 w-3" />
+                              <span>Stimate: {task.estimatedHours}h</span>
+                            </div>
                           )}
-                        </CardTitle>
-                        {task.description && (
-                          <CardDescription className="mt-2 whitespace-pre-wrap">
-                            {task.description}
-                          </CardDescription>
-                        )}
-                      </div>
-                      <div className="flex gap-2">
-                        <Badge variant="outline" className={getStatusColor(task.status)}>
-                          {translateStatus(task.status)}
-                        </Badge>
-                        <Badge variant="outline" className={getPriorityColor(task.priority)}>
-                          {translatePriority(task.priority)}
-                        </Badge>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid gap-4 md:grid-cols-3">
-                      <div className="flex items-center gap-2 text-sm">
-                        <Calendar className="h-4 w-4 text-muted-foreground" />
-                        <div>
-                          <p className="text-muted-foreground">Scadenza</p>
-                          <p className="font-medium">
-                            {format(new Date(task.deadline), 'dd MMMM yyyy', { locale: it })}
-                          </p>
+
+                          {task.actualHours && (
+                            <div className="flex items-center gap-1">
+                              <Clock className="h-3 w-3" />
+                              <span>Effettive: {task.actualHours}h</span>
+                            </div>
+                          )}
+
+                          {task.assignedUser && (
+                            <span>
+                              Assegnato: {task.assignedUser.firstName} {task.assignedUser.lastName}
+                            </span>
+                          )}
                         </div>
-                      </div>
-                      {task.estimatedHours && (
-                        <div className="flex items-center gap-2 text-sm">
-                          <Clock className="h-4 w-4 text-muted-foreground" />
-                          <div>
-                            <p className="text-muted-foreground">Ore Stimate</p>
-                            <p className="font-medium">{task.estimatedHours}h</p>
-                          </div>
-                        </div>
-                      )}
-                      {task.actualHours && (
-                        <div className="flex items-center gap-2 text-sm">
-                          <Clock className="h-4 w-4 text-muted-foreground" />
-                          <div>
-                            <p className="text-muted-foreground">Ore Effettive</p>
-                            <p className="font-medium">{task.actualHours}h</p>
-                          </div>
-                        </div>
-                      )}
-                      {task.assignedUser && (
-                        <div className="text-sm">
-                          <p className="text-muted-foreground">Assegnato a</p>
-                          <p className="font-medium">
-                            {task.assignedUser.firstName} {task.assignedUser.lastName}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              )
-            })}
+                      </CardContent>
+                    </Card>
+                  )
+                })}
+              </div>
+            </div>
           </div>
         )}
       </div>

@@ -11,6 +11,7 @@ export interface Ticket {
   priority: string;
   status: string;
   assignedTo?: number;
+  timeSpentMinutes?: number;
   resolvedAt?: string;
   createdAt: string;
   updatedAt: string;

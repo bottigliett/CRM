@@ -5,16 +5,19 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
-import { Separator } from "@/components/ui/separator"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Progress } from "@/components/ui/progress"
 import {
   MessageSquare,
   Send,
   Clock,
-  User,
   ArrowLeft,
+  Timer,
+  CalendarDays,
+  Paperclip,
 } from "lucide-react"
 import { clientTicketsAPI, type Ticket } from "@/lib/client-tickets-api"
+import { clientAuthAPI } from "@/lib/client-auth-api"
 import { format } from "date-fns"
 import { it } from "date-fns/locale"
 import { toast } from "sonner"
@@ -59,13 +62,24 @@ export default function ClientTicketDetailPage() {
   const [sending, setSending] = React.useState(false)
   const [uploadFiles, setUploadFiles] = React.useState<any[]>([])
   const [uploading, setUploading] = React.useState(false)
+  const [showFileUpload, setShowFileUpload] = React.useState(false)
+  const [clientData, setClientData] = React.useState<any>(null)
   const previousMessageCountRef = React.useRef<number>(0)
+  const messagesEndRef = React.useRef<HTMLDivElement>(null)
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+  }
 
   React.useEffect(() => {
     if (id) {
-      loadTicketData()
+      loadData()
     }
   }, [id])
+
+  React.useEffect(() => {
+    scrollToBottom()
+  }, [messages])
 
   // Auto-refresh per rilevare nuovi messaggi
   React.useEffect(() => {
@@ -76,7 +90,6 @@ export default function ClientTicketDetailPage() {
         const response = await clientTicketsAPI.getById(parseInt(id))
         const newMessages = response.data.messages || []
 
-        // Controlla se ci sono nuovi messaggi
         if (previousMessageCountRef.current > 0 && newMessages.length > previousMessageCountRef.current) {
           const newMessageCount = newMessages.length - previousMessageCountRef.current
           toast.success(`${newMessageCount} ${newMessageCount === 1 ? 'nuovo messaggio' : 'nuovi messaggi'}`)
@@ -88,22 +101,26 @@ export default function ClientTicketDetailPage() {
       } catch (error) {
         console.error('Error refreshing ticket:', error)
       }
-    }, 15000) // Refresh ogni 15 secondi
+    }, 15000)
 
     return () => clearInterval(interval)
   }, [id, ticket])
 
-  const loadTicketData = async () => {
+  const loadData = async () => {
     try {
       setLoading(true)
-      const response = await clientTicketsAPI.getById(parseInt(id!))
-      setTicket(response.data)
-      const loadedMessages = response.data.messages || []
+      const [ticketRes, clientRes] = await Promise.all([
+        clientTicketsAPI.getById(parseInt(id!)),
+        clientAuthAPI.getMe()
+      ])
+      setTicket(ticketRes.data)
+      setClientData(clientRes.data)
+      const loadedMessages = ticketRes.data.messages || []
       setMessages(loadedMessages)
       previousMessageCountRef.current = loadedMessages.length
     } catch (error: any) {
-      console.error('Error loading ticket:', error)
-      toast.error(error.message || 'Errore nel caricamento del ticket')
+      console.error('Error loading data:', error)
+      toast.error(error.message || 'Errore nel caricamento')
     } finally {
       setLoading(false)
     }
@@ -125,29 +142,35 @@ export default function ClientTicketDetailPage() {
       setSending(true)
       let messageId: number | undefined
 
-      // Send message if there's text
       if (newMessage.trim()) {
         const response = await clientTicketsAPI.addMessage(ticket.id, newMessage)
         messageId = response.data.id
         setNewMessage('')
       }
 
-      // Upload files if present
       if (uploadFiles.length > 0) {
         setUploading(true)
         await clientTicketsAPI.uploadAttachments(ticket.id, uploadFiles, messageId)
         setUploadFiles([])
+        setShowFileUpload(false)
         setUploading(false)
       }
 
       toast.success('Messaggio inviato')
-      loadTicketData()
+      loadData()
     } catch (error: any) {
       console.error('Error sending message:', error)
       toast.error(error.message || "Errore nell'invio del messaggio")
       setUploading(false)
     } finally {
       setSending(false)
+    }
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      handleSendMessage()
     }
   }
 
@@ -164,17 +187,34 @@ export default function ClientTicketDetailPage() {
     }
   }
 
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'P1':
-        return 'bg-red-500/10 text-red-500 border-red-500/20'
-      case 'P2':
-        return 'bg-orange-500/10 text-orange-500 border-orange-500/20'
-      case 'P3':
-        return 'bg-blue-500/10 text-blue-500 border-blue-500/20'
-      default:
-        return 'bg-gray-500/10 text-gray-500 border-gray-500/20'
+  const translateStatus = (status: string) => {
+    const map: Record<string, string> = {
+      'OPEN': 'Aperto',
+      'IN_PROGRESS': 'In Corso',
+      'CLOSED': 'Chiuso',
+      'WAITING_CLIENT': 'In Attesa',
+      'RESOLVED': 'Risolto'
     }
+    return map[status] || status
+  }
+
+  const translateSupportType = (type: string) => {
+    const map: Record<string, string> = {
+      'TECHNICAL': 'Tecnico',
+      'DESIGN': 'Design',
+      'CONTENT': 'Contenuti',
+      'BILLING': 'Fatturazione',
+      'OTHER': 'Altro'
+    }
+    return map[type] || type
+  }
+
+  const formatTimeSpent = (minutes: number) => {
+    const hours = Math.floor(minutes / 60)
+    const mins = minutes % 60
+    if (hours === 0) return `${mins} min`
+    if (mins === 0) return `${hours}h`
+    return `${hours}h ${mins}min`
   }
 
   if (loading) {
@@ -214,10 +254,16 @@ export default function ClientTicketDetailPage() {
     )
   }
 
+  const ticketHoursUsed = (ticket.timeSpentMinutes || 0) / 60
+  const totalHoursIncluded = clientData?.supportHoursIncluded || 0
+  const totalHoursUsed = clientData?.supportHoursUsed || 0
+  const totalHoursRemaining = Math.max(0, totalHoursIncluded - totalHoursUsed)
+  const hoursPercentage = totalHoursIncluded > 0 ? (totalHoursUsed / totalHoursIncluded) * 100 : 0
+
   return (
     <ClientLayout
-      title={ticket.title}
-      description={`Ticket #${ticket.id}`}
+      title={ticket.subject}
+      description={`Ticket #${ticket.ticketNumber}`}
       headerAction={
         <Button variant="outline" onClick={() => navigate('/client/tickets')}>
           <ArrowLeft className="h-4 w-4 mr-2" />
@@ -225,70 +271,96 @@ export default function ClientTicketDetailPage() {
         </Button>
       }
     >
-      <div className="px-4 lg:px-6 space-y-6">
-        {/* Ticket Info */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
-                <CardTitle className="text-xl">{ticket.title}</CardTitle>
-                <CardDescription className="mt-2">
-                  Creato il {format(new Date(ticket.createdAt), 'dd MMMM yyyy \'alle\' HH:mm', { locale: it })}
-                </CardDescription>
-              </div>
-              <div className="flex gap-2">
+      <div className="px-4 lg:px-6">
+        <div className="grid gap-6 lg:grid-cols-2">
+          {/* Left Side - Ticket Info */}
+          <Card className="h-fit">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg">Dettagli Ticket</CardTitle>
                 <Badge variant="outline" className={getStatusColor(ticket.status)}>
-                  {ticket.status}
-                </Badge>
-                <Badge variant="outline" className={getPriorityColor(ticket.priority)}>
-                  {ticket.priority}
+                  {translateStatus(ticket.status)}
                 </Badge>
               </div>
-            </div>
-          </CardHeader>
-          {ticket.description && (
-            <CardContent>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Basic Info */}
               <div className="space-y-4">
                 <div>
-                  <h4 className="text-sm font-medium text-muted-foreground mb-2">Descrizione</h4>
-                  <p className="text-sm whitespace-pre-wrap">{ticket.description}</p>
+                  <p className="text-sm text-muted-foreground mb-1">Titolo</p>
+                  <p className="font-medium">{ticket.subject}</p>
                 </div>
-                <Separator />
-                <div className="grid gap-4 md:grid-cols-2">
-                  {ticket.assignedUser && (
-                    <div className="flex items-center gap-2 text-sm">
-                      <User className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-muted-foreground">Assegnato a:</span>
-                      <span className="font-medium">
-                        {ticket.assignedUser.firstName} {ticket.assignedUser.lastName}
-                      </span>
-                    </div>
-                  )}
-                  {ticket.timeSpent !== null && ticket.timeSpent > 0 && (
-                    <div className="flex items-center gap-2 text-sm">
-                      <Clock className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-muted-foreground">Tempo speso:</span>
-                      <span className="font-medium">{ticket.timeSpent}h</span>
-                    </div>
-                  )}
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">Tipo Supporto</p>
+                    <p className="font-medium">{translateSupportType(ticket.supportType)}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">Priorità</p>
+                    <p className="font-medium">{ticket.priority}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 text-sm">
+                  <CalendarDays className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-muted-foreground">Creato il</span>
+                  <span className="font-medium">
+                    {format(new Date(ticket.createdAt), "dd MMMM yyyy 'alle' HH:mm", { locale: it })}
+                  </span>
+                </div>
+
+                {ticket.description && (
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-2">Descrizione</p>
+                    <p className="text-sm whitespace-pre-wrap bg-muted/50 p-3 rounded-lg">
+                      {ticket.description}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Hours Info */}
+              <div className="border-t pt-6 space-y-4">
+                <div className="flex items-center gap-2">
+                  <Timer className="h-5 w-5 text-muted-foreground" />
+                  <span className="font-medium">Ore di Supporto</span>
+                </div>
+
+                <div className="grid grid-cols-3 gap-4 text-center">
+                  <div className="p-3 bg-blue-500/10 rounded-lg">
+                    <p className="text-2xl font-bold text-blue-600">
+                      {ticketHoursUsed.toFixed(1)}h
+                    </p>
+                    <p className="text-xs text-muted-foreground">Su questo ticket</p>
+                  </div>
+                  <div className="p-3 bg-muted rounded-lg">
+                    <p className="text-2xl font-bold">
+                      {totalHoursIncluded}h
+                    </p>
+                    <p className="text-xs text-muted-foreground">Totali incluse</p>
+                  </div>
+                  <div className="p-3 bg-green-500/10 rounded-lg">
+                    <p className="text-2xl font-bold text-green-600">
+                      {totalHoursRemaining.toFixed(1)}h
+                    </p>
+                    <p className="text-xs text-muted-foreground">Rimanenti</p>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Utilizzo totale</span>
+                    <span className="font-medium">{totalHoursUsed.toFixed(1)}h / {totalHoursIncluded}h</span>
+                  </div>
+                  <Progress value={hoursPercentage} className="h-2" />
                 </div>
               </div>
-            </CardContent>
-          )}
-        </Card>
 
-        {/* Messages */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Conversazione</CardTitle>
-            <CardDescription>Storico messaggi del ticket</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {/* Allegati del ticket (caricati alla creazione) */}
+              {/* Initial Attachments */}
               {ticket.attachments && ticket.attachments.length > 0 && (
-                <div className="pb-4 border-b">
-                  <div className="text-sm font-medium text-muted-foreground mb-2">Allegati iniziali</div>
+                <div className="border-t pt-6">
+                  <p className="text-sm font-medium mb-3">Allegati iniziali</p>
                   <AttachmentList
                     attachments={ticket.attachments}
                     onDownload={handleDownloadAttachment}
@@ -297,10 +369,26 @@ export default function ClientTicketDetailPage() {
                   />
                 </div>
               )}
+            </CardContent>
+          </Card>
 
-              {messages.length === 0 && (!ticket.attachments || ticket.attachments.length === 0) ? (
-                <div className="text-center py-8 text-sm text-muted-foreground">
-                  Nessun messaggio ancora
+          {/* Right Side - Chat */}
+          <Card className="flex flex-col h-[calc(100vh-200px)] min-h-[500px]">
+            <CardHeader className="border-b shrink-0">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <MessageSquare className="h-5 w-5" />
+                Conversazione
+              </CardTitle>
+              <CardDescription>
+                {messages.length} {messages.length === 1 ? 'messaggio' : 'messaggi'}
+              </CardDescription>
+            </CardHeader>
+
+            {/* Messages Area */}
+            <CardContent className="flex-1 overflow-y-auto p-4 space-y-4">
+              {messages.length === 0 ? (
+                <div className="flex items-center justify-center h-full text-sm text-muted-foreground">
+                  Nessun messaggio ancora. Inizia la conversazione!
                 </div>
               ) : (
                 messages.map((message) => {
@@ -311,95 +399,106 @@ export default function ClientTicketDetailPage() {
                     ? `${message.user.firstName} ${message.user.lastName}`
                     : 'Team'
 
+                  // Calculate bubble width based on message length
+                  const messageLength = message.message.length
+                  const maxWidth = messageLength < 50 ? 'max-w-[60%]' : messageLength < 100 ? 'max-w-[70%]' : 'max-w-[85%]'
+
                   return (
                     <div
                       key={message.id}
-                      className={`flex gap-3 ${isFromClient ? 'flex-row-reverse' : ''}`}
+                      className={`flex ${isFromClient ? 'justify-end' : 'justify-start'}`}
                     >
-                      <Avatar className="h-8 w-8 flex-shrink-0">
-                        <AvatarFallback>
-                          {sender.substring(0, 2).toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className={`flex-1 max-w-[80%] ${isFromClient ? 'items-end' : ''}`}>
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="text-sm font-medium">{sender}</span>
-                          <span className="text-xs text-muted-foreground">
-                            {format(new Date(message.createdAt), 'dd MMM HH:mm', { locale: it })}
-                          </span>
-                        </div>
-                        <div
-                          className={`rounded-lg p-3 text-sm whitespace-pre-wrap ${
-                            isFromClient
-                              ? 'bg-primary text-primary-foreground'
-                              : 'bg-muted'
-                          }`}
-                        >
-                          {message.message}
-                        </div>
-                        {message.attachments && message.attachments.length > 0 && (
-                          <div className='mt-2'>
-                            <AttachmentList
-                              attachments={message.attachments}
-                              onDownload={handleDownloadAttachment}
-                              getPreviewUrl={getPreviewUrl}
-                              showDelete={false}
-                            />
+                      <div className={`flex gap-2 ${maxWidth} ${isFromClient ? 'flex-row-reverse' : ''}`}>
+                        <Avatar className="h-8 w-8 shrink-0">
+                          <AvatarFallback className={isFromClient ? 'bg-primary text-primary-foreground' : ''}>
+                            {sender.substring(0, 2).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className={`flex flex-col ${isFromClient ? 'items-end' : 'items-start'}`}>
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-xs font-medium">{sender}</span>
+                            <span className="text-xs text-muted-foreground">
+                              {format(new Date(message.createdAt), 'dd/MM HH:mm', { locale: it })}
+                            </span>
                           </div>
-                        )}
+                          <div
+                            className={`rounded-2xl px-4 py-2 text-sm whitespace-pre-wrap break-words ${
+                              isFromClient
+                                ? 'bg-primary text-primary-foreground rounded-br-md'
+                                : 'bg-muted rounded-bl-md'
+                            }`}
+                          >
+                            {message.message}
+                          </div>
+                          {message.attachments && message.attachments.length > 0 && (
+                            <div className="mt-2 w-full">
+                              <AttachmentList
+                                attachments={message.attachments}
+                                onDownload={handleDownloadAttachment}
+                                getPreviewUrl={getPreviewUrl}
+                                showDelete={false}
+                              />
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   )
                 })
               )}
-            </div>
-          </CardContent>
-        </Card>
+              <div ref={messagesEndRef} />
+            </CardContent>
 
-        {/* New Message */}
-        {ticket.status !== 'CLOSED' && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Aggiungi un Messaggio</CardTitle>
-              <CardDescription>Invia una risposta o un aggiornamento</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <Textarea
-                  value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
-                  placeholder="Scrivi il tuo messaggio..."
-                  rows={4}
-                  disabled={sending || uploading}
-                />
-                <FileUpload
-                  files={uploadFiles}
-                  onFilesChange={setUploadFiles}
-                  disabled={sending || uploading}
-                />
-                <div className="flex justify-end">
+            {/* Message Input */}
+            {ticket.status !== 'CLOSED' ? (
+              <div className="border-t p-4 shrink-0 space-y-3">
+                {showFileUpload && (
+                  <FileUpload
+                    files={uploadFiles}
+                    onFilesChange={setUploadFiles}
+                    disabled={sending || uploading}
+                  />
+                )}
+                <div className="flex gap-2 items-end">
                   <Button
+                    variant="ghost"
+                    size="icon"
+                    className="shrink-0"
+                    onClick={() => setShowFileUpload(!showFileUpload)}
+                  >
+                    <Paperclip className="h-5 w-5" />
+                  </Button>
+                  <Textarea
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    placeholder="Scrivi un messaggio..."
+                    className="min-h-[44px] max-h-[120px] resize-none"
+                    rows={1}
+                    disabled={sending || uploading}
+                  />
+                  <Button
+                    size="icon"
+                    className="shrink-0"
                     onClick={handleSendMessage}
                     disabled={(!newMessage.trim() && uploadFiles.length === 0) || sending || uploading}
                   >
-                    <Send className="h-4 w-4 mr-2" />
-                    {sending || uploading ? 'Invio...' : 'Invia Messaggio'}
+                    <Send className="h-5 w-5" />
                   </Button>
                 </div>
+                <p className="text-xs text-muted-foreground text-center">
+                  Premi Invio per inviare, Shift+Invio per andare a capo
+                </p>
               </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {ticket.status === 'CLOSED' && (
-          <Card className="border-gray-500/50 bg-gray-500/5">
-            <CardContent className="pt-6">
-              <div className="text-center text-sm text-muted-foreground">
-                Questo ticket è stato chiuso. Non è più possibile inviare messaggi.
+            ) : (
+              <div className="border-t p-4 shrink-0 bg-muted/50">
+                <p className="text-sm text-muted-foreground text-center">
+                  Questo ticket è stato chiuso. Non è più possibile inviare messaggi.
+                </p>
               </div>
-            </CardContent>
+            )}
           </Card>
-        )}
+        </div>
       </div>
     </ClientLayout>
   )
