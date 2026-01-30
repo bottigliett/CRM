@@ -131,11 +131,17 @@ export const downloadAttachment = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
 
+    console.log('[downloadAttachment] Called with id:', id);
+    console.log('[downloadAttachment] Query params:', req.query);
+    console.log('[downloadAttachment] Authorization header:', req.headers.authorization);
+
     // Get token from header or query parameter
     let token = req.headers.authorization?.replace('Bearer ', '');
     if (!token && req.query.token) {
       token = req.query.token as string;
     }
+
+    console.log('[downloadAttachment] Token found:', token ? 'YES' : 'NO');
 
     if (!token) {
       return res.status(401).json({
