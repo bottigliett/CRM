@@ -18,19 +18,22 @@ export const getClientInvoices = async (req: ClientAuthRequest, res: Response) =
     const { limit = '100', status = 'all' } = req.query;
     const contactId = req.client.contactId;
 
-    // Build where clause
+    // Build where clause - DRAFT and CANCELLED invoices are never visible to clients
     const where: any = {
       contactId,
+      visibleToClient: true,
+      status: { in: ['ISSUED', 'PAID'] }, // Only show issued or paid invoices
     };
 
-    // Status filter
+    // Status filter (within allowed statuses)
     if (status !== 'all') {
       if (status === 'overdue') {
         where.status = 'ISSUED';
         where.dueDate = { lt: new Date() };
-      } else {
+      } else if (status === 'ISSUED' || status === 'PAID') {
         where.status = (status as string).toUpperCase();
       }
+      // Ignore other status filters for clients
     }
 
     const invoices = await prisma.invoice.findMany({
@@ -84,6 +87,8 @@ export const getClientInvoiceById = async (req: ClientAuthRequest, res: Response
       where: {
         id: parseInt(id),
         contactId,
+        visibleToClient: true,
+        status: { in: ['ISSUED', 'PAID'] }, // Only allow access to issued or paid invoices
       },
       include: {
         contact: {
@@ -144,6 +149,8 @@ export const getClientInvoicePDF = async (req: ClientAuthRequest, res: Response)
       where: {
         id,
         contactId,
+        visibleToClient: true,
+        status: { in: ['ISSUED', 'PAID'] }, // Only allow PDF for issued or paid invoices
       },
       include: {
         contact: true,

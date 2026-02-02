@@ -52,8 +52,9 @@ export async function generateInvoicePDF(invoiceId: number, data: InvoicePDFData
     if (!content) throw new Error('PDF content not found');
 
     // Generate PDF from the isolated HTML
+    // Using scale 1.5 for good quality while keeping file size reasonable
     const canvas = await html2canvas(content, {
-      scale: 2,
+      scale: 1.5,
       useCORS: true,
       logging: false,
       backgroundColor: '#ffffff',
@@ -66,7 +67,8 @@ export async function generateInvoicePDF(invoiceId: number, data: InvoicePDFData
     const pdfWidth = 210;
     const pdfHeight = 297;
 
-    const imgData = canvas.toDataURL('image/png');
+    // Use JPEG format with compression for smaller file size (quality 0.85)
+    const imgData = canvas.toDataURL('image/jpeg', 0.85);
     const imgWidth = pdfWidth;
     const imgHeight = (canvas.height * pdfWidth) / canvas.width;
 
@@ -76,10 +78,10 @@ export async function generateInvoicePDF(invoiceId: number, data: InvoicePDFData
       // Scale down to fit one page
       const scaledWidth = (pdfHeight * canvas.width) / canvas.height;
       const xOffset = (pdfWidth - scaledWidth) / 2;
-      pdf.addImage(imgData, 'PNG', xOffset, 0, scaledWidth, pdfHeight);
+      pdf.addImage(imgData, 'JPEG', xOffset, 0, scaledWidth, pdfHeight);
     } else {
       // Content fits on one page, add normally
-      pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+      pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, imgHeight);
     }
 
     // Download the PDF
