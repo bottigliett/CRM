@@ -296,7 +296,7 @@ export default function ClientDashboardPage() {
                   )}
                   {clientData.projectObjectives && (
                     <div>
-                      <p className="text-sm font-medium text-muted-foreground mb-1">Obiettivi</p>
+                      <p className="text-sm font-medium text-muted-foreground mb-1">Obiettivo</p>
                       <p className="text-sm whitespace-pre-wrap">{clientData.projectObjectives}</p>
                     </div>
                   )}

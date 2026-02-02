@@ -827,7 +827,7 @@ export default function ClientDetailPage() {
                     )}
                     {(client as any).projectObjectives && (
                       <div className="pt-4 border-t">
-                        <Label className="text-muted-foreground">Obiettivi</Label>
+                        <Label className="text-muted-foreground">Obiettivo</Label>
                         <p className="text-sm mt-1 whitespace-pre-wrap">{(client as any).projectObjectives}</p>
                       </div>
                     )}
@@ -1083,10 +1083,10 @@ export default function ClientDetailPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="projectObjectives">Obiettivi Progetto</Label>
+              <Label htmlFor="projectObjectives">Obiettivo Progetto</Label>
               <Textarea
                 id="projectObjectives"
-                placeholder="Obiettivi principali del progetto..."
+                placeholder="Obiettivo principale del progetto..."
                 value={dashboardForm.projectObjectives}
                 onChange={(e) => setDashboardForm({ ...dashboardForm, projectObjectives: e.target.value })}
                 rows={4}
