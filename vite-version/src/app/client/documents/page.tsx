@@ -30,28 +30,28 @@ export default function ClientDocumentsPage() {
   const folders = [
     {
       name: clientData?.driveFolderLinkTitle || 'Cartella Principale',
-      description: 'Accedi alla cartella principale del progetto',
+      description: clientData?.driveFolderLinkDescription || 'Accedi alla cartella principale del progetto',
       icon: FolderOpen,
       link: clientData?.driveFolderLink,
       color: 'text-blue-500',
     },
     {
       name: clientData?.documentsFolderTitle || 'Documenti',
-      description: 'Contratti, specifiche e documentazione',
+      description: clientData?.documentsFolderDescription || 'Contratti, specifiche e documentazione',
       icon: FileText,
       link: clientData?.documentsFolder,
       color: 'text-green-500',
     },
     {
       name: clientData?.assetsFolderTitle || 'Assets',
-      description: 'File grafici, immagini e risorse',
+      description: clientData?.assetsFolderDescription || 'File grafici, immagini e risorse',
       icon: Download,
       link: clientData?.assetsFolder,
       color: 'text-purple-500',
     },
     {
       name: clientData?.invoiceFolderTitle || 'Fatture',
-      description: 'Documenti fiscali e fatture',
+      description: clientData?.invoiceFolderDescription || 'Documenti fiscali e fatture',
       icon: Receipt,
       link: clientData?.invoiceFolder,
       color: 'text-orange-500',

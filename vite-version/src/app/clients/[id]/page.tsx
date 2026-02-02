@@ -95,24 +95,32 @@ export default function ClientDetailPage() {
     supportHoursIncluded: 0,
     driveFolderLink: '',
     driveFolderLinkTitle: '',
+    driveFolderLinkDescription: '',
     documentsFolder: '',
     documentsFolderTitle: '',
+    documentsFolderDescription: '',
     assetsFolder: '',
     assetsFolderTitle: '',
+    assetsFolderDescription: '',
     invoiceFolder: '',
     invoiceFolderTitle: '',
+    invoiceFolderDescription: '',
   })
 
   // Folders form data
   const [foldersForm, setFoldersForm] = useState({
     driveFolderLink: '',
     driveFolderLinkTitle: '',
+    driveFolderLinkDescription: '',
     documentsFolder: '',
     documentsFolderTitle: '',
+    documentsFolderDescription: '',
     assetsFolder: '',
     assetsFolderTitle: '',
+    assetsFolderDescription: '',
     invoiceFolder: '',
     invoiceFolderTitle: '',
+    invoiceFolderDescription: '',
   })
 
   useEffect(() => {
@@ -229,12 +237,16 @@ export default function ClientDetailPage() {
       supportHoursIncluded: client.supportHoursIncluded || 0,
       driveFolderLink: client.driveFolderLink || '',
       driveFolderLinkTitle: (client as any).driveFolderLinkTitle || '',
+      driveFolderLinkDescription: (client as any).driveFolderLinkDescription || '',
       documentsFolder: client.documentsFolder || '',
       documentsFolderTitle: (client as any).documentsFolderTitle || '',
+      documentsFolderDescription: (client as any).documentsFolderDescription || '',
       assetsFolder: client.assetsFolder || '',
       assetsFolderTitle: (client as any).assetsFolderTitle || '',
+      assetsFolderDescription: (client as any).assetsFolderDescription || '',
       invoiceFolder: client.invoiceFolder || '',
       invoiceFolderTitle: (client as any).invoiceFolderTitle || '',
+      invoiceFolderDescription: (client as any).invoiceFolderDescription || '',
     })
 
     // Open dialog
@@ -248,12 +260,16 @@ export default function ClientDetailPage() {
     setFoldersForm({
       driveFolderLink: client.driveFolderLink || '',
       driveFolderLinkTitle: (client as any).driveFolderLinkTitle || '',
+      driveFolderLinkDescription: (client as any).driveFolderLinkDescription || '',
       documentsFolder: client.documentsFolder || '',
       documentsFolderTitle: (client as any).documentsFolderTitle || '',
+      documentsFolderDescription: (client as any).documentsFolderDescription || '',
       assetsFolder: client.assetsFolder || '',
       assetsFolderTitle: (client as any).assetsFolderTitle || '',
+      assetsFolderDescription: (client as any).assetsFolderDescription || '',
       invoiceFolder: client.invoiceFolder || '',
       invoiceFolderTitle: (client as any).invoiceFolderTitle || '',
+      invoiceFolderDescription: (client as any).invoiceFolderDescription || '',
     })
 
     // Open dialog
@@ -268,12 +284,16 @@ export default function ClientDetailPage() {
       await clientAccessAPI.update(client.id, {
         driveFolderLink: foldersForm.driveFolderLink || null,
         driveFolderLinkTitle: foldersForm.driveFolderLinkTitle || null,
+        driveFolderLinkDescription: foldersForm.driveFolderLinkDescription || null,
         documentsFolder: foldersForm.documentsFolder || null,
         documentsFolderTitle: foldersForm.documentsFolderTitle || null,
+        documentsFolderDescription: foldersForm.documentsFolderDescription || null,
         assetsFolder: foldersForm.assetsFolder || null,
         assetsFolderTitle: foldersForm.assetsFolderTitle || null,
+        assetsFolderDescription: foldersForm.assetsFolderDescription || null,
         invoiceFolder: foldersForm.invoiceFolder || null,
         invoiceFolderTitle: foldersForm.invoiceFolderTitle || null,
+        invoiceFolderDescription: foldersForm.invoiceFolderDescription || null,
       })
       toast.success('Cartelle aggiornate con successo')
       setShowFoldersDialog(false)
@@ -303,12 +323,16 @@ export default function ClientDetailPage() {
         supportHoursIncluded: dashboardForm.supportHoursIncluded,
         driveFolderLink: dashboardForm.driveFolderLink || null,
         driveFolderLinkTitle: dashboardForm.driveFolderLinkTitle || null,
+        driveFolderLinkDescription: dashboardForm.driveFolderLinkDescription || null,
         documentsFolder: dashboardForm.documentsFolder || null,
         documentsFolderTitle: dashboardForm.documentsFolderTitle || null,
+        documentsFolderDescription: dashboardForm.documentsFolderDescription || null,
         assetsFolder: dashboardForm.assetsFolder || null,
         assetsFolderTitle: dashboardForm.assetsFolderTitle || null,
+        assetsFolderDescription: dashboardForm.assetsFolderDescription || null,
         invoiceFolder: dashboardForm.invoiceFolder || null,
         invoiceFolderTitle: dashboardForm.invoiceFolderTitle || null,
+        invoiceFolderDescription: dashboardForm.invoiceFolderDescription || null,
       }
 
       // Only set these when activating, not when editing
@@ -1267,9 +1291,15 @@ export default function ClientDetailPage() {
                 onChange={(e) => setFoldersForm({ ...foldersForm, driveFolderLink: e.target.value })}
               />
               <Input
-                placeholder="Titolo link (es. Cartella Principale)"
+                placeholder="Titolo (es. Cartella Principale)"
                 value={foldersForm.driveFolderLinkTitle}
                 onChange={(e) => setFoldersForm({ ...foldersForm, driveFolderLinkTitle: e.target.value })}
+                className="text-sm"
+              />
+              <Input
+                placeholder="Descrizione (es. Accedi alla cartella principale)"
+                value={foldersForm.driveFolderLinkDescription}
+                onChange={(e) => setFoldersForm({ ...foldersForm, driveFolderLinkDescription: e.target.value })}
                 className="text-sm"
               />
             </div>
@@ -1283,9 +1313,15 @@ export default function ClientDetailPage() {
                 onChange={(e) => setFoldersForm({ ...foldersForm, documentsFolder: e.target.value })}
               />
               <Input
-                placeholder="Titolo link (es. Documenti)"
+                placeholder="Titolo (es. Documenti)"
                 value={foldersForm.documentsFolderTitle}
                 onChange={(e) => setFoldersForm({ ...foldersForm, documentsFolderTitle: e.target.value })}
+                className="text-sm"
+              />
+              <Input
+                placeholder="Descrizione (es. Contratti e documentazione)"
+                value={foldersForm.documentsFolderDescription}
+                onChange={(e) => setFoldersForm({ ...foldersForm, documentsFolderDescription: e.target.value })}
                 className="text-sm"
               />
             </div>
@@ -1299,9 +1335,15 @@ export default function ClientDetailPage() {
                 onChange={(e) => setFoldersForm({ ...foldersForm, assetsFolder: e.target.value })}
               />
               <Input
-                placeholder="Titolo link (es. Assets)"
+                placeholder="Titolo (es. Assets)"
                 value={foldersForm.assetsFolderTitle}
                 onChange={(e) => setFoldersForm({ ...foldersForm, assetsFolderTitle: e.target.value })}
+                className="text-sm"
+              />
+              <Input
+                placeholder="Descrizione (es. File grafici e risorse)"
+                value={foldersForm.assetsFolderDescription}
+                onChange={(e) => setFoldersForm({ ...foldersForm, assetsFolderDescription: e.target.value })}
                 className="text-sm"
               />
             </div>
@@ -1315,9 +1357,15 @@ export default function ClientDetailPage() {
                 onChange={(e) => setFoldersForm({ ...foldersForm, invoiceFolder: e.target.value })}
               />
               <Input
-                placeholder="Titolo link (es. Fatture)"
+                placeholder="Titolo (es. Fatture)"
                 value={foldersForm.invoiceFolderTitle}
                 onChange={(e) => setFoldersForm({ ...foldersForm, invoiceFolderTitle: e.target.value })}
+                className="text-sm"
+              />
+              <Input
+                placeholder="Descrizione (es. Documenti fiscali e fatture)"
+                value={foldersForm.invoiceFolderDescription}
+                onChange={(e) => setFoldersForm({ ...foldersForm, invoiceFolderDescription: e.target.value })}
                 className="text-sm"
               />
             </div>
