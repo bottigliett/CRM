@@ -26,6 +26,7 @@ export interface ClientAccess {
   activationExpires: string | null;
   projectName: string | null;
   projectDescription: string | null;
+  projectObjectives: string | null;
   projectBudget: number | null;
   projectStartDate: string | null;
   projectEndDate: string | null;
@@ -51,6 +52,7 @@ export interface CreateClientAccessData {
   linkedQuoteId?: number | null;
   projectName?: string;
   projectDescription?: string;
+  projectObjectives?: string;
   projectBudget?: number;
   projectStartDate?: string;
   projectEndDate?: string;
@@ -70,6 +72,7 @@ export interface UpdateClientAccessData extends Partial<CreateClientAccessData> 
 export interface UpgradeToFullClientData {
   projectName: string;
   projectDescription?: string;
+  projectObjectives?: string;
   projectBudget?: number;
   projectStartDate?: string;
   projectEndDate?: string;

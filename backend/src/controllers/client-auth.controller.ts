@@ -970,6 +970,7 @@ export const getClientMe = async (req: Request, res: Response) => {
         linkedQuote: clientAccess.linkedQuote,
         projectName: clientAccess.projectName,
         projectDescription: clientAccess.projectDescription,
+        projectObjectives: clientAccess.projectObjectives,
         projectBudget: clientAccess.projectBudget,
         projectStartDate: clientAccess.projectStartDate,
         projectEndDate: clientAccess.projectEndDate,

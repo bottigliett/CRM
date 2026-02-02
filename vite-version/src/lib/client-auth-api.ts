@@ -9,10 +9,18 @@ export interface ClientAccess {
   isActive: boolean;
   projectName: string | null;
   projectDescription: string | null;
+  projectObjectives: string | null;
+  projectBudget: number | null;
+  projectStartDate: string | null;
+  projectEndDate: string | null;
   monthlyFee: number;
   supportHoursIncluded: number;
   supportHoursUsed: number;
   linkedQuoteId: number | null;
+  driveFolderLink: string | null;
+  documentsFolder: string | null;
+  assetsFolder: string | null;
+  invoiceFolder: string | null;
   contact: {
     id: number;
     name: string;

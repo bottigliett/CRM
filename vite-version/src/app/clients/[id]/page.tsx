@@ -88,6 +88,7 @@ export default function ClientDetailPage() {
   const [dashboardForm, setDashboardForm] = useState({
     projectName: '',
     projectDescription: '',
+    projectObjectives: '',
     monthlyFee: 0,
     projectBudget: 0,
     budgetDisplayType: 'monthly_fee' as 'monthly_fee' | 'project_budget',
@@ -221,6 +222,7 @@ export default function ClientDetailPage() {
     setDashboardForm({
       projectName: client.projectName || '',
       projectDescription: client.projectDescription || '',
+      projectObjectives: (client as any).projectObjectives || '',
       monthlyFee: client.monthlyFee || 0,
       projectBudget: (client as any).projectBudget || 0,
       budgetDisplayType: (client as any).budgetDisplayType || 'monthly_fee',
@@ -294,6 +296,7 @@ export default function ClientDetailPage() {
         temporaryPassword: null, // Disattiva accesso momentaneo quando si attiva dashboard
         projectName: dashboardForm.projectName || null,
         projectDescription: dashboardForm.projectDescription || null,
+        projectObjectives: dashboardForm.projectObjectives || null,
         monthlyFee: dashboardForm.monthlyFee,
         projectBudget: dashboardForm.projectBudget,
         budgetDisplayType: dashboardForm.budgetDisplayType,
@@ -801,6 +804,12 @@ export default function ClientDetailPage() {
                         <p className="text-sm mt-1">{client.projectDescription}</p>
                       </div>
                     )}
+                    {(client as any).projectObjectives && (
+                      <div className="pt-4 border-t">
+                        <Label className="text-muted-foreground">Obiettivi</Label>
+                        <p className="text-sm mt-1 whitespace-pre-wrap">{(client as any).projectObjectives}</p>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
 
@@ -1046,6 +1055,17 @@ export default function ClientDetailPage() {
                 placeholder="Descrizione dettagliata del progetto..."
                 value={dashboardForm.projectDescription}
                 onChange={(e) => setDashboardForm({ ...dashboardForm, projectDescription: e.target.value })}
+                rows={4}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="projectObjectives">Obiettivi Progetto</Label>
+              <Textarea
+                id="projectObjectives"
+                placeholder="Obiettivi principali del progetto..."
+                value={dashboardForm.projectObjectives}
+                onChange={(e) => setDashboardForm({ ...dashboardForm, projectObjectives: e.target.value })}
                 rows={4}
               />
             </div>

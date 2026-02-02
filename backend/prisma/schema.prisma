@@ -855,6 +855,7 @@ model ClientAccess {
   // Project details (for FULL_CLIENT access)
   projectName        String?   @map("project_name")
   projectDescription String?   @db.Text @map("project_description")
+  projectObjectives  String?   @db.Text @map("project_objectives")
   projectBudget      Float?    @map("project_budget")
   projectStartDate   DateTime? @map("project_start_date")
   projectEndDate     DateTime? @map("project_end_date")

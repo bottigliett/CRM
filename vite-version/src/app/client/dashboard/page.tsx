@@ -25,7 +25,7 @@ import { clientInvoicesAPI, type Invoice } from "@/lib/client-invoices-api"
 import { clientTasksAPI, type Task } from "@/lib/client-tasks-api"
 import { clientEventsAPI, type Event } from "@/lib/client-events-api"
 import { clientTicketsAPI, type Ticket } from "@/lib/client-tickets-api"
-import { format } from "date-fns"
+import { format, differenceInDays, differenceInMonths } from "date-fns"
 import { it } from "date-fns/locale"
 import { ClientProjectProgress } from "@/components/client-project-progress"
 
@@ -281,19 +281,27 @@ export default function ClientDashboardPage() {
         {/* Project Info & Progress - 50/50 Grid */}
         <div className="grid gap-6 md:grid-cols-2">
           {/* Project Info */}
-          {clientData?.projectDescription && (
+          {(clientData?.projectDescription || clientData?.projectObjectives || clientData?.projectStartDate) && (
             <Card>
               <CardHeader>
                 <CardTitle>Informazioni Progetto</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground mb-1">Descrizione</p>
-                    <p className="text-sm">{clientData.projectDescription}</p>
-                  </div>
+                  {clientData.projectDescription && (
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground mb-1">Descrizione</p>
+                      <p className="text-sm">{clientData.projectDescription}</p>
+                    </div>
+                  )}
+                  {clientData.projectObjectives && (
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground mb-1">Obiettivi</p>
+                      <p className="text-sm whitespace-pre-wrap">{clientData.projectObjectives}</p>
+                    </div>
+                  )}
                   {(clientData.projectStartDate || clientData.projectEndDate) && (
-                    <div className="flex gap-6">
+                    <div className="flex flex-wrap gap-6">
                       {clientData.projectStartDate && (
                         <div>
                           <p className="text-sm font-medium text-muted-foreground mb-1">Data Inizio</p>
@@ -307,6 +315,23 @@ export default function ClientDashboardPage() {
                           <p className="text-sm font-medium text-muted-foreground mb-1">Data Fine Prevista</p>
                           <p className="text-sm">
                             {format(new Date(clientData.projectEndDate), 'dd MMMM yyyy', { locale: it })}
+                          </p>
+                        </div>
+                      )}
+                      {clientData.projectStartDate && clientData.projectEndDate && (
+                        <div>
+                          <p className="text-sm font-medium text-muted-foreground mb-1">Durata</p>
+                          <p className="text-sm">
+                            {(() => {
+                              const start = new Date(clientData.projectStartDate);
+                              const end = new Date(clientData.projectEndDate);
+                              const months = differenceInMonths(end, start);
+                              const days = differenceInDays(end, start);
+                              if (months >= 1) {
+                                return `${months} ${months === 1 ? 'mese' : 'mesi'}`;
+                              }
+                              return `${days} ${days === 1 ? 'giorno' : 'giorni'}`;
+                            })()}
                           </p>
                         </div>
                       )}
