@@ -1922,6 +1922,337 @@ Questa è una email automatica, si prega di non rispondere a questo messaggio.
   }
 }
 
+/**
+ * Send email to admins when a quote is rejected by a client
+ */
+export async function sendAdminQuoteRejectedEmail(
+  adminEmails: string[],
+  clientName: string,
+  quoteNumber: string,
+  quoteTitle: string,
+  rejectionReason: string
+): Promise<boolean> {
+  const subject = `Preventivo Rifiutato: ${quoteNumber}`;
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <style>
+        body {
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+          line-height: 1.6;
+          color: #1a1a1a;
+          margin: 0;
+          padding: 0;
+          background-color: #f5f5f5;
+        }
+        .container {
+          max-width: 600px;
+          margin: 40px auto;
+          background: white;
+          border: 1px solid #e0e0e0;
+        }
+        .header {
+          background: #dc2626;
+          color: white;
+          padding: 30px;
+          border-bottom: 3px solid #b91c1c;
+        }
+        .header h1 {
+          margin: 0;
+          font-size: 24px;
+          font-weight: 600;
+          letter-spacing: -0.5px;
+        }
+        .content {
+          padding: 40px 30px;
+          background: white;
+        }
+        .content p {
+          margin: 0 0 16px 0;
+          color: #333333;
+        }
+        .quote-details {
+          background: #fef2f2;
+          padding: 24px;
+          margin: 24px 0;
+          border: 1px solid #fecaca;
+          border-left: 4px solid #dc2626;
+        }
+        .quote-details h2 {
+          margin: 0 0 16px 0;
+          color: #dc2626;
+          font-size: 20px;
+          font-weight: 600;
+        }
+        .quote-details p {
+          margin: 8px 0;
+          color: #333333;
+        }
+        .reason-box {
+          background: #fafafa;
+          padding: 20px;
+          margin: 20px 0;
+          border-left: 4px solid #666666;
+          font-style: italic;
+        }
+        .footer {
+          text-align: center;
+          padding: 24px 30px;
+          background: #fafafa;
+          border-top: 1px solid #e0e0e0;
+          color: #666666;
+          font-size: 13px;
+        }
+        .footer p {
+          margin: 4px 0;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>Preventivo Rifiutato</h1>
+        </div>
+        <div class="content">
+          <p>Il cliente <strong>${clientName}</strong> ha rifiutato il preventivo:</p>
+
+          <div class="quote-details">
+            <h2>${quoteTitle}</h2>
+            <p><strong>Numero Preventivo:</strong> ${quoteNumber}</p>
+            <p><strong>Cliente:</strong> ${clientName}</p>
+          </div>
+
+          <p><strong>Motivo del rifiuto:</strong></p>
+          <div class="reason-box">
+            ${rejectionReason || 'Nessun motivo specificato'}
+          </div>
+
+          <p>Accedi al CRM per visualizzare tutti i dettagli.</p>
+
+          <p>Cordiali saluti,<br>Il Sistema CRM Studio Mismo</p>
+        </div>
+        <div class="footer">
+          <p><strong>Studio Mismo CRM</strong></p>
+          <p>Questa è una email automatica, si prega di non rispondere a questo messaggio.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  const text = `
+Preventivo Rifiutato
+
+Il cliente ${clientName} ha rifiutato il preventivo:
+
+Preventivo: ${quoteNumber}
+Titolo: ${quoteTitle}
+Cliente: ${clientName}
+
+Motivo del rifiuto:
+${rejectionReason || 'Nessun motivo specificato'}
+
+Accedi al CRM per visualizzare tutti i dettagli.
+
+--
+Studio Mismo CRM
+Questa è una email automatica, si prega di non rispondere a questo messaggio.
+  `.trim();
+
+  try {
+    for (const adminEmail of adminEmails) {
+      await sendEmail(adminEmail, subject, html, text);
+    }
+    return true;
+  } catch (error) {
+    console.error('Error sending admin quote rejected emails:', error);
+    return false;
+  }
+}
+
+/**
+ * Send "sorry" email to client when they reject a quote
+ */
+export async function sendClientQuoteRejectedEmail(
+  to: string,
+  clientName: string,
+  quoteNumber: string,
+  quoteTitle: string
+): Promise<boolean> {
+  const whatsappNumber = '+39 375 620 9885';
+  const whatsappLink = 'https://wa.me/393756209885';
+
+  const subject = `Ci dispiace vederti andare - ${quoteTitle}`;
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <style>
+        body {
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+          line-height: 1.6;
+          color: #1a1a1a;
+          margin: 0;
+          padding: 0;
+          background-color: #f5f5f5;
+        }
+        .container {
+          max-width: 600px;
+          margin: 40px auto;
+          background: white;
+          border: 1px solid #e0e0e0;
+        }
+        .header {
+          background: #000000;
+          color: white;
+          padding: 30px;
+          border-bottom: 3px solid #333333;
+        }
+        .header h1 {
+          margin: 0;
+          font-size: 24px;
+          font-weight: 600;
+          letter-spacing: -0.5px;
+        }
+        .content {
+          padding: 40px 30px;
+          background: white;
+        }
+        .content p {
+          margin: 0 0 16px 0;
+          color: #333333;
+        }
+        .highlight-box {
+          background: #fafafa;
+          padding: 24px;
+          margin: 24px 0;
+          border: 1px solid #e0e0e0;
+          border-left: 4px solid #000000;
+          text-align: center;
+        }
+        .highlight-box h2 {
+          margin: 0 0 8px 0;
+          color: #000000;
+          font-size: 20px;
+          font-weight: 600;
+        }
+        .highlight-box p {
+          margin: 4px 0;
+          color: #666666;
+          font-size: 14px;
+        }
+        .whatsapp-box {
+          background: #dcfce7;
+          border: 2px solid #22c55e;
+          border-radius: 12px;
+          padding: 24px;
+          margin: 24px 0;
+          text-align: center;
+        }
+        .whatsapp-box p {
+          margin: 8px 0;
+        }
+        .whatsapp-button {
+          display: inline-block;
+          padding: 14px 28px;
+          background: #22c55e;
+          color: white !important;
+          text-decoration: none;
+          margin: 16px 0;
+          font-weight: 600;
+          border-radius: 8px;
+          font-size: 16px;
+        }
+        .phone-number {
+          font-size: 20px;
+          font-weight: 700;
+          color: #000000;
+          margin: 12px 0;
+        }
+        .footer {
+          text-align: center;
+          padding: 24px 30px;
+          background: #fafafa;
+          border-top: 1px solid #e0e0e0;
+          color: #666666;
+          font-size: 13px;
+        }
+        .footer p {
+          margin: 4px 0;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>Ci dispiace vederti andare</h1>
+        </div>
+        <div class="content">
+          <p>Gentile ${clientName},</p>
+          <p>Abbiamo ricevuto la tua decisione di non procedere con la nostra proposta.</p>
+
+          <p><strong>Ci dispiace molto!</strong> Sappiamo che ogni progetto è unico e che le esigenze possono cambiare.</p>
+
+          <div class="highlight-box">
+            <h2>${quoteTitle}</h2>
+            <p>Preventivo ${quoteNumber}</p>
+          </div>
+
+          <p>Se hai cambiato idea, se vuoi discutere di modifiche alla proposta, o semplicemente se hai domande, <strong>siamo sempre qui per te</strong>.</p>
+
+          <div class="whatsapp-box">
+            <p><strong>Contattaci direttamente su WhatsApp:</strong></p>
+            <p class="phone-number">${whatsappNumber}</p>
+            <a href="${whatsappLink}" class="whatsapp-button" target="_blank">💬 Scrivici su WhatsApp</a>
+            <p style="font-size: 13px; color: #666;">Risponderemo il prima possibile!</p>
+          </div>
+
+          <p>Ti auguriamo il meglio per i tuoi progetti futuri e speriamo di poterti aiutare in un'altra occasione.</p>
+
+          <p>Un caro saluto,<br><strong>Il Team di Studio Mismo</strong></p>
+        </div>
+        <div class="footer">
+          <p><strong>Studio Mismo</strong></p>
+          <p>Questa è una email automatica, si prega di non rispondere a questo messaggio.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  const text = `
+Ci dispiace vederti andare
+
+Gentile ${clientName},
+
+Abbiamo ricevuto la tua decisione di non procedere con la nostra proposta.
+
+Ci dispiace molto! Sappiamo che ogni progetto è unico e che le esigenze possono cambiare.
+
+Preventivo: ${quoteNumber}
+Progetto: ${quoteTitle}
+
+Se hai cambiato idea, se vuoi discutere di modifiche alla proposta, o semplicemente se hai domande, siamo sempre qui per te.
+
+Contattaci su WhatsApp: ${whatsappNumber}
+${whatsappLink}
+
+Ti auguriamo il meglio per i tuoi progetti futuri e speriamo di poterti aiutare in un'altra occasione.
+
+Un caro saluto,
+Il Team di Studio Mismo
+
+--
+Studio Mismo
+Questa è una email automatica, si prega di non rispondere a questo messaggio.
+  `.trim();
+
+  return sendEmail(to, subject, html, text);
+}
+
 // Verify transporter configuration
 export async function verifyEmailConfig(): Promise<boolean> {
   try {

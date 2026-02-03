@@ -1,7 +1,7 @@
 import { Response } from 'express';
 import prisma from '../config/database';
 import { ClientAuthRequest } from '../middleware/client-auth';
-import { sendAdminQuoteAcceptedEmail, sendClientQuoteAcceptedEmail } from '../services/email.service';
+import { sendAdminQuoteAcceptedEmail, sendClientQuoteAcceptedEmail, sendAdminQuoteRejectedEmail, sendClientQuoteRejectedEmail } from '../services/email.service';
 
 /**
  * Helper: Parse JSON fields in quote response
@@ -338,7 +338,39 @@ export const rejectClientQuote = async (req: ClientAuthRequest, res: Response) =
       })),
     };
 
-    // TODO: Send email notification to admin
+    // Send email notifications
+    try {
+      // Send "sorry" email to client
+      if (updatedQuote.contact.email) {
+        await sendClientQuoteRejectedEmail(
+          updatedQuote.contact.email,
+          updatedQuote.contact.name,
+          updatedQuote.quoteNumber,
+          updatedQuote.title
+        );
+      }
+
+      // Send notification to all super admins
+      const superAdmins = await prisma.user.findMany({
+        where: { role: 'SUPER_ADMIN' },
+        select: { email: true },
+      });
+
+      const adminEmails = superAdmins.map(admin => admin.email).filter(Boolean) as string[];
+
+      if (adminEmails.length > 0) {
+        await sendAdminQuoteRejectedEmail(
+          adminEmails,
+          updatedQuote.contact.name,
+          updatedQuote.quoteNumber,
+          updatedQuote.title,
+          rejectionReason || 'Nessun motivo specificato'
+        );
+      }
+    } catch (emailError) {
+      console.error('Error sending rejection emails:', emailError);
+      // Don't fail the request if email sending fails
+    }
 
     res.json({
       success: true,
