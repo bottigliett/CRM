@@ -3,6 +3,7 @@ import { ClientLayout } from "@/components/layouts/client-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { FolderOpen, FileText, Receipt, ExternalLink, Download } from "lucide-react"
+import { Link } from "react-router-dom"
 import { clientAuthAPI } from "@/lib/client-auth-api"
 import { toast } from "sonner"
 
@@ -139,13 +140,16 @@ export default function ClientDocumentsPage() {
           </CardHeader>
           <CardContent className="space-y-2 text-sm text-muted-foreground">
             <p>
-              • Clicca su una delle cartelle sopra per accedere ai tuoi file su Google Drive
+              • Clicca su una delle cartelle sopra per accedere ai tuoi file
             </p>
             <p>
-              • Assicurati di essere autenticato con l'account Google corretto
+              • Assicurati di essere autenticato con l'account corretto
             </p>
             <p>
-              • Se non riesci ad accedere a una cartella, contatta il supporto
+              • Se non riesci ad accedere a una cartella,{" "}
+              <Link to="/client/tickets" className="text-primary hover:underline font-medium">
+                apri un ticket
+              </Link>
             </p>
           </CardContent>
         </Card>
