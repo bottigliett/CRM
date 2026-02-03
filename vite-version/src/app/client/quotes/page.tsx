@@ -207,6 +207,11 @@ export default function ClientQuotesPage() {
       return
     }
 
+    if (rejectionCategory === 'altro' && !rejectionDetails.trim()) {
+      toast.error('Inserisci i dettagli aggiuntivi')
+      return
+    }
+
     try {
       setSubmitting(true)
 
@@ -697,13 +702,13 @@ export default function ClientQuotesPage() {
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="non_interessato" id="non_interessato" />
                     <Label htmlFor="non_interessato" className="font-normal cursor-pointer">
-                      Non più interessato
+                      Non sono più interessato
                     </Label>
                   </div>
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="altro_fornitore" id="altro_fornitore" />
                     <Label htmlFor="altro_fornitore" className="font-normal cursor-pointer">
-                      Scelto altro fornitore
+                      Mi sono affidato ad un altro fornitore
                     </Label>
                   </div>
                   <div className="flex items-center space-x-2">
@@ -714,16 +719,18 @@ export default function ClientQuotesPage() {
                   </div>
                 </RadioGroup>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="details">Dettagli aggiuntivi (opzionale)</Label>
-                <Textarea
-                  id="details"
-                  placeholder="Aggiungi eventuali dettagli..."
-                  value={rejectionDetails}
-                  onChange={(e) => setRejectionDetails(e.target.value)}
-                  rows={3}
-                />
-              </div>
+              {rejectionCategory === 'altro' && (
+                <div className="space-y-2">
+                  <Label htmlFor="details">Dettagli aggiuntivi *</Label>
+                  <Textarea
+                    id="details"
+                    placeholder="Descrivi il motivo del rifiuto..."
+                    value={rejectionDetails}
+                    onChange={(e) => setRejectionDetails(e.target.value)}
+                    rows={3}
+                  />
+                </div>
+              )}
             </div>
             <DialogFooter>
               <Button
@@ -740,7 +747,7 @@ export default function ClientQuotesPage() {
               <Button
                 variant="destructive"
                 onClick={confirmRejectQuote}
-                disabled={submitting || !rejectionCategory}
+                disabled={submitting || !rejectionCategory || (rejectionCategory === 'altro' && !rejectionDetails.trim())}
               >
                 {submitting ? 'Invio...' : 'Conferma Rifiuto'}
               </Button>
