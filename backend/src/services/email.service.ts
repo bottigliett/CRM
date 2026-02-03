@@ -2206,7 +2206,7 @@ export async function sendClientQuoteRejectedEmail(
           <div class="whatsapp-box">
             <p><strong>Contattaci direttamente su WhatsApp:</strong></p>
             <p class="phone-number">${whatsappNumber}</p>
-            <a href="${whatsappLink}" class="whatsapp-button" target="_blank">💬 Scrivici su WhatsApp</a>
+            <a href="${whatsappLink}" class="whatsapp-button" target="_blank">Scrivici su WhatsApp</a>
             <p style="font-size: 13px; color: #666;">Risponderemo il prima possibile!</p>
           </div>
 
