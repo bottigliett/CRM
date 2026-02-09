@@ -106,10 +106,11 @@ export function AnnouncementBanner() {
     const loadAnnouncements = async () => {
       try {
         const data = await announcementsAPI.getActive()
-        setAnnouncements(data)
+        setAnnouncements(Array.isArray(data) ? data : [])
         setDismissed(getDismissedAnnouncements())
       } catch (error) {
         console.error("Failed to load announcements:", error)
+        setAnnouncements([])
       } finally {
         setLoading(false)
       }
@@ -128,7 +129,7 @@ export function AnnouncementBanner() {
   }
 
   // Filtra annunci non dismessi, ordina per priorità (CRITICAL prima)
-  const visibleAnnouncements = announcements
+  const visibleAnnouncements = (announcements || [])
     .filter((a) => !dismissed.includes(a.id))
     .sort((a, b) => {
       const priorityOrder = { CRITICAL: 0, MAINTENANCE: 1, WARNING: 2, INFO: 3 }

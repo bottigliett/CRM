@@ -38,14 +38,19 @@ export interface UpdateAnnouncementData extends Partial<CreateAnnouncementData> 
 export const announcementsAPI = {
   // Get active announcements for current user
   getActive: async (): Promise<SystemAnnouncement[]> => {
-    const response = await api.get('/announcements/active')
-    return response.data.data
+    try {
+      const response = await api.get('/announcements/active')
+      return response?.data?.data || []
+    } catch (error) {
+      console.error('Failed to get active announcements:', error)
+      return []
+    }
   },
 
   // Get all announcements (admin/developer only)
   getAll: async (): Promise<SystemAnnouncement[]> => {
     const response = await api.get('/announcements')
-    return response.data.data
+    return response?.data?.data || []
   },
 
   // Create announcement (admin/developer only)
