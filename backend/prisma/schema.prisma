@@ -35,7 +35,7 @@ model User {
   selectedTheme        String? @map("selected_theme") // Selected color theme name
   selectedTweakcnTheme String? @map("selected_tweakcn_theme") // Selected tweakcn theme
   selectedRadius       String? @default("0.5rem") @map("selected_radius") // Border radius
-  importedThemeData    String? @map("imported_theme_data") // JSON string of imported theme
+  importedThemeData    String? @map("imported_theme_data") @db.Text // JSON string of imported theme
   brandColors          String? @map("brand_colors") // JSON string of custom brand colors
 
   // Sidebar preferences
@@ -66,12 +66,14 @@ model User {
   createdProjects        Project[]           @relation("ProjectCreator") // Projects created by this user
   completedProjectTasks  ProjectTask[]       @relation("TaskCompletedBy") // Project tasks completed by this user
   ticketMessages         TicketMessage[]     // Messages sent by this user
+  createdAnnouncements   SystemAnnouncement[] @relation("AnnouncementCreator") // Announcements created by this user
 
   @@map("users")
 }
 
 enum UserRole {
   SUPER_ADMIN
+  DEVELOPER
   ADMIN
   USER
 }
@@ -1299,4 +1301,44 @@ model TaskPhase {
   @@index([userId])
   @@index([taskId, order])
   @@map("task_phases")
+}
+
+// ===================================
+// SYSTEM ANNOUNCEMENTS
+// ===================================
+
+model SystemAnnouncement {
+  id          Int       @id @default(autoincrement())
+  title       String
+  message     String    @db.Text
+  type        AnnouncementType @default(INFO)
+  priority    Int       @default(0) // Higher = more important
+
+  // Target audience
+  targetRoles String?   @map("target_roles") // JSON array: ["ADMIN", "DEVELOPER"] or null for all
+
+  // Scheduling
+  startsAt    DateTime  @map("starts_at")
+  endsAt      DateTime? @map("ends_at") // null = no expiration
+
+  // Status
+  isActive    Boolean   @default(true) @map("is_active")
+  createdById Int       @map("created_by_id")
+
+  // Relations
+  createdBy   User      @relation("AnnouncementCreator", fields: [createdById], references: [id])
+
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  @@index([isActive, startsAt, endsAt])
+  @@index([createdById])
+  @@map("system_announcements")
+}
+
+enum AnnouncementType {
+  INFO        // Blue - informational
+  WARNING     // Yellow - attention needed
+  MAINTENANCE // Orange - scheduled maintenance
+  CRITICAL    // Red - urgent/breaking
 }

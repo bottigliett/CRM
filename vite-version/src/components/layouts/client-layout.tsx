@@ -3,6 +3,7 @@
 import * as React from "react"
 import { ClientSidebar } from "@/components/client-sidebar"
 import { SiteHeader } from "@/components/site-header"
+import { ClientAnnouncementBanner } from "@/components/client-announcement-banner"
 import {
   SidebarInset,
   SidebarProvider,
@@ -29,6 +30,7 @@ export function ClientLayout({ children, title, description, headerAction }: Cli
       <ClientSidebar side="left" collapsible="icon" variant="sidebar" />
       <SidebarInset>
         <SiteHeader />
+        <ClientAnnouncementBanner />
         <div className="flex flex-1 flex-col">
           <div className="@container/main flex flex-1 flex-col gap-2">
             <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
