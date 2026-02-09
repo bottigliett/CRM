@@ -26,6 +26,16 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -68,6 +78,8 @@ export default function AnnouncementsPage() {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingAnnouncement, setEditingAnnouncement] = useState<SystemAnnouncement | null>(null)
   const [saving, setSaving] = useState(false)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [announcementToDelete, setAnnouncementToDelete] = useState<SystemAnnouncement | null>(null)
 
   // Form state
   const [title, setTitle] = useState("")
@@ -164,16 +176,24 @@ export default function AnnouncementsPage() {
     }
   }
 
-  const handleDelete = async (id: number) => {
-    if (!confirm("Sei sicuro di voler eliminare questo annuncio?")) return
+  const openDeleteDialog = (announcement: SystemAnnouncement) => {
+    setAnnouncementToDelete(announcement)
+    setDeleteDialogOpen(true)
+  }
+
+  const handleDelete = async () => {
+    if (!announcementToDelete) return
 
     try {
-      await announcementsAPI.delete(id)
+      await announcementsAPI.delete(announcementToDelete.id)
       toast.success("Annuncio eliminato")
       loadAnnouncements()
     } catch (error) {
       console.error("Error deleting announcement:", error)
       toast.error("Errore nell'eliminazione")
+    } finally {
+      setDeleteDialogOpen(false)
+      setAnnouncementToDelete(null)
     }
   }
 
@@ -293,7 +313,7 @@ export default function AnnouncementsPage() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              onClick={() => handleDelete(announcement.id)}
+                              onClick={() => openDeleteDialog(announcement)}
                             >
                               <Trash2 className="h-4 w-4 text-destructive" />
                             </Button>
@@ -405,6 +425,23 @@ export default function AnnouncementsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Eliminare questo annuncio?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Stai per eliminare l'annuncio "{announcementToDelete?.title}". Questa azione non può essere annullata.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annulla</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Elimina
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </BaseLayout>
   )
 }
