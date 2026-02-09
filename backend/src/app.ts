@@ -30,6 +30,7 @@ import clientQuoteRoutes from './routes/client-quote.routes';
 import projectTaskRoutes from './routes/project-task.routes';
 import clientProjectTaskRoutes from './routes/client-project-task.routes';
 import announcementRoutes, { clientAnnouncementRouter } from './routes/announcement.routes';
+import developerRoutes from './routes/developer.routes';
 import { errorHandler, notFound } from './middleware/errorHandler';
 import { initializeUploadsDirectory } from './utils/file-upload';
 
@@ -95,6 +96,7 @@ app.use('/api/public', publicRoutes); // Public endpoints (workaround for 401 is
 app.use('/api/tickets', ticketRoutes);
 app.use('/api/admin/notifications', adminNotificationRoutes);
 app.use('/api/announcements', announcementRoutes);
+app.use('/api/developer', developerRoutes);
 
 // Client-specific routes (require client authentication)
 app.use('/api/client/tickets', clientTicketRouter);
