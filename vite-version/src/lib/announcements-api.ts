@@ -40,7 +40,7 @@ export const announcementsAPI = {
   getActive: async (): Promise<SystemAnnouncement[]> => {
     try {
       const response = await api.get('/announcements/active')
-      return response?.data?.data || []
+      return response?.data || []
     } catch (error) {
       console.error('Failed to get active announcements:', error)
       return []
@@ -50,19 +50,19 @@ export const announcementsAPI = {
   // Get all announcements (admin/developer only)
   getAll: async (): Promise<SystemAnnouncement[]> => {
     const response = await api.get('/announcements')
-    return response?.data?.data || []
+    return response?.data || []
   },
 
   // Create announcement (admin/developer only)
   create: async (data: CreateAnnouncementData): Promise<SystemAnnouncement> => {
     const response = await api.post('/announcements', data)
-    return response.data.data
+    return response.data
   },
 
   // Update announcement (admin/developer only)
   update: async (id: number, data: UpdateAnnouncementData): Promise<SystemAnnouncement> => {
     const response = await api.put(`/announcements/${id}`, data)
-    return response.data.data
+    return response.data
   },
 
   // Delete announcement (admin/developer only)
