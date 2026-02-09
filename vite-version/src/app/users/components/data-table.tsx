@@ -24,6 +24,7 @@ import {
   Shield,
   ShieldCheck,
   User as UserIcon,
+  Code,
 } from "lucide-react"
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
@@ -67,6 +68,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { UserFormDialog } from "./user-form-dialog"
 import { type User } from "@/lib/api"
+import { useAuthStore } from "@/store/auth-store"
 
 interface UserFormValues {
   username: string
@@ -91,6 +93,7 @@ interface DataTableProps {
 }
 
 export function DataTable({ users, loading, onDeleteUser, onUpdateUser, onAddUser }: DataTableProps) {
+  const currentUser = useAuthStore((state) => state.user)
   const [sorting, setSorting] = useState<SortingState>([])
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
@@ -109,6 +112,8 @@ export function DataTable({ users, loading, onDeleteUser, onUpdateUser, onAddUse
 
   const getRoleColor = (role: string) => {
     switch (role) {
+      case "DEVELOPER":
+        return "text-purple-600 bg-purple-50 dark:text-purple-400 dark:bg-purple-900/20"
       case "SUPER_ADMIN":
         return "text-red-600 bg-red-50 dark:text-red-400 dark:bg-red-900/20"
       case "ADMIN":
@@ -122,6 +127,8 @@ export function DataTable({ users, loading, onDeleteUser, onUpdateUser, onAddUse
 
   const getRoleIcon = (role: string) => {
     switch (role) {
+      case "DEVELOPER":
+        return Code
       case "SUPER_ADMIN":
         return ShieldCheck
       case "ADMIN":
@@ -129,6 +136,43 @@ export function DataTable({ users, loading, onDeleteUser, onUpdateUser, onAddUse
       default:
         return UserIcon
     }
+  }
+
+  const getRoleLabel = (role: string) => {
+    switch (role) {
+      case "DEVELOPER":
+        return "Developer"
+      case "SUPER_ADMIN":
+        return "Super Admin"
+      case "ADMIN":
+        return "Admin"
+      default:
+        return "Utente"
+    }
+  }
+
+  // Check if a user is protected (DEVELOPER or username "davide")
+  const isProtectedUser = (user: User) => {
+    return user.role === 'DEVELOPER' || user.username.toLowerCase() === 'davide'
+  }
+
+  // Check if current user can modify a target user
+  const canModifyUser = (targetUser: User) => {
+    if (!currentUser) return false
+    // Protected users can only be modified by themselves
+    if (isProtectedUser(targetUser)) {
+      return currentUser.id === targetUser.id
+    }
+    return true
+  }
+
+  // Check if current user can toggle active status of a target user
+  const canToggleActiveStatus = (targetUser: User) => {
+    // Nobody can deactivate protected users (davide or DEVELOPER), not even themselves
+    if (isProtectedUser(targetUser)) {
+      return false
+    }
+    return true
   }
 
   const exactFilter = (row: Row<User>, columnId: string, value: string) => {
@@ -237,7 +281,7 @@ export function DataTable({ users, loading, onDeleteUser, onUpdateUser, onAddUse
         return (
           <Badge variant="secondary" className={getRoleColor(role)}>
             <RoleIcon className="mr-1 size-3" />
-            {role === 'SUPER_ADMIN' ? 'Super Admin' : role === 'ADMIN' ? 'Admin' : 'Utente'}
+            {getRoleLabel(role)}
           </Badge>
         )
       },
@@ -269,6 +313,9 @@ export function DataTable({ users, loading, onDeleteUser, onUpdateUser, onAddUse
       header: "Azioni",
       cell: ({ row }) => {
         const user = row.original
+        const canModify = canModifyUser(user)
+        const canToggleStatus = canToggleActiveStatus(user)
+
         return (
           <div className="flex items-center gap-2">
             <Button
@@ -276,6 +323,8 @@ export function DataTable({ users, loading, onDeleteUser, onUpdateUser, onAddUse
               size="icon"
               className="h-8 w-8 cursor-pointer"
               onClick={() => handleEditClick(user)}
+              disabled={!canModify}
+              title={!canModify ? "Non puoi modificare questo utente protetto" : "Modifica utente"}
             >
               <Pencil className="size-4" />
               <span className="sr-only">Modifica utente</span>
@@ -291,27 +340,34 @@ export function DataTable({ users, loading, onDeleteUser, onUpdateUser, onAddUse
                 <DropdownMenuItem
                   className="cursor-pointer"
                   onClick={() => handleEditClick(user)}
+                  disabled={!canModify}
                 >
                   <Pencil className="mr-2 size-4" />
                   Modifica
                 </DropdownMenuItem>
-                <DropdownMenuItem
-                  className="cursor-pointer"
-                  onClick={async () => {
-                    await onUpdateUser(user.id, { isActive: !user.isActive })
-                  }}
-                >
-                  {user.isActive ? 'Disattiva' : 'Attiva'}
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  variant="destructive"
-                  className="cursor-pointer"
-                  onClick={() => handleDeleteClick(user.id)}
-                >
-                  <Trash2 className="mr-2 size-4" />
-                  Elimina
-                </DropdownMenuItem>
+                {canToggleStatus && (
+                  <DropdownMenuItem
+                    className="cursor-pointer"
+                    onClick={async () => {
+                      await onUpdateUser(user.id, { isActive: !user.isActive })
+                    }}
+                  >
+                    {user.isActive ? 'Disattiva' : 'Attiva'}
+                  </DropdownMenuItem>
+                )}
+                {!isProtectedUser(user) && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      variant="destructive"
+                      className="cursor-pointer"
+                      onClick={() => handleDeleteClick(user.id)}
+                    >
+                      <Trash2 className="mr-2 size-4" />
+                      Elimina
+                    </DropdownMenuItem>
+                  </>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
           </div>

@@ -18,7 +18,7 @@ export const AVAILABLE_MODULES = [
   { name: 'on_duty', label: 'On Duty', description: 'Postazione di lavoro' },
 ];
 
-// Get all users (only SUPER_ADMIN)
+// Get all users (SUPER_ADMIN and DEVELOPER)
 export const getAllUsers = async (req: AuthRequest, res: Response) => {
   try {
     if (!req.user) {
@@ -28,12 +28,12 @@ export const getAllUsers = async (req: AuthRequest, res: Response) => {
       });
     }
 
-    // Verifica che sia SUPER_ADMIN
+    // Verifica che sia SUPER_ADMIN o DEVELOPER
     const currentUser = await prisma.user.findUnique({
       where: { id: req.user.userId },
     });
 
-    if (!currentUser || currentUser.role !== 'SUPER_ADMIN') {
+    if (!currentUser || (currentUser.role !== 'SUPER_ADMIN' && currentUser.role !== 'DEVELOPER')) {
       return res.status(403).json({
         success: false,
         message: 'Non hai i permessi per accedere a questa risorsa',
@@ -79,7 +79,7 @@ export const getAllUsers = async (req: AuthRequest, res: Response) => {
   }
 };
 
-// Create new user (only SUPER_ADMIN)
+// Create new user (SUPER_ADMIN and DEVELOPER)
 export const createUser = async (req: AuthRequest, res: Response) => {
   try {
     if (!req.user) {
@@ -89,12 +89,12 @@ export const createUser = async (req: AuthRequest, res: Response) => {
       });
     }
 
-    // Verifica che sia SUPER_ADMIN
+    // Verifica che sia SUPER_ADMIN o DEVELOPER
     const currentUser = await prisma.user.findUnique({
       where: { id: req.user.userId },
     });
 
-    if (!currentUser || currentUser.role !== 'SUPER_ADMIN') {
+    if (!currentUser || (currentUser.role !== 'SUPER_ADMIN' && currentUser.role !== 'DEVELOPER')) {
       return res.status(403).json({
         success: false,
         message: 'Non hai i permessi per creare utenti',
@@ -213,7 +213,7 @@ export const createUser = async (req: AuthRequest, res: Response) => {
   }
 };
 
-// Update user (only SUPER_ADMIN)
+// Update user (SUPER_ADMIN and DEVELOPER)
 export const updateUserById = async (req: AuthRequest, res: Response) => {
   try {
     if (!req.user) {
@@ -223,12 +223,12 @@ export const updateUserById = async (req: AuthRequest, res: Response) => {
       });
     }
 
-    // Verifica che sia SUPER_ADMIN
+    // Verifica che sia SUPER_ADMIN o DEVELOPER
     const currentUser = await prisma.user.findUnique({
       where: { id: req.user.userId },
     });
 
-    if (!currentUser || currentUser.role !== 'SUPER_ADMIN') {
+    if (!currentUser || (currentUser.role !== 'SUPER_ADMIN' && currentUser.role !== 'DEVELOPER')) {
       return res.status(403).json({
         success: false,
         message: 'Non hai i permessi per modificare utenti',
@@ -250,11 +250,28 @@ export const updateUserById = async (req: AuthRequest, res: Response) => {
       });
     }
 
-    // Non permettere di modificare se stesso come SUPER_ADMIN
-    if (userId === currentUser.id && role && role !== 'SUPER_ADMIN') {
+    // PROTEZIONE UTENTE DEVELOPER "davide": solo lui stesso può modificarsi
+    if (user.role === 'DEVELOPER' || user.username.toLowerCase() === 'davide') {
+      if (userId !== currentUser.id) {
+        return res.status(403).json({
+          success: false,
+          message: 'Non puoi modificare questo utente protetto',
+        });
+      }
+      // L'utente davide non può mai disattivare il proprio account
+      if (isActive === false) {
+        return res.status(403).json({
+          success: false,
+          message: 'Questo account non può essere disattivato',
+        });
+      }
+    }
+
+    // Non permettere di modificare il proprio ruolo se SUPER_ADMIN
+    if (userId === currentUser.id && role && role !== currentUser.role) {
       return res.status(400).json({
         success: false,
-        message: 'Non puoi modificare il tuo ruolo di SUPER_ADMIN',
+        message: 'Non puoi modificare il tuo ruolo',
       });
     }
 
@@ -369,7 +386,7 @@ export const updateUserById = async (req: AuthRequest, res: Response) => {
   }
 };
 
-// Delete user (only SUPER_ADMIN)
+// Delete user (SUPER_ADMIN and DEVELOPER)
 export const deleteUser = async (req: AuthRequest, res: Response) => {
   try {
     if (!req.user) {
@@ -379,12 +396,12 @@ export const deleteUser = async (req: AuthRequest, res: Response) => {
       });
     }
 
-    // Verifica che sia SUPER_ADMIN
+    // Verifica che sia SUPER_ADMIN o DEVELOPER
     const currentUser = await prisma.user.findUnique({
       where: { id: req.user.userId },
     });
 
-    if (!currentUser || currentUser.role !== 'SUPER_ADMIN') {
+    if (!currentUser || (currentUser.role !== 'SUPER_ADMIN' && currentUser.role !== 'DEVELOPER')) {
       return res.status(403).json({
         success: false,
         message: 'Non hai i permessi per eliminare utenti',
@@ -392,14 +409,6 @@ export const deleteUser = async (req: AuthRequest, res: Response) => {
     }
 
     const userId = parseInt(req.params.id);
-
-    // Non permettere di eliminare se stesso
-    if (userId === currentUser.id) {
-      return res.status(400).json({
-        success: false,
-        message: 'Non puoi eliminare il tuo account',
-      });
-    }
 
     // Verifica che l'utente esista
     const user = await prisma.user.findUnique({
@@ -410,6 +419,22 @@ export const deleteUser = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({
         success: false,
         message: 'Utente non trovato',
+      });
+    }
+
+    // PROTEZIONE: non permettere di eliminare utenti DEVELOPER o "davide"
+    if (user.role === 'DEVELOPER' || user.username.toLowerCase() === 'davide') {
+      return res.status(403).json({
+        success: false,
+        message: 'Questo utente non può essere eliminato',
+      });
+    }
+
+    // Non permettere di eliminare se stesso
+    if (userId === currentUser.id) {
+      return res.status(400).json({
+        success: false,
+        message: 'Non puoi eliminare il tuo account',
       });
     }
 
@@ -464,7 +489,7 @@ export const getAdminUsers = async (req: AuthRequest, res: Response) => {
     const users = await prisma.user.findMany({
       where: {
         role: {
-          in: ['ADMIN', 'SUPER_ADMIN'],
+          in: ['ADMIN', 'SUPER_ADMIN', 'DEVELOPER'],
         },
         isActive: true,
       },

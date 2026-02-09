@@ -34,9 +34,9 @@ export default function UsersPage() {
   const { isProtectionEnabled, isUnlocked } = usePinProtection()
   const navigate = useNavigate()
 
-  // Check if user is SUPER_ADMIN
+  // Check if user is SUPER_ADMIN or DEVELOPER
   useEffect(() => {
-    if (currentUser?.role !== 'SUPER_ADMIN') {
+    if (currentUser && currentUser.role !== 'SUPER_ADMIN' && currentUser.role !== 'DEVELOPER') {
       toast.error('Non hai i permessi per accedere a questa pagina')
       navigate('/dashboard')
     }
@@ -95,7 +95,7 @@ export default function UsersPage() {
     }
   }
 
-  if (currentUser?.role !== 'SUPER_ADMIN') {
+  if (currentUser && currentUser.role !== 'SUPER_ADMIN' && currentUser.role !== 'DEVELOPER') {
     return null
   }
 
