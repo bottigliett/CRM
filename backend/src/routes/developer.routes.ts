@@ -7,6 +7,9 @@ import {
   getActivityHistory,
   cleanOldSessions,
   cleanOldAccessLogs,
+  getModuleSettings,
+  updateModuleSettings,
+  getEnabledModules,
 } from '../controllers/developer.controller';
 
 const router = Router();
@@ -31,5 +34,14 @@ router.post('/clean-sessions', cleanOldSessions);
 
 // POST /api/developer/clean-logs - Pulizia access logs vecchi
 router.post('/clean-logs', cleanOldAccessLogs);
+
+// GET /api/developer/modules - Get all module settings (DEVELOPER only)
+router.get('/modules', getModuleSettings);
+
+// GET /api/developer/modules/enabled - Get enabled modules (all authenticated)
+router.get('/modules/enabled', getEnabledModules);
+
+// PUT /api/developer/modules/:moduleName - Toggle module visibility (DEVELOPER only)
+router.put('/modules/:moduleName', updateModuleSettings);
 
 export default router;

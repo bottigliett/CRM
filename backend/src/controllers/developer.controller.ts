@@ -423,3 +423,135 @@ export const cleanOldAccessLogs = async (req: AuthRequest, res: Response) => {
     });
   }
 };
+
+// Get all module settings (DEVELOPER only)
+export const getModuleSettings = async (req: AuthRequest, res: Response) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: 'Utente non autenticato',
+      });
+    }
+
+    const currentUser = await prisma.user.findUnique({
+      where: { id: req.user.userId },
+    });
+
+    if (!currentUser || currentUser.role !== 'DEVELOPER') {
+      return res.status(403).json({
+        success: false,
+        message: 'Accesso riservato ai Developer',
+      });
+    }
+
+    const modules = await prisma.moduleSettings.findMany({
+      orderBy: { displayOrder: 'asc' },
+    });
+
+    res.json({
+      success: true,
+      data: modules,
+    });
+  } catch (error) {
+    console.error('Errore durante il recupero module settings:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Errore durante il recupero delle impostazioni moduli',
+    });
+  }
+};
+
+// Update module visibility (DEVELOPER only)
+export const updateModuleSettings = async (req: AuthRequest, res: Response) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: 'Utente non autenticato',
+      });
+    }
+
+    const currentUser = await prisma.user.findUnique({
+      where: { id: req.user.userId },
+    });
+
+    if (!currentUser || currentUser.role !== 'DEVELOPER') {
+      return res.status(403).json({
+        success: false,
+        message: 'Accesso riservato ai Developer',
+      });
+    }
+
+    const { moduleName } = req.params;
+    const { isEnabled } = req.body;
+
+    if (typeof isEnabled !== 'boolean') {
+      return res.status(400).json({
+        success: false,
+        message: 'isEnabled deve essere un booleano',
+      });
+    }
+
+    const module = await prisma.moduleSettings.update({
+      where: { moduleName },
+      data: {
+        isEnabled,
+        updatedBy: currentUser.id,
+      },
+    });
+
+    // Log the action
+    await prisma.accessLog.create({
+      data: {
+        userId: currentUser.id,
+        username: currentUser.username,
+        action: 'MODULE_VISIBILITY_CHANGED',
+        status: 'SUCCESS',
+        details: `Module "${moduleName}" ${isEnabled ? 'enabled' : 'disabled'}`,
+      },
+    });
+
+    res.json({
+      success: true,
+      data: module,
+      message: `Modulo ${isEnabled ? 'attivato' : 'disattivato'} con successo`,
+    });
+  } catch (error) {
+    console.error('Errore durante aggiornamento module settings:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Errore durante l\'aggiornamento delle impostazioni modulo',
+    });
+  }
+};
+
+// Get enabled modules (all authenticated users)
+export const getEnabledModules = async (req: AuthRequest, res: Response) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: 'Utente non autenticato',
+      });
+    }
+
+    const modules = await prisma.moduleSettings.findMany({
+      where: { isEnabled: true },
+      select: { moduleName: true },
+    });
+
+    const enabledModuleNames = modules.map(m => m.moduleName);
+
+    res.json({
+      success: true,
+      data: enabledModuleNames,
+    });
+  } catch (error) {
+    console.error('Errore durante il recupero moduli attivi:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Errore durante il recupero dei moduli attivi',
+    });
+  }
+};

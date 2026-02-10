@@ -34,6 +34,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
 import { useAuthStore } from "@/store/auth-store"
+import { useModuleSettingsStore } from "@/store/module-settings-store"
 import { ticketsAPI } from "@/lib/tickets-api"
 
 interface NavItem {
@@ -164,7 +165,15 @@ const developerNavGroup: NavGroup = {
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { user } = useAuthStore()
+  const { enabledModules, fetchEnabledModules } = useModuleSettingsStore()
   const [unreadTicketCount, setUnreadTicketCount] = React.useState(0)
+
+  // Fetch enabled modules on mount
+  React.useEffect(() => {
+    if (user) {
+      fetchEnabledModules()
+    }
+  }, [user, fetchEnabledModules])
 
   // Fetch unread ticket count
   React.useEffect(() => {
@@ -190,6 +199,16 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     return () => clearInterval(interval)
   }, [user])
 
+  // Helper: Check if module is globally enabled
+  const isModuleGloballyEnabled = (moduleName?: string) => {
+    if (!moduleName) return true
+    // DEVELOPER always sees all modules
+    if (user?.role === 'DEVELOPER') return true
+    // If enabledModules not loaded yet, show all (graceful degradation)
+    if (enabledModules.length === 0) return true
+    return enabledModules.includes(moduleName)
+  }
+
   const userData = {
     name: user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username : "Ospite",
     email: user?.email || "",
@@ -211,6 +230,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       })
     }
 
+    // Helper function to filter by global module visibility
+    const filterByGlobalVisibility = (items: NavItem[]) => {
+      return items.filter(item => isModuleGloballyEnabled(item.moduleName))
+    }
+
     // DEVELOPER has full access plus developer tools
     if (user.role === 'DEVELOPER') {
       const groups = allNavGroups.map(group => ({
@@ -222,20 +246,25 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       return groups
     }
 
-    // SUPER_ADMIN can see everything (but not developer tools)
+    // SUPER_ADMIN can see everything (but not developer tools), filtered by global visibility
     if (user.role === 'SUPER_ADMIN') {
       return allNavGroups.map(group => ({
         ...group,
-        items: addBadgeToItems(group.items),
-      }))
+        items: addBadgeToItems(filterByGlobalVisibility(group.items)),
+      })).filter(group => group.items.length > 0)
     }
 
-    // ADMIN can only see items they have permission for
+    // ADMIN can only see items they have permission for, filtered by global visibility
     if (user.role === 'ADMIN') {
       const userPermissions = user.permissions || []
 
       return allNavGroups.map(group => {
         const filteredItems = group.items.filter(item => {
+          // First check global visibility
+          if (!isModuleGloballyEnabled(item.moduleName)) {
+            return false
+          }
+
           // "Utenti" page is SUPER_ADMIN only
           if (item.url === '/users') {
             return false
@@ -258,19 +287,19 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       }).filter(group => group.items.length > 0) // Remove empty groups
     }
 
-    // USER role gets minimal access (dashboard and settings)
+    // USER role gets minimal access (dashboard and settings), filtered by global visibility
     return allNavGroups.map(group => {
       if (group.label === 'Overview' || group.label === 'Amministrazione') {
         return {
           ...group,
-          items: addBadgeToItems(group.items.filter(item =>
+          items: addBadgeToItems(filterByGlobalVisibility(group.items.filter(item =>
             item.url === '/dashboard' || item.url === '#'
-          )),
+          ))),
         }
       }
       return { ...group, items: [] }
     }).filter(group => group.items.length > 0)
-  }, [user, unreadTicketCount])
+  }, [user, unreadTicketCount, enabledModules])
 
   return (
     <Sidebar {...props}>

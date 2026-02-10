@@ -53,6 +53,17 @@ export interface ActivityDay {
   events: number
 }
 
+export interface ModuleSetting {
+  id: number
+  moduleName: string
+  isEnabled: boolean
+  label: string
+  description: string | null
+  displayOrder: number
+  updatedAt: string
+  updatedBy: number | null
+}
+
 export const developerAPI = {
   // Get system statistics
   getStats: async (): Promise<SystemStats> => {
@@ -92,6 +103,24 @@ export const developerAPI = {
   cleanAccessLogs: async (): Promise<{ deletedCount: number; message: string }> => {
     const response = await api.post('/developer/clean-logs')
     return { deletedCount: response.data.deletedCount, message: response.message }
+  },
+
+  // Get all module settings (DEVELOPER only)
+  getModuleSettings: async (): Promise<ModuleSetting[]> => {
+    const response = await api.get('/developer/modules')
+    return response.data
+  },
+
+  // Update module visibility (DEVELOPER only)
+  updateModuleSettings: async (moduleName: string, isEnabled: boolean): Promise<ModuleSetting> => {
+    const response = await api.put(`/developer/modules/${moduleName}`, { isEnabled })
+    return response.data
+  },
+
+  // Get enabled modules (all authenticated)
+  getEnabledModules: async (): Promise<string[]> => {
+    const response = await api.get('/developer/modules/enabled')
+    return response.data
   },
 }
 

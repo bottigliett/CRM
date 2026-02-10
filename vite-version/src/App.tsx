@@ -9,12 +9,14 @@ import { useEffect } from 'react'
 import { initGTM } from '@/utils/analytics'
 import { api } from '@/lib/api'
 import { useAuthStore } from '@/store/auth-store'
+import { useModuleSettingsStore } from '@/store/module-settings-store'
 
 // Get basename from environment (for deployment) or use empty string for development
 const basename = import.meta.env.VITE_BASENAME || ''
 
 function App() {
   const checkAuth = useAuthStore((state) => state.checkAuth)
+  const fetchEnabledModules = useModuleSettingsStore((state) => state.fetchEnabledModules)
 
   // Initialize GTM and validate auth token on app load
   useEffect(() => {
@@ -26,6 +28,8 @@ function App() {
         try {
           // Try to fetch current user to validate token
           await api.getCurrentUser();
+          // Fetch enabled modules for visibility filtering
+          await fetchEnabledModules();
         } catch (error) {
           // Token is invalid, clear it
           console.log('Token non valido, clearing authentication...');
@@ -37,7 +41,7 @@ function App() {
     };
 
     validateToken();
-  }, [checkAuth]);
+  }, [checkAuth, fetchEnabledModules]);
 
   return (
     <div className="font-sans antialiased" style={{ fontFamily: 'var(--font-inter)' }}>

@@ -110,6 +110,21 @@ model UserPermission {
   @@map("user_permissions")
 }
 
+// Global module visibility settings (feature flags)
+model ModuleSettings {
+  id           Int      @id @default(autoincrement())
+  moduleName   String   @unique @map("module_name")
+  isEnabled    Boolean  @default(true) @map("is_enabled")
+  label        String
+  description  String?
+  displayOrder Int      @default(0) @map("display_order")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+  updatedBy    Int?     @map("updated_by")
+
+  @@index([isEnabled])
+  @@map("module_settings")
+}
+
 model AccessLog {
   id        Int      @id @default(autoincrement())
   userId    Int?     @map("user_id")

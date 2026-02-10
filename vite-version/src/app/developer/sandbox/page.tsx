@@ -43,7 +43,9 @@ import {
   Server,
   Shield,
   CircleDot,
+  Settings2,
 } from "lucide-react"
+import { ModuleSettings } from "@/components/developer/module-settings"
 import { formatDistanceToNow } from "date-fns"
 import { it } from "date-fns/locale"
 
@@ -209,7 +211,7 @@ export default function SandboxPage() {
     >
       <div className="px-4 lg:px-6 space-y-6">
         <Tabs defaultValue="dashboard" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 bg-muted/50">
+          <TabsList className="grid w-full grid-cols-4 bg-muted/50">
             <TabsTrigger value="dashboard" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
               <BarChart3 className="mr-2 h-4 w-4" />
               Dashboard
@@ -221,6 +223,10 @@ export default function SandboxPage() {
             <TabsTrigger value="tools" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
               <Zap className="mr-2 h-4 w-4" />
               Tools
+            </TabsTrigger>
+            <TabsTrigger value="settings" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <Settings2 className="mr-2 h-4 w-4" />
+              Settings
             </TabsTrigger>
           </TabsList>
 
@@ -562,6 +568,11 @@ export default function SandboxPage() {
                 </CardContent>
               </Card>
             </div>
+          </TabsContent>
+
+          {/* SETTINGS TAB */}
+          <TabsContent value="settings" className="space-y-6 mt-6">
+            <ModuleSettings />
           </TabsContent>
         </Tabs>
       </div>
