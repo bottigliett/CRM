@@ -334,13 +334,14 @@ export default function DashboardPage() {
     loadContactsStats()
   }, [hasContactsAccess])
 
-  // Load leads statistics
+  // Load leads statistics (filtered by current year)
   useEffect(() => {
     async function loadLeadsStats() {
       if (!hasLeadsAccess) return
 
       try {
-        const leadsResponse = await leadsAPI.getLeads()
+        const currentYear = new Date().getFullYear().toString()
+        const leadsResponse = await leadsAPI.getLeads(currentYear)
 
         if (leadsResponse.success) {
           // Calculate total leadboard value
@@ -816,14 +817,14 @@ export default function DashboardPage() {
             ) : (
               <>
                 <CardHeader className="pb-3">
-                  <CardDescription>Valore Leadboard</CardDescription>
+                  <CardDescription>Valore Pipeline {new Date().getFullYear()}</CardDescription>
                   <CardTitle className="text-3xl flex items-center gap-2">
                     <Euro className="h-6 w-6" />
                     {leadboardValue.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-xs text-muted-foreground">Valore totale opportunità</p>
+                  <p className="text-xs text-muted-foreground">Valore totale opportunità {new Date().getFullYear()}</p>
                 </CardContent>
               </>
             )}
