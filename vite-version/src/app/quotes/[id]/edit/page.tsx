@@ -85,7 +85,7 @@ export default function EditQuotePage() {
           payment4Discount: response.data.payment4Discount || 0,
           projectDurationDays: response.data.projectDurationDays || null,
           discountAmount: response.data.discountAmount || 0,
-          taxRate: response.data.taxRate || 22,
+          taxRate: response.data.taxRate ?? 0,
         })
       }
     } catch (error) {
@@ -570,7 +570,7 @@ export default function EditQuotePage() {
                   max="100"
                   step="0.01"
                   value={formData.taxRate}
-                  onChange={(e) => setFormData({ ...formData, taxRate: parseFloat(e.target.value) || 22 })}
+                  onChange={(e) => setFormData({ ...formData, taxRate: parseFloat(e.target.value) || 0 })}
                 />
               </div>
             </div>

@@ -29,6 +29,7 @@ import {
 } from "lucide-react"
 import { clientAccessAPI, type ClientAccess } from "@/lib/client-access-api"
 import { quotesAPI, type Quote } from "@/lib/quotes-api"
+import { ProjectTaskList } from "@/components/project-task-list"
 import { toast } from "sonner"
 import { format } from "date-fns"
 import { it } from "date-fns/locale"
@@ -96,15 +97,19 @@ export default function ClientDetailPage() {
     driveFolderLink: '',
     driveFolderLinkTitle: '',
     driveFolderLinkDescription: '',
+    driveFolderLinkButtonText: '',
     documentsFolder: '',
     documentsFolderTitle: '',
     documentsFolderDescription: '',
+    documentsFolderButtonText: '',
     assetsFolder: '',
     assetsFolderTitle: '',
     assetsFolderDescription: '',
+    assetsFolderButtonText: '',
     invoiceFolder: '',
     invoiceFolderTitle: '',
     invoiceFolderDescription: '',
+    invoiceFolderButtonText: '',
   })
 
   // Folders form data
@@ -336,15 +341,19 @@ export default function ClientDetailPage() {
         driveFolderLink: dashboardForm.driveFolderLink || null,
         driveFolderLinkTitle: dashboardForm.driveFolderLinkTitle || null,
         driveFolderLinkDescription: dashboardForm.driveFolderLinkDescription || null,
+        driveFolderLinkButtonText: dashboardForm.driveFolderLinkButtonText || null,
         documentsFolder: dashboardForm.documentsFolder || null,
         documentsFolderTitle: dashboardForm.documentsFolderTitle || null,
         documentsFolderDescription: dashboardForm.documentsFolderDescription || null,
+        documentsFolderButtonText: dashboardForm.documentsFolderButtonText || null,
         assetsFolder: dashboardForm.assetsFolder || null,
         assetsFolderTitle: dashboardForm.assetsFolderTitle || null,
         assetsFolderDescription: dashboardForm.assetsFolderDescription || null,
+        assetsFolderButtonText: dashboardForm.assetsFolderButtonText || null,
         invoiceFolder: dashboardForm.invoiceFolder || null,
         invoiceFolderTitle: dashboardForm.invoiceFolderTitle || null,
         invoiceFolderDescription: dashboardForm.invoiceFolderDescription || null,
+        invoiceFolderButtonText: dashboardForm.invoiceFolderButtonText || null,
       }
 
       // Only set these when activating, not when editing
@@ -941,6 +950,35 @@ export default function ClientDetailPage() {
                     )}
                   </CardContent>
                 </Card>
+
+                {/* Project Progress Section */}
+                {client.linkedQuoteId ? (
+                  <ProjectTaskList quoteId={client.linkedQuoteId} />
+                ) : (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <CheckCircle2 className="h-5 w-5" />
+                        Avanzamento Progetto
+                      </CardTitle>
+                      <CardDescription>
+                        Traccia l'avanzamento del progetto con task e milestone
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-center py-8">
+                        <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
+                        <p className="text-sm text-muted-foreground mb-4">
+                          Collega un preventivo per gestire le task del progetto
+                        </p>
+                        <Button variant="outline" size="sm" onClick={() => setActiveTab('preventivo')}>
+                          <Plus className="h-4 w-4 mr-2" />
+                          Vai ai Preventivi
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
               </>
             ) : (
               <Card>
@@ -1198,9 +1236,21 @@ export default function ClientDetailPage() {
                     onChange={(e) => setDashboardForm({ ...dashboardForm, driveFolderLink: e.target.value })}
                   />
                   <Input
-                    placeholder="Titolo link (es. Cartella Principale)"
+                    placeholder="Titolo (es. Cartella Principale)"
                     value={dashboardForm.driveFolderLinkTitle}
                     onChange={(e) => setDashboardForm({ ...dashboardForm, driveFolderLinkTitle: e.target.value })}
+                    className="text-sm"
+                  />
+                  <Input
+                    placeholder="Descrizione (es. Accedi alla cartella principale)"
+                    value={dashboardForm.driveFolderLinkDescription}
+                    onChange={(e) => setDashboardForm({ ...dashboardForm, driveFolderLinkDescription: e.target.value })}
+                    className="text-sm"
+                  />
+                  <Input
+                    placeholder="Testo bottone (es. Apri in Drive)"
+                    value={dashboardForm.driveFolderLinkButtonText}
+                    onChange={(e) => setDashboardForm({ ...dashboardForm, driveFolderLinkButtonText: e.target.value })}
                     className="text-sm"
                   />
                 </div>
@@ -1213,9 +1263,21 @@ export default function ClientDetailPage() {
                     onChange={(e) => setDashboardForm({ ...dashboardForm, documentsFolder: e.target.value })}
                   />
                   <Input
-                    placeholder="Titolo link (es. Documenti)"
+                    placeholder="Titolo (es. Documenti)"
                     value={dashboardForm.documentsFolderTitle}
                     onChange={(e) => setDashboardForm({ ...dashboardForm, documentsFolderTitle: e.target.value })}
+                    className="text-sm"
+                  />
+                  <Input
+                    placeholder="Descrizione (es. Accedi ai documenti del progetto)"
+                    value={dashboardForm.documentsFolderDescription}
+                    onChange={(e) => setDashboardForm({ ...dashboardForm, documentsFolderDescription: e.target.value })}
+                    className="text-sm"
+                  />
+                  <Input
+                    placeholder="Testo bottone (es. Apri Documenti)"
+                    value={dashboardForm.documentsFolderButtonText}
+                    onChange={(e) => setDashboardForm({ ...dashboardForm, documentsFolderButtonText: e.target.value })}
                     className="text-sm"
                   />
                 </div>
@@ -1228,9 +1290,21 @@ export default function ClientDetailPage() {
                     onChange={(e) => setDashboardForm({ ...dashboardForm, assetsFolder: e.target.value })}
                   />
                   <Input
-                    placeholder="Titolo link (es. Assets)"
+                    placeholder="Titolo (es. Assets)"
                     value={dashboardForm.assetsFolderTitle}
                     onChange={(e) => setDashboardForm({ ...dashboardForm, assetsFolderTitle: e.target.value })}
+                    className="text-sm"
+                  />
+                  <Input
+                    placeholder="Descrizione (es. Accedi agli assets del progetto)"
+                    value={dashboardForm.assetsFolderDescription}
+                    onChange={(e) => setDashboardForm({ ...dashboardForm, assetsFolderDescription: e.target.value })}
+                    className="text-sm"
+                  />
+                  <Input
+                    placeholder="Testo bottone (es. Apri Assets)"
+                    value={dashboardForm.assetsFolderButtonText}
+                    onChange={(e) => setDashboardForm({ ...dashboardForm, assetsFolderButtonText: e.target.value })}
                     className="text-sm"
                   />
                 </div>
@@ -1243,9 +1317,21 @@ export default function ClientDetailPage() {
                     onChange={(e) => setDashboardForm({ ...dashboardForm, invoiceFolder: e.target.value })}
                   />
                   <Input
-                    placeholder="Titolo link (es. Fatture)"
+                    placeholder="Titolo (es. Fatture)"
                     value={dashboardForm.invoiceFolderTitle}
                     onChange={(e) => setDashboardForm({ ...dashboardForm, invoiceFolderTitle: e.target.value })}
+                    className="text-sm"
+                  />
+                  <Input
+                    placeholder="Descrizione (es. Accedi alle fatture)"
+                    value={dashboardForm.invoiceFolderDescription}
+                    onChange={(e) => setDashboardForm({ ...dashboardForm, invoiceFolderDescription: e.target.value })}
+                    className="text-sm"
+                  />
+                  <Input
+                    placeholder="Testo bottone (es. Apri Fatture)"
+                    value={dashboardForm.invoiceFolderButtonText}
+                    onChange={(e) => setDashboardForm({ ...dashboardForm, invoiceFolderButtonText: e.target.value })}
                     className="text-sm"
                   />
                 </div>
