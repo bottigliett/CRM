@@ -6,7 +6,7 @@ const prisma = new PrismaClient();
 
 /**
  * GET /api/client/tasks
- * Get all tasks for the client's accepted quote
+ * Get all tasks for the client - from quote OR from client-specific tasks
  */
 export const getClientProjectTasks = async (req: ClientAuthRequest, res: Response) => {
   try {
@@ -18,8 +18,9 @@ export const getClientProjectTasks = async (req: ClientAuthRequest, res: Respons
     }
 
     const contactId = req.client.contactId;
+    const clientAccessId = req.client.id;
 
-    // Find the accepted quote for this client
+    // First, try to find tasks from an accepted quote
     const quote = await prisma.quote.findFirst({
       where: {
         contactId,
@@ -35,24 +36,46 @@ export const getClientProjectTasks = async (req: ClientAuthRequest, res: Respons
       },
     });
 
-    if (!quote) {
+    if (quote) {
+      // Get all tasks for this quote
+      const tasks = await prisma.projectTask.findMany({
+        where: { quoteId: quote.id },
+        orderBy: { order: 'asc' },
+        select: {
+          id: true,
+          title: true,
+          description: true,
+          isCompleted: true,
+          completedAt: true,
+          order: true,
+        },
+      });
+
+      const completedCount = tasks.filter(t => t.isCompleted).length;
+      const totalCount = tasks.length;
+      const percentage = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+
       return res.json({
         success: true,
         data: {
-          quote: null,
-          tasks: [],
+          quote: {
+            id: quote.id,
+            quoteNumber: quote.quoteNumber,
+            title: quote.title,
+          },
+          tasks,
           progress: {
-            completed: 0,
-            total: 0,
-            percentage: 0,
+            completed: completedCount,
+            total: totalCount,
+            percentage,
           },
         },
       });
     }
 
-    // Get all tasks for this quote
-    const tasks = await prisma.projectTask.findMany({
-      where: { quoteId: quote.id },
+    // No quote found, check for client-specific tasks (ClientProjectTask)
+    const clientTasks = await prisma.clientProjectTask.findMany({
+      where: { clientAccessId },
       orderBy: { order: 'asc' },
       select: {
         id: true,
@@ -64,19 +87,15 @@ export const getClientProjectTasks = async (req: ClientAuthRequest, res: Respons
       },
     });
 
-    const completedCount = tasks.filter(t => t.isCompleted).length;
-    const totalCount = tasks.length;
+    const completedCount = clientTasks.filter(t => t.isCompleted).length;
+    const totalCount = clientTasks.length;
     const percentage = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
     return res.json({
       success: true,
       data: {
-        quote: {
-          id: quote.id,
-          quoteNumber: quote.quoteNumber,
-          title: quote.title,
-        },
-        tasks,
+        quote: null,
+        tasks: clientTasks,
         progress: {
           completed: completedCount,
           total: totalCount,
