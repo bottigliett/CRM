@@ -68,6 +68,12 @@ export function ModuleSettings() {
         </div>
       </CardHeader>
       <CardContent>
+        {modules.length === 0 ? (
+          <div className="text-center py-8 text-muted-foreground">
+            <p>Nessun modulo trovato.</p>
+            <p className="text-sm mt-2">Verifica che il backend sia aggiornato e che la tabella module_settings contenga dati.</p>
+          </div>
+        ) : (
         <div className="space-y-3">
           {modules.map((module) => (
             <div
@@ -109,6 +115,7 @@ export function ModuleSettings() {
             </div>
           ))}
         </div>
+        )}
 
         <div className="mt-6 p-4 rounded-lg bg-muted/50 border">
           <p className="text-sm text-muted-foreground">
