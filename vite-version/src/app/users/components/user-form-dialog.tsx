@@ -378,8 +378,9 @@ export function UserFormDialog({ onAddUser, editingUser, open: controlledOpen, o
                       <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
                         <FormControl>
                           <Checkbox
-                            checked={field.value}
+                            checked={isProtectedUser ? true : field.value}
                             onCheckedChange={field.onChange}
+                            disabled={isProtectedUser}
                           />
                         </FormControl>
                         <div className="space-y-1 leading-none">
@@ -387,7 +388,10 @@ export function UserFormDialog({ onAddUser, editingUser, open: controlledOpen, o
                             Account Attivo
                           </FormLabel>
                           <FormDescription>
-                            L'utente può accedere al sistema
+                            {isProtectedUser
+                              ? <span className="text-amber-600">Questo account non può essere disattivato</span>
+                              : "L'utente può accedere al sistema"
+                            }
                           </FormDescription>
                         </div>
                       </FormItem>
