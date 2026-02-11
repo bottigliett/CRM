@@ -24,6 +24,7 @@ import {
   type CreateInvoiceData,
 } from "@/lib/invoices-api"
 import { contactsAPI, type Contact } from "@/lib/contacts-api"
+import { paymentEntityAPI, type PaymentEntity } from "@/lib/payment-entity-api"
 import { Loader2, Check, ChevronsUpDown, Trash2, Search, Users } from "lucide-react"
 import { format } from "date-fns"
 import {
@@ -66,6 +67,7 @@ export function InvoiceDialog({ open, onOpenChange, onSuccess, onInvoicePaid, in
   const [clientTypeFilter, setClientTypeFilter] = useState<string>('all')
   const [errorDialogOpen, setErrorDialogOpen] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
+  const [paymentEntities, setPaymentEntities] = useState<PaymentEntity[]>([])
   const [services, setServices] = useState<ServiceItem[]>([
     { id: '1', description: '', quantity: 1, unitPrice: 0 }
   ])
@@ -124,26 +126,39 @@ export function InvoiceDialog({ open, onOpenChange, onSuccess, onInvoicePaid, in
     return matchesSearch && matchesType
   })
 
-  // Load contacts when dialog opens
+  // Load contacts and payment entities when dialog opens
   useEffect(() => {
-    async function loadContacts() {
+    async function loadData() {
       if (open) {
         try {
           setIsLoadingContacts(true)
-          const response = await contactsAPI.getContacts({ limit: 1000 })
-          if (response.success) {
-            setContacts(response.data.contacts)
+          const [contactsResponse, entitiesResponse] = await Promise.all([
+            contactsAPI.getContacts({ limit: 1000 }),
+            paymentEntityAPI.getAll(true) // Only active entities
+          ])
+          if (contactsResponse.success) {
+            setContacts(contactsResponse.data.contacts)
+          }
+          if (entitiesResponse.success) {
+            setPaymentEntities(entitiesResponse.data)
+            // Set default payment entity if creating new invoice and one exists
+            if (!invoice) {
+              const defaultEntity = entitiesResponse.data.find(e => e.isDefault)
+              if (defaultEntity) {
+                setFormData(prev => ({ ...prev, paymentEntityId: defaultEntity.id }))
+              }
+            }
           }
         } catch (error) {
-          console.error('Failed to load contacts:', error)
+          console.error('Failed to load data:', error)
         } finally {
           setIsLoadingContacts(false)
         }
       }
     }
 
-    loadContacts()
-  }, [open])
+    loadData()
+  }, [open, invoice])
 
   // Load next invoice number when creating new invoice
   useEffect(() => {
@@ -185,6 +200,8 @@ export function InvoiceDialog({ open, onOpenChange, onSuccess, onInvoicePaid, in
         status: invoice.status,
         fiscalNotes: invoice.fiscalNotes || '',
         contactId: invoice.contactId,
+        paymentEntityId: invoice.paymentEntityId,
+        paymentDate: invoice.paymentDate ? format(new Date(invoice.paymentDate), 'yyyy-MM-dd') : undefined,
       })
 
       // Parse services from JSON description
@@ -280,6 +297,7 @@ export function InvoiceDialog({ open, onOpenChange, onSuccess, onInvoicePaid, in
         vatPercentage: 0,
         vatAmount: calculatedVatAmount,
         total: calculatedTotal,
+        paymentEntityId: formData.paymentEntityId,
       }
 
       // Track if status is becoming PAID
@@ -349,7 +367,14 @@ export function InvoiceDialog({ open, onOpenChange, onSuccess, onInvoicePaid, in
                   <Label htmlFor="status">Stato *</Label>
                   <Select
                     value={formData.status}
-                    onValueChange={(value: any) => setFormData({ ...formData, status: value })}
+                    onValueChange={(value: any) => {
+                      // Auto-set payment date to today when changing to PAID
+                      if (value === 'PAID' && !formData.paymentDate) {
+                        setFormData({ ...formData, status: value, paymentDate: format(new Date(), 'yyyy-MM-dd') })
+                      } else {
+                        setFormData({ ...formData, status: value })
+                      }
+                    }}
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -521,6 +546,46 @@ export function InvoiceDialog({ open, onOpenChange, onSuccess, onInvoicePaid, in
                     </Select>
                   </div>
                 </div>
+
+                {formData.status === 'PAID' && (
+                  <div className="space-y-2 mt-4">
+                    <Label htmlFor="paymentDate">Data Pagamento *</Label>
+                    <Input
+                      id="paymentDate"
+                      type="date"
+                      required
+                      value={formData.paymentDate || format(new Date(), 'yyyy-MM-dd')}
+                      onChange={(e) => setFormData({ ...formData, paymentDate: e.target.value })}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Questa data verrà usata per la transazione nel Finance
+                    </p>
+                  </div>
+                )}
+
+                {paymentEntities.length > 0 && (
+                  <div className="space-y-2 mt-4">
+                    <Label htmlFor="paymentEntity">Entità Pagamento</Label>
+                    <Select
+                      value={formData.paymentEntityId?.toString() || ''}
+                      onValueChange={(value) => setFormData({ ...formData, paymentEntityId: value ? parseInt(value) : undefined })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Seleziona entità..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {paymentEntities.map((entity) => (
+                          <SelectItem key={entity.id} value={entity.id.toString()}>
+                            {entity.name} {entity.isDefault && '(Default)'}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      Determina le informazioni di pagamento sulla fattura
+                    </p>
+                  </div>
+                )}
               </div>
 
             </div>

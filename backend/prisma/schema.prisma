@@ -589,6 +589,30 @@ model PaymentMethod {
 }
 
 // ===================================
+// PAYMENT ENTITIES (ENTITÀ DI PAGAMENTO)
+// ===================================
+
+model PaymentEntity {
+  id            Int       @id @default(autoincrement())
+  name          String    // Nome entità (es: "Davide", "Stefano")
+  beneficiary   String    // Beneficiario IBAN
+  iban          String    // IBAN
+  bankName      String    @map("bank_name") // Nome banca
+  bic           String?   // BIC/SWIFT
+  sdi           String?   // Codice SDI
+  taxId         String?   @map("tax_id") // Codice fiscale/P.IVA entità
+  isDefault     Boolean   @default(false) @map("is_default")
+  isActive      Boolean   @default(true) @map("is_active")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  invoices      Invoice[]
+
+  @@map("payment_entities")
+}
+
+// ===================================
 // INVOICES (FATTURE)
 // ===================================
 
@@ -643,6 +667,9 @@ model Invoice {
   // Client visibility
   visibleToClient Boolean        @default(true) @map("visible_to_client") // Se visibile al cliente nel portale
 
+  // Payment entity (chi riceve il pagamento)
+  paymentEntityId Int?           @map("payment_entity_id")
+
   // Metadata
   createdBy       Int            @map("created_by")
   createdAt       DateTime       @default(now()) @map("created_at")
@@ -653,6 +680,7 @@ model Invoice {
   creator         User           @relation("InvoiceCreator", fields: [createdBy], references: [id])
   transactions    Transaction[]  @relation("InvoiceTransactions")
   items           InvoiceItem[]  // Invoice line items
+  paymentEntity   PaymentEntity? @relation(fields: [paymentEntityId], references: [id], onDelete: SetNull)
 
   @@index([invoiceNumber])
   @@index([contactId])
@@ -661,6 +689,7 @@ model Invoice {
   @@index([status])
   @@index([createdBy])
   @@index([status, dueDate]) // For overdue invoices query
+  @@index([paymentEntityId])
   @@map("invoices")
 }
 

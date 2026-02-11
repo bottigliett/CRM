@@ -120,6 +120,12 @@ export const getInvoices = async (req: Request, res: Response) => {
             lastName: true,
           },
         },
+        paymentEntity: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
       },
       orderBy: { issueDate: 'desc' },
       skip,
@@ -213,6 +219,7 @@ export const getInvoice = async (req: Request, res: Response) => {
             lastName: true,
           },
         },
+        paymentEntity: true,
       },
     });
 
@@ -269,6 +276,7 @@ export const createInvoice = async (req: Request, res: Response) => {
       paymentMethod,
       paymentNotes,
       fiscalNotes,
+      paymentEntityId,
     } = req.body;
 
     const userId = (req as any).user?.userId;
@@ -336,6 +344,7 @@ export const createInvoice = async (req: Request, res: Response) => {
         paymentMethod,
         paymentNotes,
         fiscalNotes,
+        paymentEntityId: paymentEntityId ? parseInt(paymentEntityId) : null,
         createdBy: userId,
       },
       include: {
@@ -348,6 +357,7 @@ export const createInvoice = async (req: Request, res: Response) => {
             lastName: true,
           },
         },
+        paymentEntity: true,
       },
     });
 
@@ -421,6 +431,7 @@ export const updateInvoice = async (req: Request, res: Response) => {
       paymentMethod,
       paymentNotes,
       fiscalNotes,
+      paymentEntityId,
     } = req.body;
 
     // Check if invoice exists
@@ -504,6 +515,7 @@ export const updateInvoice = async (req: Request, res: Response) => {
         paymentMethod,
         paymentNotes,
         fiscalNotes,
+        paymentEntityId: paymentEntityId ? parseInt(paymentEntityId) : null,
       },
       include: {
         contact: true,
@@ -515,6 +527,7 @@ export const updateInvoice = async (req: Request, res: Response) => {
             lastName: true,
           },
         },
+        paymentEntity: true,
       },
     });
 
@@ -702,6 +715,7 @@ export const duplicateInvoice = async (req: Request, res: Response) => {
         paymentDays: originalInvoice.paymentDays,
         status: 'DRAFT',
         fiscalNotes: originalInvoice.fiscalNotes,
+        paymentEntityId: originalInvoice.paymentEntityId,
         createdBy: userId,
       },
       include: {
@@ -714,6 +728,7 @@ export const duplicateInvoice = async (req: Request, res: Response) => {
             lastName: true,
           },
         },
+        paymentEntity: true,
       },
     });
 
@@ -742,6 +757,7 @@ export const generateInvoicePDF = async (req: Request, res: Response) => {
       include: {
         contact: true,
         creator: true,
+        paymentEntity: true,
       },
     });
 
@@ -749,6 +765,21 @@ export const generateInvoicePDF = async (req: Request, res: Response) => {
       return res.status(404).json({
         success: false,
         message: 'Fattura non trovata',
+      });
+    }
+
+    // Get payment entity - use invoice's entity or default
+    let paymentEntity = invoice.paymentEntity;
+    if (!paymentEntity) {
+      // Try to get default payment entity
+      paymentEntity = await prisma.paymentEntity.findFirst({
+        where: { isDefault: true, isActive: true },
+      });
+    }
+    if (!paymentEntity) {
+      // Fallback to any active payment entity
+      paymentEntity = await prisma.paymentEntity.findFirst({
+        where: { isActive: true },
       });
     }
 
@@ -762,7 +793,7 @@ export const generateInvoicePDF = async (req: Request, res: Response) => {
     const numeroGiorno = issueDate.getDate();
     const mese = mesi[issueDate.getMonth()];
     const anno = issueDate.getFullYear();
-    const invoiceDate = `${giorno} ${numeroGiorno} ${mese} ${anno}`;
+    const invoiceDate = `${numeroGiorno} ${mese} ${anno}`;
 
     const dueDate = new Date(invoice.dueDate);
     const dueDateFormatted = `${String(dueDate.getDate()).padStart(2, '0')}/${String(dueDate.getMonth() + 1).padStart(2, '0')}/${dueDate.getFullYear()}`;
@@ -792,6 +823,7 @@ export const generateInvoicePDF = async (req: Request, res: Response) => {
       data: {
         invoiceNumber: invoice.invoiceNumber,
         invoiceDate,
+        paymentDays: invoice.paymentDays,
         dueDate: dueDateFormatted,
         clientName: invoice.clientName,
         clientAddress: invoice.clientAddress,
@@ -805,6 +837,12 @@ export const generateInvoicePDF = async (req: Request, res: Response) => {
         total: invoice.total.toFixed(2).replace('.', ','),
         fiscalNotes: invoice.fiscalNotes,
         isVatZero: invoice.vatPercentage === 0,
+        // Payment entity info
+        paymentBeneficiary: paymentEntity?.beneficiary || 'Stefano Costato e Davide Marangoni',
+        paymentIban: paymentEntity?.iban || 'IT55 V181 0301 6000 0481 4366 773',
+        paymentBank: paymentEntity?.bankName || 'FINOM PAYMENTS',
+        paymentBic: paymentEntity?.bic || 'FNOMITM2',
+        paymentSdi: paymentEntity?.sdi || 'JI3TXCE',
       },
     });
   } catch (error: any) {

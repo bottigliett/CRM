@@ -53,6 +53,7 @@ import { InvoiceDialog } from "./components/invoice-dialog"
 import { InvoicePreviewDialog } from "./components/invoice-preview-dialog"
 import { TaxReserveDialog } from "./components/tax-reserve-dialog"
 import { AlertDialogCustom } from "@/components/ui/alert-dialog-custom"
+import { PaymentEntitySettings } from "@/components/payment-entity-settings"
 import { generateInvoicePDF } from "@/lib/pdf-generator"
 
 export default function InvoicesPage() {
@@ -322,6 +323,8 @@ export default function InvoicesPage() {
                   <SelectItem value="100">100 per pagina</SelectItem>
                 </SelectContent>
               </Select>
+
+              <PaymentEntitySettings />
             </div>
 
             <Button onClick={handleNewInvoice} className="bg-primary hover:bg-primary/90">

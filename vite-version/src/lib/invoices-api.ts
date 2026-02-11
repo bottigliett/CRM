@@ -50,6 +50,9 @@ export interface Invoice {
   taxReserved: boolean;
   taxAmount?: number;
 
+  // Payment entity
+  paymentEntityId?: number;
+
   // Relations
   contact?: {
     id: number;
@@ -63,6 +66,10 @@ export interface Invoice {
     firstName: string;
     lastName: string;
     email: string;
+  };
+  paymentEntity?: {
+    id: number;
+    name: string;
   };
 
   // Computed
@@ -115,6 +122,8 @@ export interface CreateInvoiceData {
   fiscalNotes?: string;
 
   invoiceNumber?: string;
+
+  paymentEntityId?: number;
 }
 
 export interface UpdateInvoiceData extends Partial<CreateInvoiceData> {}
