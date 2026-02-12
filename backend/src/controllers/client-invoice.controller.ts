@@ -155,8 +155,24 @@ export const getClientInvoicePDF = async (req: ClientAuthRequest, res: Response)
       include: {
         contact: true,
         creator: true,
+        paymentEntity: true,
       },
     });
+
+    // Get payment entity - use invoice's entity or default
+    let paymentEntity = invoice?.paymentEntity;
+    if (!paymentEntity) {
+      // Try to get default payment entity
+      paymentEntity = await prisma.paymentEntity.findFirst({
+        where: { isDefault: true, isActive: true },
+      });
+    }
+    if (!paymentEntity) {
+      // Fallback to any active payment entity
+      paymentEntity = await prisma.paymentEntity.findFirst({
+        where: { isActive: true },
+      });
+    }
 
     if (!invoice) {
       return res.status(404).json({
@@ -205,6 +221,7 @@ export const getClientInvoicePDF = async (req: ClientAuthRequest, res: Response)
       data: {
         invoiceNumber: invoice.invoiceNumber,
         invoiceDate,
+        paymentDays: invoice.paymentDays,
         dueDate: dueDateFormatted,
         clientName: invoice.clientName,
         clientAddress: invoice.clientAddress,
@@ -218,6 +235,12 @@ export const getClientInvoicePDF = async (req: ClientAuthRequest, res: Response)
         total: invoice.total.toFixed(2).replace('.', ','),
         fiscalNotes: invoice.fiscalNotes,
         isVatZero: invoice.vatPercentage === 0,
+        // Payment entity info
+        paymentBeneficiary: paymentEntity?.beneficiary || 'Stefano Costato e Davide Marangoni',
+        paymentIban: paymentEntity?.iban || 'IT55 V181 0301 6000 0481 4366 773',
+        paymentBank: paymentEntity?.bankName || 'FINOM PAYMENTS',
+        paymentBic: paymentEntity?.bic || 'FNOMITM2',
+        paymentSdi: paymentEntity?.sdi || 'JI3TXCE',
       },
     });
   } catch (error: any) {

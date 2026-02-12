@@ -104,6 +104,7 @@ class ClientInvoicesAPI {
     data: {
       invoiceNumber: string;
       invoiceDate: string;
+      paymentDays: number;
       dueDate: string;
       clientName: string;
       clientAddress?: string;
@@ -119,6 +120,12 @@ class ClientInvoicesAPI {
       total: string;
       fiscalNotes?: string;
       isVatZero: boolean;
+      // Payment entity info
+      paymentBeneficiary?: string;
+      paymentIban?: string;
+      paymentBank?: string;
+      paymentBic?: string;
+      paymentSdi?: string;
     };
   }> {
     return this.request<any>(`/client/invoices/${id}/pdf`);
