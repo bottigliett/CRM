@@ -118,128 +118,114 @@ export function InvoicePreviewDialog({
 }
 
 function getInvoicePreviewHTML(data: any): string {
+  const paymentBank = data.paymentBank || 'REVOLUT BANK UAB';
+  const paymentIban = data.paymentIban || 'LT95 3250 0482 6617 5203';
+  const paymentBeneficiary = data.paymentBeneficiary || 'STEFANO COSTATO E DAVIDE MARANGONI';
+  const paymentBic = data.paymentBic || 'REVOLT21';
+  const paymentSdi = data.paymentSdi || 'JI3TXCE';
+  const isImmediate = data.paymentDays === 0;
+
   return `
-    <div style="padding: 2em; font-family: 'Elza', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; position: relative; min-height: 297mm;">
-      <!--HEADER-->
-      <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2em;">
-        <div style="width: 180px;">
-          <svg width="180" height="auto" viewBox="0 0 1408 373" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <g clip-path="url(#clip0_1_11)">
-              <path d="M198.262 186.743C185.744 231.795 176.217 283.383 176.217 283.383H175.244C175.244 283.383 165.23 231.795 152.712 186.743L102.156 7.02199H0V364.935H66.6204V159.698C66.6204 130.637 63.6302 85.5849 63.6302 85.5849H64.6037C64.6037 85.5849 72.601 127.647 80.1114 153.65L140.195 364.935H209.806L271.419 153.65C278.93 127.647 286.927 85.5849 286.927 85.5849H287.9C287.9 85.5849 284.91 130.637 284.91 159.698V364.935H352.504V7.02199H248.818L198.262 186.743Z" fill="black"/>
-              <path d="M1235.75 0C1175.87 0 1128.38 25.5851 1098.47 67.2304L1110.09 7.02199H1006.96L920.864 192.722C900.35 237.288 884.286 285.329 884.286 285.329H883.799C883.799 285.329 883.312 233.742 879.279 183.684L865.788 6.95247H766.135L721.837 236.384C710.502 178.887 655.843 163.383 590.405 149.13C537.345 137.589 512.31 129.107 512.31 100.046C512.31 74.5305 537.831 57.9836 576.914 57.9836C615.996 57.9836 642.004 75.9905 646.037 112.074H715.648C710.015 40.0462 657.929 0.486673 577.331 0.486673C496.733 0.486673 440.126 37.0567 440.126 107.624C440.126 182.224 498.68 199.258 562.797 213.788C617.387 226.303 651.462 233.325 651.462 268.365C651.462 301.39 618.916 314.391 581.851 314.391C530.808 314.391 506.26 297.357 501.253 254.321H435.675V7.02199H363.074V364.935H435.675V288.527C451.879 342.687 503.617 372.93 584.911 372.93C638.318 372.93 681.921 355.063 705.356 321.969L697.081 364.935H762.658L802.227 159.698C807.721 130.637 813.771 84.6115 813.771 84.6115H814.744C814.744 84.6115 815.231 127.161 817.248 153.719L834.285 365.005H902.366L1000.98 153.232C1015.02 123.198 1030.53 84.6811 1030.53 84.6811H1031.5C1031.5 84.6811 1019.96 128.76 1013.98 159.768L974.411 365.005H1041.03L1067.04 230.405C1082.83 314.738 1145.06 373.069 1235.82 373.069C1341.45 373.069 1408.07 293.95 1408.07 186.813C1408.07 79.6753 1341.38 0 1235.75 0ZM1236.23 313.417C1170.66 313.417 1137.07 257.867 1137.07 186.743C1137.07 115.62 1170.59 59.5827 1236.23 59.5827C1301.88 59.5827 1333.87 115.133 1333.87 186.743C1333.87 258.354 1301.81 313.417 1236.23 313.417Z" fill="black"/>
-            </g>
-            <defs>
-              <clipPath id="clip0_1_11">
-                <rect width="1408" height="373" fill="white"/>
-              </clipPath>
-            </defs>
-          </svg>
-        </div>
-        <div style="display: flex; gap: 2em;">
-          <div style="font-size: 12px; text-transform: uppercase; line-height: 1.4; letter-spacing: 0.01em;">
-            <p>MISMO&nbsp;|&nbsp;STUDIO&nbsp;GRAFICO&nbsp;&&nbsp;CREATIVO<br>DI&nbsp;STEFANO&nbsp;COSTATO&nbsp;E&nbsp;DAVIDE&nbsp;MARANGONI</p>
-            <p>VIA&nbsp;DELL'ARTIGIANATO&nbsp;23<br>37135&nbsp;VERONA&nbsp;-&nbsp;IT</p>
-          </div>
-          <div style="font-size: 12px; text-transform: uppercase; line-height: 1.4; letter-spacing: 0.01em;">
-            <p>HI@MISMO.STUDIO<br>(+39)&nbsp;375&nbsp;620&nbsp;9885</p>
-            <p>PI&nbsp;(S)&nbsp;IT04904900232<br>PI&nbsp;(D)&nbsp;IT05052740239</p>
-          </div>
-        </div>
-      </div>
+    <div style="padding: 10mm; font-family: 'Elza', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; font-size: 12px; line-height: 1.35; color: #000; display: flex; flex-direction: column; min-height: 277mm;">
 
-      <!--META INFO-->
-      <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: -1em;">
-        <h1 style="font-size: 48px; text-transform: uppercase; font-weight: 500; margin: 0; letter-spacing: 0.02em;">Fattura</h1>
-        <h2 style="font-size: 48px; text-transform: uppercase; font-weight: 500; margin: 0; letter-spacing: 0.02em;">${data.invoiceNumber}</h2>
-      </div>
-      <h2 style="font-size: 48px; text-transform: uppercase; font-weight: 500; margin-bottom: 0.5em; text-align-last: justify; letter-spacing: 0.02em;">${data.invoiceDate}</h2>
-
-      <!--DESTINATARIO-->
-      <div style="margin-bottom: 2em;">
-        <div style="display: flex; gap: 2em; font-size: 14px; font-weight: 400; text-transform: uppercase; line-height: 1.4; letter-spacing: 0.01em;">
-          <div style="flex: 1;">
-            <h3 style="font-size: 12px; font-weight: 500;">${data.clientName}</h3>
+      <!-- CONTENT -->
+      <div style="flex: 1;">
+        <!-- HEADER -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; column-gap: 18mm;">
+          <div>
+            <span style="display: block;">MISMO®STUDIO</span>
+            <span style="display: block;">di Stefano Costato e Davide Marangoni</span>
+            <span style="display: block;">P.IVA IT04904900232 / IT05052740239</span>
+            <span style="display: block;">hi@mismo.studio</span>
+            <span style="display: block;">(+39) 375 620 9885</span>
+            <span style="display: block;">Via Madonna 14 - 37026</span>
+            <span style="display: block;">Pescantina / Verona - IT</span>
           </div>
-          ${data.clientAddress ? `
-          <div style="flex: 1;">
-            <h3 style="font-size: 12px; font-weight: 500;">${data.clientAddress}</h3>
-          </div>
-          ` : ''}
-          ${data.clientPIva ? `
-          <div style="flex: 1;">
-            <h3 style="font-size: 12px; font-weight: 500;">P.IVA&nbsp;${data.clientPIva}</h3>
-          </div>
-          ` : ''}
-        </div>
-      </div>
-
-      <!--OGGETTO-->
-      <div style="margin-bottom: 0.75em;">
-        <div style="font-size: 16px; font-weight: 500; text-transform: uppercase; margin-bottom: 1em; letter-spacing: 0.01em;">Oggetto:&nbsp;${data.subject}</div>
-        <div style="border-top: 1px solid #000; border-bottom: 1px solid #000; margin: 0.5em 0;"></div>
-      </div>
-
-      <!--SERVIZI-->
-      <div style="width: 100%; margin-bottom: 1em;">
-        ${data.services && data.services.length > 0 ?
-          data.services.map((service: any) => `
-            <div style="display: flex; align-items: center; font-size: 14px; font-weight: 400; text-transform: uppercase; padding: 0.5em 0; letter-spacing: 0.01em;">
-              <div style="flex: 6;">${service.description}</div>
-              <div style="flex: 1; text-align: center;">${service.quantity}x</div>
-              <div style="flex: 2; text-align: right;">${service.unitPrice ? service.unitPrice + '&nbsp;EUR' : ''}</div>
-              <div style="flex: 1.5; text-align: right;">IVA&nbsp;0%</div>
+          <div style="justify-self: end; max-width: 78mm; width: 100%;">
+            <div style="display: grid; grid-template-columns: 1fr auto; column-gap: 10mm;">
+              <div>Fattura numero</div>
+              <div style="text-align: right; white-space: nowrap;">${data.invoiceNumber}</div>
             </div>
-          `).join('')
-        : `
-          <div style="display: flex; align-items: center; font-size: 14px; font-weight: 400; text-transform: uppercase; padding: 0.5em 0; letter-spacing: 0.01em;">
-            <div style="flex: 6;">${data.description}</div>
-            <div style="flex: 1; text-align: center;">${data.quantity}x</div>
-            <div style="flex: 2; text-align: right;">${data.unitPrice ? data.unitPrice + '&nbsp;EUR' : ''}</div>
-            <div style="flex: 1.5; text-align: right;">IVA&nbsp;${data.vatPercentage}%</div>
+            <div style="display: grid; grid-template-columns: 1fr auto; column-gap: 10mm;">
+              <div>Data</div>
+              <div style="text-align: right; white-space: nowrap;">${data.invoiceDate}</div>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr auto; column-gap: 10mm;">
+              <div>Scadenza</div>
+              <div style="text-align: right; white-space: nowrap;">${isImmediate ? 'Immediato' : data.paymentDays + ' giorni'}</div>
+            </div>
           </div>
-        `}
-        <div style="border-top: 1px solid #000; border-bottom: 1px solid #000; margin: 0.5em 0;"></div>
+        </div>
+
+        <!-- CLIENTE -->
+        <div style="margin-top: 18mm;">
+          <h2 style="margin: 0 0 2mm 0; font-size: 12px; font-weight: 500;">Cliente</h2>
+          <span style="display: block;">${data.clientName}</span>
+          ${data.clientPIva ? `<span style="display: block;">P.IVA ${data.clientPIva}</span>` : ''}
+          ${data.clientCF ? `<span style="display: block;">C.F. ${data.clientCF}</span>` : ''}
+          ${data.clientAddress ? `<span style="display: block;">${data.clientAddress}</span>` : ''}
+        </div>
+
+        <!-- OGGETTO -->
+        <div style="margin-top: 18mm;">
+          <h2 style="margin: 0 0 2mm 0; font-size: 12px; font-weight: 500;">Oggetto</h2>
+          <p style="margin: 0;">${data.subject}</p>
+        </div>
+
+        <!-- SERVIZI TABLE -->
+        <div style="margin-top: 10mm;">
+          <table style="width: 100%; border-collapse: collapse; table-layout: fixed;">
+            <colgroup>
+              <col style="width: 58%;">
+              <col style="width: 14%;">
+              <col style="width: 14%;">
+              <col style="width: 14%;">
+            </colgroup>
+            <thead>
+              <tr>
+                <th style="border-bottom: 1px solid #000; padding-bottom: 1mm; font-size: 9px; text-align: left; font-weight: 500;">Servizio</th>
+                <th style="border-bottom: 1px solid #000; padding-bottom: 1mm; font-size: 9px; text-align: center; font-weight: 500;">Quantità</th>
+                <th style="border-bottom: 1px solid #000; padding-bottom: 1mm; font-size: 9px; text-align: center; font-weight: 500;">IVA</th>
+                <th style="border-bottom: 1px solid #000; padding-bottom: 1mm; font-size: 9px; text-align: right; font-weight: 500;">Prezzo cad.</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${data.services && data.services.length > 0 ?
+                data.services.map((service: any) => `
+                  <tr>
+                    <td style="border-bottom: 1px solid #000; padding: 2mm 0;">${service.description}</td>
+                    <td style="border-bottom: 1px solid #000; padding: 2mm 0; text-align: center; white-space: nowrap;">${service.quantity}</td>
+                    <td style="border-bottom: 1px solid #000; padding: 2mm 0; text-align: center; white-space: nowrap;">${data.vatPercentage}%</td>
+                    <td style="border-bottom: 1px solid #000; padding: 2mm 0; text-align: right; white-space: nowrap;">${service.unitPrice} EUR</td>
+                  </tr>
+                `).join('')
+              : ''}
+            </tbody>
+          </table>
+
+          <div style="display: grid; grid-template-columns: 1fr auto; margin-top: 10mm;">
+            <div>Totale</div>
+            <div style="text-align: right;">${data.total} EUR</div>
+          </div>
+        </div>
       </div>
 
-      <!--TOTALI-->
-      <div style="display: grid; grid-template-columns: 1fr auto; width: 100%; margin-top: 20px;">
-        <div style="text-align: left; font-size: 24px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.02em;">
-          <div>Subtotale</div>
-          <div>IVA</div>
-          <div style="padding-top: 1.5em;">Totale&nbsp;da&nbsp;pagare</div>
+      <!-- FOOTER -->
+      <div style="margin-top: 20mm;">
+        <h2 style="margin: 0 0 2mm 0; font-size: 12px; font-weight: 500;">Informazioni per il pagamento</h2>
+        <div style="display: grid; grid-template-columns: 38mm 1fr; column-gap: 6mm; margin-bottom: 12mm;">
+          <div>Scadenze</div><div style="white-space: pre-line;">${isImmediate ? 'Immediato' : data.dueDate}: ${data.total} EUR</div>
+          <div>Beneficiario</div><div style="white-space: pre-line;">${paymentBeneficiary}</div>
+          <div>IBAN</div><div style="white-space: pre-line;">${paymentIban}</div>
+          <div>Banca</div><div style="white-space: pre-line;">${paymentBank}</div>
+          ${paymentBic ? `<div>BIC</div><div style="white-space: pre-line;">${paymentBic}</div>` : ''}
+          ${paymentSdi ? `<div>SDI</div><div style="white-space: pre-line;">${paymentSdi}</div>` : ''}
         </div>
-        <div style="text-align: right; font-size: 24px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.02em;">
-          <div>${data.subtotal}&nbsp;EUR</div>
-          <div>${data.vatAmount}&nbsp;EUR</div>
-          <div style="padding-top: 1.5em;">${data.total}&nbsp;EUR</div>
-        </div>
-      </div>
 
-      <!--INFORMAZIONI PAGAMENTO-->
-      <div style="border-top: 1px solid #000; border-bottom: 1px solid #000; margin: 0.5em 0;"></div>
-      <div style="margin-bottom: 3em;">
-        <h3 style="font-size: 36px; font-weight: 500; text-transform: uppercase; margin-bottom: 0.15em;">Informazioni&nbsp;sul&nbsp;pagamento</h3>
-        <div>
-          <span style="font-size: 14px; font-weight: 500; text-transform: uppercase; width: 120px; display: inline-block;">[Scadenze]</span><span style="font-size: 14px; font-weight: 400; text-transform: uppercase;">${data.dueDate}:</span>&nbsp;<span style="font-size: 14px; font-weight: 400; text-transform: uppercase;">${data.total}&nbsp;EUR</span><br>
-          <span style="font-size: 14px; font-weight: 500; text-transform: uppercase; width: 120px; display: inline-block;">[Banca]</span><span style="font-size: 14px; font-weight: 400; text-transform: uppercase;">REVOLUT&nbsp;BANK&nbsp;UAB</span><br>
-          <span style="font-size: 14px; font-weight: 500; text-transform: uppercase; width: 120px; display: inline-block;">[IBAN]</span><span style="font-size: 14px; font-weight: 400; text-transform: uppercase;">LT95&nbsp;3250&nbsp;0482&nbsp;6617&nbsp;5203</span><br>
-          <span style="font-size: 14px; font-weight: 500; text-transform: uppercase; width: 120px; display: inline-block;">[Beneficiario]</span><span style="font-size: 14px; font-weight: 400; text-transform: uppercase;">STEFANO&nbsp;COSTATO&nbsp;E&nbsp;DAVIDE&nbsp;MARANGONI</span><br>
-          <span style="font-size: 14px; font-weight: 500; text-transform: uppercase; width: 120px; display: inline-block;">[BIC/Swift]</span><span style="font-size: 14px; font-weight: 400; text-transform: uppercase;">REVOLT21</span><br>
-          <span style="font-size: 14px; font-weight: 500; text-transform: uppercase; width: 120px; display: inline-block;">[TAX&nbsp;ID]</span><span style="font-size: 14px; font-weight: 400; text-transform: uppercase;">JI3TXCE</span>
-        </div>
-      </div>
-
-      <!--DISCLAIMER-->
-      <div style="position: absolute; bottom: 2em; left: 2em; right: 2em;">
-        <h4 style="font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.02em;">Note&nbsp;importanti</h4>
-        ${data.fiscalNotes ? `
-        <p style="font-size: 11px; font-weight: 400; text-transform: uppercase; line-height: 1.6; letter-spacing: 0.01em; word-spacing: 0.1em; word-wrap: break-word; overflow-wrap: break-word;">${data.fiscalNotes}</p>
-        ` : `
-        <p style="font-size: 11px; font-weight: 400; text-transform: uppercase; line-height: 1.6; letter-spacing: 0.01em; word-spacing: 0.1em; word-wrap: break-word; overflow-wrap: break-word;">QUESTO DOCUMENTO NON COSTITUISCE FATTURA A FINI FISCALI, CHE SARÀ EMESSA AL MOMENTO DEL PAGAMENTO.</p>
-        ${data.isVatZero ? `
-        <p style="font-size: 11px; font-weight: 400; text-transform: uppercase; line-height: 1.6; letter-spacing: 0.01em; word-spacing: 0.1em; word-wrap: break-word; overflow-wrap: break-word;">IVA 0% - OPERAZIONE NON SOGGETTA A IVA AI SENSI DELL'ART. 1, COMMI 54-89, LEGGE N. 190/2014 E SUCC. MODIFICHE/INTEGRAZIONI.</p>
-        ` : ''}
-        `}
+        <h2 style="margin: 0 0 2mm 0; font-size: 12px; font-weight: 500;">Annotazioni</h2>
+        <p style="margin: 0; width: 50%; font-size: 9px;">
+          ${data.fiscalNotes ? data.fiscalNotes : `${data.isVatZero ? 'IVA 0% - Operazione non soggetta a IVA ai sensi della legge 190/2014.<br><br>' : ''}Questo documento non costituisce fattura fiscale, che sarà emessa al pagamento.`}
+        </p>
       </div>
     </div>
   `

@@ -100,6 +100,13 @@ export async function generateInvoicePDF(invoiceId: number, data: InvoicePDFData
 }
 
 function getInvoiceHTML(data: InvoicePDFData): string {
+  const paymentBank = data.paymentBank || 'REVOLUT BANK UAB';
+  const paymentIban = data.paymentIban || 'LT95 3250 0482 6617 5203';
+  const paymentBeneficiary = data.paymentBeneficiary || 'STEFANO COSTATO E DAVIDE MARANGONI';
+  const paymentBic = data.paymentBic || 'REVOLT21';
+  const paymentSdi = data.paymentSdi || 'JI3TXCE';
+  const isImmediate = data.paymentDays === 0;
+
   return `
 <!DOCTYPE html>
 <html lang="it">
@@ -107,398 +114,192 @@ function getInvoiceHTML(data: InvoicePDFData): string {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Fattura ${data.invoiceNumber}</title>
-
-    <!--ADOBE FONTS-->
     <link rel="stylesheet" href="https://use.typekit.net/ekm2csm.css">
-
     <style>
+        @page { size: A4; margin: 10mm; }
         * {
-            margin: 0;
-            padding: 0;
             box-sizing: border-box;
+            font-size: 12px;
+            font-weight: 500;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
-            color-adjust: exact !important;
         }
-
+        html, body { height: 100%; margin: 0; }
         body {
-            font-family: "Elza", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+            background: #fff;
             color: #000;
-            background-color: #ffffff;
-            margin: 0;
-            padding: 0;
+            font-family: "Elza", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+            line-height: 1.35;
         }
-
         .page-wrapper {
             width: 210mm;
             height: 297mm;
             margin: 0 auto;
-            background: white;
+            padding: 10mm;
+            background: #fff;
+            display: flex;
+            flex-direction: column;
         }
-
-        .invoice-container {
-            background-color: white;
-            padding: 2em;
+        .content { flex: 1; }
+        .top {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            column-gap: 18mm;
+        }
+        .block { display: block; margin: 0; }
+        .meta {
+            justify-self: end;
+            max-width: 78mm;
             width: 100%;
-            position: relative;
         }
-
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 2em;
-        }
-
-        .logo {
-            width: 180px;
-            height: auto;
-        }
-
-        .logo svg {
-            width: 100%;
-            height: auto;
-        }
-
-        .company-info {
-            display: flex;
-            gap: 2em;
-        }
-
-        .company-column {
-            font-size: 12px;
-            text-transform: uppercase;
-            line-height: 1.4;
-            letter-spacing: 0.01em;
-        }
-
-        .meta-info {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-end;
-            margin-bottom: -1em;
-        }
-
-        .fattura-title {
-            font-size: 48px;
-            text-transform: uppercase;
-            font-weight: 500;
-            margin: 0;
-            letter-spacing: 0.02em;
-        }
-
-        .invoice-number {
-            font-size: 48px;
-            text-transform: uppercase;
-            font-weight: 500;
-            margin: 0;
-            letter-spacing: 0.02em;
-        }
-
-        .invoice-date {
-            font-size: 48px;
-            text-transform: uppercase;
-            font-weight: 500;
-            margin-bottom: 0.5em;
-            text-align-last: justify;
-            letter-spacing: 0.02em;
-        }
-
-        .client-section {
-            margin-bottom: 2em;
-        }
-
-        .client-info {
-            display: flex;
-            gap: 2em;
-            font-size: 14px;
-            font-weight: 400;
-            text-transform: uppercase;
-            line-height: 1.4;
-            letter-spacing: 0.01em;
-        }
-
-        h3{
-            font-size: 12px;
-            font-weight: 500;
-        }
-
-        .client-column {
-            flex: 1;
-        }
-
-        .object-section {
-            margin-bottom: 0.75em;
-        }
-
-        .invoice-object {
-            font-size: 16px;
-            font-weight: 500;
-            text-transform: uppercase;
-            margin-bottom: 1em;
-            letter-spacing: 0.01em;
-        }
-
-        .divider {
-            border-top: 1px solid #000;
-            border-bottom: 1px solid #000;
-            margin: 0.5em 0;
-        }
-
-        .services-table {
-            width: 100%;
-            margin-bottom: 1em;
-        }
-
-        .services-header {
-            display: flex;
-            align-items: center;
-            font-size: 14px;
-            font-weight: 400;
-            text-transform: uppercase;
-            padding: 0.5em 0;
-            letter-spacing: 0.01em;
-        }
-
-        .service-description {
-            flex: 6;
-        }
-
-        .service-quantity {
-            flex: 1;
-            text-align: center;
-        }
-
-        .service-price {
-            flex: 2;
-            text-align: right;
-        }
-
-        .service-vat {
-            flex: 1.5;
-            text-align: right;
-        }
-
-        .totals {
+        .meta-row {
             display: grid;
             grid-template-columns: 1fr auto;
+            column-gap: 10mm;
+        }
+        .meta-value { text-align: right; white-space: nowrap; }
+        .section { margin-top: 18mm; }
+        .section-title { margin: 0 0 2mm 0; font-size: 12px; font-weight: 500; }
+        .client-lines { display: block; margin: 0; }
+        .object-lines { margin: 0; }
+        .services { margin-top: 10mm; }
+        table {
             width: 100%;
-            margin-top: 20px;
+            border-collapse: collapse;
+            table-layout: fixed;
         }
-
-        .totals-labels {
+        col:nth-child(1) { width: 58%; }
+        col:nth-child(2) { width: 14%; }
+        col:nth-child(3) { width: 14%; }
+        col:nth-child(4) { width: 14%; }
+        thead th {
+            border-bottom: 1px solid #000;
+            padding-bottom: 1mm;
+            font-size: 9px;
             text-align: left;
-            font-size: 24px;
             font-weight: 500;
-            text-transform: uppercase;
-            letter-spacing: 0.02em;
         }
-
-        .totals-values {
+        thead th:nth-child(2), thead th:nth-child(3) { text-align: center; }
+        thead th:nth-child(4) { text-align: right; }
+        tbody td {
+            border-bottom: 1px solid #000;
+            padding: 2mm 0;
+        }
+        tbody td:nth-child(2), tbody td:nth-child(3) {
+            text-align: center;
+            white-space: nowrap;
+        }
+        tbody td:nth-child(4) {
             text-align: right;
-            font-size: 24px;
-            font-weight: 500;
-            text-transform: uppercase;
-            letter-spacing: 0.02em;
+            white-space: nowrap;
         }
-
-        .total-invoice{
-            padding-top: 1.5em;
+        .total-row {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            margin-top: 10mm;
         }
-
-        .notes-section {
-            margin-bottom: 3em;
+        .total-value { text-align: right; }
+        .footer { margin-top: 20mm; }
+        .kv {
+            display: grid;
+            grid-template-columns: 38mm 1fr;
+            column-gap: 6mm;
+            margin-bottom: 12mm;
         }
-
-        .notes-section p {
-            font-size: 11px;
-            font-weight: 400;
-            text-transform: uppercase;
-            line-height: 1.6;
-            letter-spacing: 0.01em;
-            word-spacing: 0.1em;
-        }
-
-        .payment-section {
-            margin-bottom: 2em;
-        }
-
-        .payment-title {
-            font-size: 36px;
-            font-weight: 500;
-            text-transform: uppercase;
-            margin-bottom: 0.15em;
-        }
-
-        .payment-label {
-            font-size: 14px;
-            font-weight: 500;
-            text-transform: uppercase;
-            margin-bottom: 0.1em;
-            width: 120px;
-            display: inline-block;
-        }
-
-        .payment-value {
-            font-size: 14px;
-            font-weight: 400;
-            text-transform: uppercase;
-        }
-
-        h4{
-            font-size: 12px;
-            font-weight: 500;
-            text-transform: uppercase;
-        }
-
-        .footer-disclaimer {
-            margin-top: 2em;
-        }
-
-        .footer-disclaimer h4 {
-            margin-bottom: 0.5em;
-        }
-
-        .footer-disclaimer p {
-            font-size: 11px;
-            font-weight: 400;
-            text-transform: uppercase;
-            line-height: 1.6;
-            letter-spacing: 0.01em;
-            word-spacing: 0.1em;
-            margin: 0.3em 0;
-            word-wrap: break-word;
-            overflow-wrap: break-word;
-        }
+        .v { white-space: pre-line; }
+        .notes { margin: 0; width: 50%; font-size: 9px; }
     </style>
 </head>
 <body>
     <div class="page-wrapper">
-        <div class="invoice-container">
-            <!--HEADER-->
-            <div class="header">
-                <div class="logo-section">
-                   <div class="logo">
-                       <svg width="1408" height="373" viewBox="0 0 1408 373" fill="none" xmlns="http://www.w3.org/2000/svg">
-                           <g clip-path="url(#clip0_1_11)">
-                               <path d="M198.262 186.743C185.744 231.795 176.217 283.383 176.217 283.383H175.244C175.244 283.383 165.23 231.795 152.712 186.743L102.156 7.02199H0V364.935H66.6204V159.698C66.6204 130.637 63.6302 85.5849 63.6302 85.5849H64.6037C64.6037 85.5849 72.601 127.647 80.1114 153.65L140.195 364.935H209.806L271.419 153.65C278.93 127.647 286.927 85.5849 286.927 85.5849H287.9C287.9 85.5849 284.91 130.637 284.91 159.698V364.935H352.504V7.02199H248.818L198.262 186.743Z" fill="black"/>
-                               <path d="M1235.75 0C1175.87 0 1128.38 25.5851 1098.47 67.2304L1110.09 7.02199H1006.96L920.864 192.722C900.35 237.288 884.286 285.329 884.286 285.329H883.799C883.799 285.329 883.312 233.742 879.279 183.684L865.788 6.95247H766.135L721.837 236.384C710.502 178.887 655.843 163.383 590.405 149.13C537.345 137.589 512.31 129.107 512.31 100.046C512.31 74.5305 537.831 57.9836 576.914 57.9836C615.996 57.9836 642.004 75.9905 646.037 112.074H715.648C710.015 40.0462 657.929 0.486673 577.331 0.486673C496.733 0.486673 440.126 37.0567 440.126 107.624C440.126 182.224 498.68 199.258 562.797 213.788C617.387 226.303 651.462 233.325 651.462 268.365C651.462 301.39 618.916 314.391 581.851 314.391C530.808 314.391 506.26 297.357 501.253 254.321H435.675V7.02199H363.074V364.935H435.675V288.527C451.879 342.687 503.617 372.93 584.911 372.93C638.318 372.93 681.921 355.063 705.356 321.969L697.081 364.935H762.658L802.227 159.698C807.721 130.637 813.771 84.6115 813.771 84.6115H814.744C814.744 84.6115 815.231 127.161 817.248 153.719L834.285 365.005H902.366L1000.98 153.232C1015.02 123.198 1030.53 84.6811 1030.53 84.6811H1031.5C1031.5 84.6811 1019.96 128.76 1013.98 159.768L974.411 365.005H1041.03L1067.04 230.405C1082.83 314.738 1145.06 373.069 1235.82 373.069C1341.45 373.069 1408.07 293.95 1408.07 186.813C1408.07 79.6753 1341.38 0 1235.75 0ZM1236.23 313.417C1170.66 313.417 1137.07 257.867 1137.07 186.743C1137.07 115.62 1170.59 59.5827 1236.23 59.5827C1301.88 59.5827 1333.87 115.133 1333.87 186.743C1333.87 258.354 1301.81 313.417 1236.23 313.417Z" fill="black"/>
-                           </g>
-                           <defs>
-                               <clipPath id="clip0_1_11">
-                                   <rect width="1408" height="373" fill="white"/>
-                               </clipPath>
-                           </defs>
-                       </svg>
-                   </div>
+        <div class="content">
+            <header class="top">
+                <div>
+                    <span class="block">MISMO®STUDIO</span>
+                    <span class="block">di Stefano Costato e Davide Marangoni</span>
+                    <span class="block">P.IVA IT04904900232 / IT05052740239</span>
+                    <span class="block">hi@mismo.studio</span>
+                    <span class="block">(+39) 375 620 9885</span>
+                    <span class="block">Via Madonna 14 - 37026</span>
+                    <span class="block">Pescantina / Verona - IT</span>
                 </div>
-                <div class="company-info">
-                    <div class="company-column">
-                        <p>MISMO&nbsp;|&nbsp;STUDIO&nbsp;GRAFICO&nbsp;&&nbsp;CREATIVO<br>DI&nbsp;STEFANO&nbsp;COSTATO&nbsp;E&nbsp;DAVIDE&nbsp;MARANGONI</p>
-                        <p>VIA&nbsp;DELL'ARTIGIANATO&nbsp;23<br>37135&nbsp;VERONA&nbsp;-&nbsp;IT</p>
+                <div class="meta">
+                    <div class="meta-row">
+                        <div>Fattura numero</div>
+                        <div class="meta-value">${data.invoiceNumber}</div>
                     </div>
-                    <div class="company-column">
-                        <p>HI@MISMO.STUDIO<br>(+39)&nbsp;375&nbsp;620&nbsp;9885</p>
-                        <p>PI&nbsp;(S)&nbsp;IT04904900232<br>PI&nbsp;(D)&nbsp;IT05052740239</p>
+                    <div class="meta-row">
+                        <div>Data</div>
+                        <div class="meta-value">${data.invoiceDate}</div>
+                    </div>
+                    <div class="meta-row">
+                        <div>Scadenza</div>
+                        <div class="meta-value">${isImmediate ? 'Immediato' : data.paymentDays + ' giorni'}</div>
                     </div>
                 </div>
-            </div>
+            </header>
 
-            <!--META INFO-->
-            <div class="meta-info">
-                <h1 class="fattura-title">Fattura</h1>
-                <h2 class="invoice-number">${data.invoiceNumber}</h2>
-            </div>
-            <h2 class="invoice-date">${data.invoiceDate}</h2>
+            <section class="section">
+                <h2 class="section-title">Cliente</h2>
+                <span class="client-lines">${data.clientName}</span>
+                ${data.clientPIva ? `<span class="client-lines">P.IVA ${data.clientPIva}</span>` : ''}
+                ${data.clientCF ? `<span class="client-lines">C.F. ${data.clientCF}</span>` : ''}
+                ${data.clientAddress ? `<span class="client-lines">${data.clientAddress}</span>` : ''}
+            </section>
 
-            <!--DESTINATARIO-->
-            <div class="client-section">
-                <div class="client-info">
-                    <div class="client-column">
-                        <h3>${data.clientName}</h3>
-                    </div>
-                    ${data.clientAddress ? `
-                    <div class="client-column">
-                        <h3>${data.clientAddress}</h3>
-                    </div>
-                    ` : ''}
-                    ${data.clientPIva ? `
-                    <div class="client-column">
-                        <h3>P.IVA&nbsp;${data.clientPIva}</h3>
-                    </div>
-                    ` : ''}
+            <section class="section">
+                <h2 class="section-title">Oggetto</h2>
+                <p class="object-lines">${data.subject}</p>
+            </section>
+
+            <section class="services">
+                <table>
+                    <colgroup><col><col><col><col></colgroup>
+                    <thead>
+                        <tr>
+                            <th>Servizio</th>
+                            <th>Quantità</th>
+                            <th>IVA</th>
+                            <th>Prezzo cad.</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${data.services && data.services.length > 0 ?
+                            data.services.map(service => `
+                                <tr>
+                                    <td>${service.description}</td>
+                                    <td>${service.quantity}</td>
+                                    <td>${data.vatPercentage}%</td>
+                                    <td>${service.unitPrice} EUR</td>
+                                </tr>
+                            `).join('')
+                        : ''}
+                    </tbody>
+                </table>
+
+                <div class="total-row">
+                    <div>Totale</div>
+                    <div class="total-value">${data.total} EUR</div>
                 </div>
-            </div>
-
-            <!--OGGETTO-->
-            <div class="object-section">
-                <div class="invoice-object">Oggetto:&nbsp;${data.subject}</div>
-                <div class="divider"></div>
-            </div>
-
-            <!--SERVIZI-->
-            <div class="services-table">
-                ${data.services && data.services.length > 0 ?
-                    data.services.map(service => `
-                        <div class="services-header">
-                            <div class="service-description">${service.description}</div>
-                            <div class="service-quantity">${service.quantity}x</div>
-                            <div class="service-price">${service.unitPrice ? service.unitPrice + '&nbsp;EUR' : ''}</div>
-                            <div class="service-vat">IVA&nbsp;0%</div>
-                        </div>
-                    `).join('')
-                : `
-                    <div class="services-header">
-                        <div class="service-description">${data.description}</div>
-                        <div class="service-quantity">${data.quantity}x</div>
-                        <div class="service-price">${data.unitPrice ? data.unitPrice + '&nbsp;EUR' : ''}</div>
-                        <div class="service-vat">IVA&nbsp;${data.vatPercentage}%</div>
-                    </div>
-                `}
-                <div class="divider"></div>
-            </div>
-
-            <!--TOTALI-->
-            <div class="totals">
-                <div class="totals-labels">
-                    <div>Subtotale</div>
-                    <div>IVA</div>
-                    <div class="total-invoice">Totale&nbsp;da&nbsp;pagare</div>
-                </div>
-                <div class="totals-values">
-                    <div>${data.subtotal}&nbsp;EUR</div>
-                    <div>${data.vatAmount}&nbsp;EUR</div>
-                    <div class="total-invoice">${data.total}&nbsp;EUR</div>
-                </div>
-            </div>
-
-            <!--INFORMAZIONI PAGAMENTO-->
-            <div class="divider"></div>
-            <div class="payment-section">
-                <h3 class="payment-title">Informazioni&nbsp;sul&nbsp;pagamento</h3>
-                <div class="payment-info">
-                    <span class="payment-label">[Scadenze]</span><span class="payment-value date">${data.paymentDays === 0 ? 'Immediato' : data.dueDate}:</span>&nbsp;<span class="payment-value subtotal">${data.total}&nbsp;EUR</span><br>
-                    <span class="payment-label">[Banca]</span><span class="payment-value">${(data.paymentBank || 'REVOLUT BANK UAB').replace(/ /g, '&nbsp;')}</span><br>
-                    <span class="payment-label">[IBAN]</span><span class="payment-value">${(data.paymentIban || 'LT95 3250 0482 6617 5203').replace(/ /g, '&nbsp;')}</span><br>
-                    <span class="payment-label">[Beneficiario]</span><span class="payment-value">${(data.paymentBeneficiary || 'STEFANO COSTATO E DAVIDE MARANGONI').replace(/ /g, '&nbsp;')}</span><br>
-                    ${data.paymentBic ? `<span class="payment-label">[BIC/Swift]</span><span class="payment-value">${data.paymentBic}</span><br>` : ''}
-                    ${data.paymentSdi ? `<span class="payment-label">[SDI]</span><span class="payment-value">${data.paymentSdi}</span>` : ''}
-                </div>
-            </div>
-
-            <!--DISCLAIMER-->
-            <div class="footer-disclaimer">
-                <h4>Note&nbsp;importanti</h4>
-                ${data.fiscalNotes ? `
-                <p>${data.fiscalNotes}</p>
-                ` : `
-                <p>QUESTO DOCUMENTO NON COSTITUISCE FATTURA A FINI FISCALI, CHE SARÀ EMESSA AL MOMENTO DEL PAGAMENTO.</p>
-                ${data.isVatZero ? `
-                <p>IVA 0% - OPERAZIONE NON SOGGETTA A IVA AI SENSI DELL'ART. 1, COMMI 54-89, LEGGE N. 190/2014 E SUCC. MODIFICHE/INTEGRAZIONI.</p>
-                ` : ''}
-                `}
-            </div>
+            </section>
         </div>
+
+        <footer class="footer">
+            <h2 class="section-title">Informazioni per il pagamento</h2>
+            <div class="kv">
+                <div>Scadenze</div><div class="v">${isImmediate ? 'Immediato' : data.dueDate}: ${data.total} EUR</div>
+                <div>Beneficiario</div><div class="v">${paymentBeneficiary}</div>
+                <div>IBAN</div><div class="v">${paymentIban}</div>
+                <div>Banca</div><div class="v">${paymentBank}</div>
+                ${paymentBic ? `<div>BIC</div><div class="v">${paymentBic}</div>` : ''}
+                ${paymentSdi ? `<div>SDI</div><div class="v">${paymentSdi}</div>` : ''}
+            </div>
+
+            <h2 class="section-title">Annotazioni</h2>
+            <p class="notes">
+                ${data.fiscalNotes ? data.fiscalNotes : `${data.isVatZero ? 'IVA 0% - Operazione non soggetta a IVA ai sensi della legge 190/2014.\n\n' : ''}Questo documento non costituisce fattura fiscale, che sarà emessa al pagamento.`}
+            </p>
+        </footer>
     </div>
 </body>
 </html>
