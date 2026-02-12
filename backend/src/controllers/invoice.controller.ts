@@ -313,7 +313,7 @@ export const createInvoice = async (req: Request, res: Response) => {
 
     // Calculate due date if not provided
     let calculatedDueDate = dueDate;
-    if (!calculatedDueDate && issueDate && paymentDays) {
+    if (!calculatedDueDate && issueDate && paymentDays !== undefined && paymentDays !== null && paymentDays !== '') {
       const issueDateObj = new Date(issueDate);
       calculatedDueDate = new Date(issueDateObj);
       calculatedDueDate.setDate(calculatedDueDate.getDate() + parseInt(paymentDays));
@@ -472,7 +472,7 @@ export const updateInvoice = async (req: Request, res: Response) => {
 
     // Calculate due date if not provided
     let calculatedDueDate = dueDate;
-    if (!calculatedDueDate && issueDate && paymentDays) {
+    if (!calculatedDueDate && issueDate && paymentDays !== undefined && paymentDays !== null && paymentDays !== '') {
       const issueDateObj = new Date(issueDate);
       calculatedDueDate = new Date(issueDateObj);
       calculatedDueDate.setDate(calculatedDueDate.getDate() + parseInt(paymentDays));
