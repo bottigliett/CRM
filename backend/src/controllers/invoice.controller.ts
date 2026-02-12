@@ -22,18 +22,21 @@ export const getInvoices = async (req: Request, res: Response) => {
     const where: any = {};
 
     // Status filter
+    // For overdue check, use start of today (midnight) so invoices are only overdue AFTER their due date
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
     if (status !== 'all') {
       if (status === 'overdue') {
-        // Overdue: status = ISSUED and dueDate < now
+        // Overdue: status = ISSUED and dueDate < start of today (not including today)
         where.status = 'ISSUED';
-        where.dueDate = { lt: new Date() };
+        where.dueDate = { lt: startOfToday };
       } else {
         where.status = (status as string).toUpperCase();
       }
     }
 
     // Period filter
-    const now = new Date();
     const filterYear = year ? parseInt(year as string) : now.getFullYear();
 
     if (period === 'this-month' || period === 'current_month') {
@@ -132,10 +135,10 @@ export const getInvoices = async (req: Request, res: Response) => {
       take: limitNum,
     });
 
-    // Add isOverdue flag
+    // Add isOverdue flag (overdue only after due date, not on the same day)
     const invoicesWithFlags = invoices.map((invoice: any) => ({
       ...invoice,
-      isOverdue: invoice.status === 'ISSUED' && invoice.dueDate < now,
+      isOverdue: invoice.status === 'ISSUED' && invoice.dueDate < startOfToday,
     }));
 
     // Calculate statistics if requested
@@ -161,11 +164,11 @@ export const getInvoices = async (req: Request, res: Response) => {
         .reduce((sum: number, i: any) => sum + i.total, 0);
 
       const totalPending = allInvoices
-        .filter((i: any) => i.status === 'ISSUED' && i.dueDate >= now)
+        .filter((i: any) => i.status === 'ISSUED' && i.dueDate >= startOfToday)
         .reduce((sum: number, i: any) => sum + i.total, 0);
 
       const overdueInvoices = allInvoices
-        .filter((i: any) => i.status === 'ISSUED' && i.dueDate < now);
+        .filter((i: any) => i.status === 'ISSUED' && i.dueDate < startOfToday);
 
       const overdueAmount = overdueInvoices.reduce((sum: number, i: any) => sum + i.total, 0);
 
@@ -231,9 +234,10 @@ export const getInvoice = async (req: Request, res: Response) => {
     }
 
     const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const invoiceWithFlags = {
       ...invoice,
-      isOverdue: invoice.status === 'ISSUED' && invoice.dueDate < now,
+      isOverdue: invoice.status === 'ISSUED' && invoice.dueDate < startOfToday,
     };
 
     res.json({
@@ -338,7 +342,7 @@ export const createInvoice = async (req: Request, res: Response) => {
         total,
         issueDate: new Date(issueDate),
         dueDate: new Date(calculatedDueDate),
-        paymentDays: parseInt(paymentDays || '30'),
+        paymentDays: paymentDays !== undefined && paymentDays !== null && paymentDays !== '' ? parseInt(paymentDays) : 30,
         status: (status?.toUpperCase() as InvoiceStatus) || 'DRAFT',
         paymentDate: paymentDate ? new Date(paymentDate) : null,
         paymentMethod,
@@ -509,7 +513,7 @@ export const updateInvoice = async (req: Request, res: Response) => {
         total,
         issueDate: new Date(issueDate),
         dueDate: new Date(calculatedDueDate),
-        paymentDays: parseInt(paymentDays || '30'),
+        paymentDays: paymentDays !== undefined && paymentDays !== null && paymentDays !== '' ? parseInt(paymentDays) : 30,
         status: newStatus,
         paymentDate: paymentDate ? new Date(paymentDate) : null,
         paymentMethod,

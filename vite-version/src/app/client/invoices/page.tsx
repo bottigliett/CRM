@@ -62,7 +62,10 @@ export default function ClientInvoicesPage() {
 
   const isOverdue = (invoice: Invoice) => {
     if (invoice.status === 'PAID' || invoice.status === 'CANCELLED') return false
-    return new Date(invoice.dueDate) < new Date()
+    // Compare dates only (not time) - overdue starts the day AFTER due date
+    const today = new Date()
+    const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+    return new Date(invoice.dueDate) < startOfToday
   }
 
   const handleDownloadPDF = async (invoice: Invoice) => {
