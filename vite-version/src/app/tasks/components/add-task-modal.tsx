@@ -46,7 +46,7 @@ import { toast } from "sonner"
 const taskFormSchema = z.object({
   title: z.string().min(1, "Il titolo è obbligatorio"),
   description: z.string().optional(),
-  contactId: z.number().optional(),
+  contactIds: z.array(z.number()).optional(),
   categoryId: z.number({ required_error: "La categoria è obbligatoria" }),
   priority: z.enum(['P1', 'P2', 'P3']),
   status: z.enum(['TODO', 'IN_PROGRESS', 'PENDING', 'COMPLETED']),
@@ -73,7 +73,7 @@ export function AddTaskModal({ onAddTask, onTaskAdded, trigger, editTask, open: 
   const [formData, setFormData] = useState({
     title: "",
     description: "",
-    contactId: undefined as number | undefined,
+    contactIds: [] as number[],
     categoryId: undefined as number | undefined,
     assignedTo: undefined as number | undefined,
     priority: "P2" as const,
@@ -131,10 +131,16 @@ export function AddTaskModal({ onAddTask, onTaskAdded, trigger, editTask, open: 
         ? [editTask.assignedTo, ...teamMemberIds.filter((id: number) => id !== editTask.assignedTo)]
         : teamMemberIds
 
+      // Merge contactId + taskContacts into a single contactIds array
+      const taskContactIds = (editTask as any).taskContacts?.map((tc: any) => tc.contactId || tc.contact?.id) || []
+      const allContactIds = taskContactIds.length > 0
+        ? [...new Set(taskContactIds)]
+        : editTask.contactId ? [editTask.contactId] : []
+
       setFormData({
         title: editTask.title,
         description: editTask.description || "",
-        contactId: editTask.contactId || undefined,
+        contactIds: allContactIds,
         categoryId: editTask.categoryId,
         assignedTo: undefined,
         priority: editTask.priority,
@@ -172,7 +178,7 @@ export function AddTaskModal({ onAddTask, onTaskAdded, trigger, editTask, open: 
         const updateData: CreateTaskData = {
           title: validatedData.title,
           description: validatedData.description,
-          contactId: validatedData.contactId,
+          contactIds: formData.contactIds,
           categoryId: validatedData.categoryId,
           assignedTo: assignedTo,
           priority: validatedData.priority,
@@ -195,7 +201,7 @@ export function AddTaskModal({ onAddTask, onTaskAdded, trigger, editTask, open: 
         const taskData: CreateTaskData = {
           title: validatedData.title,
           description: validatedData.description,
-          contactId: validatedData.contactId,
+          contactIds: formData.contactIds,
           categoryId: validatedData.categoryId,
           assignedTo: assignedTo,
           priority: validatedData.priority,
@@ -238,7 +244,7 @@ export function AddTaskModal({ onAddTask, onTaskAdded, trigger, editTask, open: 
     setFormData({
       title: "",
       description: "",
-      contactId: undefined,
+      contactIds: [],
       categoryId: undefined,
       assignedTo: undefined,
       priority: "P2",
@@ -480,46 +486,45 @@ export function AddTaskModal({ onAddTask, onTaskAdded, trigger, editTask, open: 
               </div>
             </div>
 
-          {/* Cliente - Full width */}
+          {/* Clienti - Full width (multi-select) */}
           <div className="space-y-2">
             <Label className="flex items-center gap-2">
               <UserCircle className="w-4 h-4" />
-              Cliente
+              Clienti
             </Label>
             <div className="space-y-2">
-              {formData.contactId ? (
-                <div className="flex items-center gap-2 p-3 border rounded-md bg-muted/50">
-                  <div className="flex-1">
-                    <div className="font-medium">
-                      {contacts.find(c => c.id === formData.contactId)?.name || 'Cliente selezionato'}
-                    </div>
-                    {contacts.find(c => c.id === formData.contactId)?.email && (
-                      <div className="text-sm text-muted-foreground">
-                        {contacts.find(c => c.id === formData.contactId)?.email}
-                      </div>
-                    )}
-                  </div>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setFormData(prev => ({ ...prev, contactId: undefined }))}
-                    className="flex-shrink-0"
-                  >
-                    <X className="w-4 h-4" />
-                  </Button>
+              {formData.contactIds.length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {formData.contactIds.map(cId => {
+                    const contact = contacts.find(c => c.id === cId)
+                    if (!contact) return null
+                    return (
+                      <Badge key={cId} variant="secondary" className="flex items-center gap-1">
+                        <span className="text-xs">{contact.name}</span>
+                        <button
+                          type="button"
+                          onClick={() => setFormData(prev => ({
+                            ...prev,
+                            contactIds: prev.contactIds.filter(id => id !== cId)
+                          }))}
+                          className="ml-1 hover:bg-muted rounded-full p-0.5"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </Badge>
+                    )
+                  })}
                 </div>
-              ) : (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setShowClientSearch(true)}
-                  className="w-full justify-start cursor-pointer"
-                >
-                  <Search className="w-4 h-4 mr-2" />
-                  Cerca nell'Anagrafica
-                </Button>
               )}
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowClientSearch(true)}
+                className="w-full justify-start cursor-pointer"
+              >
+                <Search className="w-4 h-4 mr-2" />
+                Aggiungi cliente
+              </Button>
             </div>
           </div>
 
@@ -652,17 +657,14 @@ export function AddTaskModal({ onAddTask, onTaskAdded, trigger, editTask, open: 
                     contact.mobile?.includes(query)
                   )
                 })
+                .filter(contact => !formData.contactIds.includes(contact.id))
                 .sort((a, b) => a.name.localeCompare(b.name))
                 .map(contact => (
                   <div
                     key={contact.id}
-                    className={cn(
-                      "p-4 hover:bg-muted cursor-pointer transition-colors",
-                      formData.contactId === contact.id && "bg-muted"
-                    )}
+                    className="p-4 hover:bg-muted cursor-pointer transition-colors"
                     onClick={() => {
-                      setFormData(prev => ({ ...prev, contactId: contact.id }))
-                      setShowClientSearch(false)
+                      setFormData(prev => ({ ...prev, contactIds: [...prev.contactIds, contact.id] }))
                       setClientSearchQuery("")
                     }}
                   >
@@ -670,9 +672,6 @@ export function AddTaskModal({ onAddTask, onTaskAdded, trigger, editTask, open: 
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
                           <h4 className="font-medium">{contact.name}</h4>
-                          {formData.contactId === contact.id && (
-                            <Badge variant="default" className="text-xs">Selezionato</Badge>
-                          )}
                         </div>
                         <div className="mt-1 space-y-1 text-sm text-muted-foreground">
                           {contact.email && <div>Email: {contact.email}</div>}
@@ -695,6 +694,7 @@ export function AddTaskModal({ onAddTask, onTaskAdded, trigger, editTask, open: 
                   </div>
                 )}
                 {contacts.length > 0 && contacts
+                  .filter(contact => !formData.contactIds.includes(contact.id))
                   .filter(contact => clientTypeFilter === 'all' || contact.type === clientTypeFilter)
                   .filter(contact => {
                     if (!clientSearchQuery) return true
@@ -712,35 +712,6 @@ export function AddTaskModal({ onAddTask, onTaskAdded, trigger, editTask, open: 
                     </div>
                   )}
               </div>
-
-              {/* Results Count */}
-              {contacts.length > 0 && (
-                <div className="text-sm text-muted-foreground text-center p-2 border-t">
-                  {contacts.filter(contact => clientTypeFilter === 'all' || contact.type === clientTypeFilter)
-                    .filter(contact => {
-                      if (!clientSearchQuery) return true
-                      const query = clientSearchQuery.toLowerCase()
-                      return (
-                        contact.name.toLowerCase().includes(query) ||
-                        contact.email?.toLowerCase().includes(query) ||
-                        contact.partitaIva?.toLowerCase().includes(query) ||
-                        contact.phone?.includes(query) ||
-                        contact.mobile?.includes(query)
-                      )
-                    }).length} {contacts.filter(contact => clientTypeFilter === 'all' || contact.type === clientTypeFilter)
-                    .filter(contact => {
-                      if (!clientSearchQuery) return true
-                      const query = clientSearchQuery.toLowerCase()
-                      return (
-                        contact.name.toLowerCase().includes(query) ||
-                        contact.email?.toLowerCase().includes(query) ||
-                        contact.partitaIva?.toLowerCase().includes(query) ||
-                        contact.phone?.includes(query) ||
-                        contact.mobile?.includes(query)
-                      )
-                    }).length === 1 ? 'contatto trovato' : 'contatti trovati'}
-                </div>
-              )}
             </div>
           </div>
 

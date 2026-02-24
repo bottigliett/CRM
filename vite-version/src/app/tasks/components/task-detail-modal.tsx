@@ -139,8 +139,24 @@ export function TaskDetailModal({ task, open, onOpenChange, onEdit, onDelete, on
             </div>
           )}
 
-          {/* Contact/Client */}
-          {task.contact && (
+          {/* Contact/Client(s) */}
+          {((task as any).taskContacts && (task as any).taskContacts.length > 0) ? (
+            <div className="flex items-start gap-3">
+              <Building2 className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <p className="text-xs text-muted-foreground mb-2">
+                  Client{(task as any).taskContacts.length > 1 ? 'i' : 'e'}
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {(task as any).taskContacts.map((tc: any) => (
+                    <div key={tc.contactId} className="flex items-center gap-2 px-3 py-1.5 bg-muted rounded-md">
+                      <span className="text-sm font-medium">{tc.contact.name}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          ) : task.contact ? (
             <div className="flex items-center gap-3">
               {task.contact.type === 'COMPANY' ? (
                 <Building2 className="w-4 h-4 text-muted-foreground shrink-0" />
@@ -152,7 +168,7 @@ export function TaskDetailModal({ task, open, onOpenChange, onEdit, onDelete, on
                 <p className="text-xs text-muted-foreground">Cliente</p>
               </div>
             </div>
-          )}
+          ) : null}
 
           <Separator />
 

@@ -215,6 +215,7 @@ model Contact {
   events            Event[]              // Events linked to this contact
   eventParticipants EventParticipant[]   // Events where this contact is a participant
   tasks             Task[]               @relation("TaskContact") // Tasks linked to this contact (client)
+  taskContactLinks  TaskContact[]        @relation("TaskContactJunction") // Tasks linked via junction table
   transactions      Transaction[]        // Transactions linked to this contact
   invoices          Invoice[]            // Invoices for this contact
   projects          Project[]            @relation("ProjectContact") // Projects for this contact
@@ -353,6 +354,7 @@ model Task {
   updater      User?        @relation("TaskUpdater", fields: [updatedBy], references: [id], onDelete: SetNull)
   archiver     User?        @relation("TaskArchiver", fields: [archivedBy], references: [id], onDelete: SetNull)
   teamMembers  TaskTeamMember[]
+  taskContacts TaskContact[]
 
   @@index([contactId])
   @@index([categoryId])
@@ -397,6 +399,22 @@ model TaskTeamMember {
   @@index([taskId])
   @@index([userId])
   @@map("task_team_members")
+}
+
+model TaskContact {
+  id        Int      @id @default(autoincrement())
+  taskId    Int      @map("task_id")
+  contactId Int      @map("contact_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations
+  task    Task    @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  contact Contact @relation("TaskContactJunction", fields: [contactId], references: [id], onDelete: Cascade)
+
+  @@unique([taskId, contactId])
+  @@index([taskId])
+  @@index([contactId])
+  @@map("task_contacts")
 }
 
 // ===================================

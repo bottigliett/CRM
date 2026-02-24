@@ -62,6 +62,15 @@ export const taskSchema = z.object({
       email: z.string().optional().nullable(),
     }),
   })).optional().nullable(),
+  taskContacts: z.array(z.object({
+    contactId: z.number(),
+    contact: z.object({
+      id: z.number(),
+      name: z.string(),
+      email: z.string().optional().nullable(),
+      type: z.string().optional().nullable(),
+    }),
+  })).optional().nullable(),
 })
 
 export type Task = z.infer<typeof taskSchema>

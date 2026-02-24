@@ -37,13 +37,29 @@ export const getTasks = async (req: AuthRequest, res: Response) => {
     }
     if (priority) where.priority = priority;
     if (categoryId) where.categoryId = parseInt(categoryId as string);
-    if (contactId) where.contactId = parseInt(contactId as string);
+    if (contactId) {
+      const cid = parseInt(contactId as string);
+      where.OR = [
+        { contactId: cid },
+        { taskContacts: { some: { contactId: cid } } },
+      ];
+    }
     if (assignedTo) where.assignedTo = parseInt(assignedTo as string);
     if (search) {
-      where.OR = [
+      const searchConditions = [
         { title: { contains: search as string } },
         { description: { contains: search as string } },
       ];
+      if (where.OR) {
+        // Combine contactId filter with search using AND
+        where.AND = [
+          { OR: where.OR },
+          { OR: searchConditions },
+        ];
+        delete where.OR;
+      } else {
+        where.OR = searchConditions;
+      }
     }
 
     // Get tasks with relations
@@ -92,6 +108,18 @@ export const getTasks = async (req: AuthRequest, res: Response) => {
                   lastName: true,
                   email: true,
                   role: true,
+                },
+              },
+            },
+          },
+          taskContacts: {
+            include: {
+              contact: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                  type: true,
                 },
               },
             },
@@ -168,6 +196,18 @@ export const getTaskById = async (req: AuthRequest, res: Response) => {
             },
           },
         },
+        taskContacts: {
+          include: {
+            contact: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                type: true,
+              },
+            },
+          },
+        },
       },
     });
 
@@ -205,6 +245,7 @@ export const createTask = async (req: AuthRequest, res: Response) => {
       title,
       description,
       contactId,
+      contactIds,
       categoryId,
       assignedTo,
       priority,
@@ -215,11 +256,17 @@ export const createTask = async (req: AuthRequest, res: Response) => {
       teamMembers = [],
     } = req.body;
 
+    // Resolve client IDs: prefer contactIds array, fallback to single contactId
+    const resolvedContactIds: number[] = contactIds && contactIds.length > 0
+      ? contactIds.map((id: number) => parseInt(String(id)))
+      : contactId ? [parseInt(String(contactId))] : [];
+    const primaryContactId = resolvedContactIds.length > 0 ? resolvedContactIds[0] : null;
+
     const task = await prisma.task.create({
       data: {
         title,
         description,
-        contactId,
+        contactId: primaryContactId,
         categoryId,
         assignedTo,
         createdBy: req.user.userId,
@@ -231,6 +278,11 @@ export const createTask = async (req: AuthRequest, res: Response) => {
         teamMembers: {
           create: teamMembers.map((userId: number) => ({
             userId: parseInt(String(userId)),
+          })),
+        },
+        taskContacts: {
+          create: resolvedContactIds.map((cId: number) => ({
+            contactId: cId,
           })),
         },
       },
@@ -270,32 +322,47 @@ export const createTask = async (req: AuthRequest, res: Response) => {
             },
           },
         },
+        taskContacts: {
+          include: {
+            contact: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                type: true,
+              },
+            },
+          },
+        },
       },
     });
 
-    // Send email notification to client if task is visible to them AND they have an active FULL_CLIENT dashboard
-    if (task.contactId && task.visibleToClient && task.contact?.email) {
-      try {
-        // Check if client has an active full dashboard (not just quote access)
-        const clientAccess = await prisma.clientAccess.findUnique({
-          where: { contactId: task.contactId },
-        });
+    // Send email notification to all clients if task is visible to them AND they have an active FULL_CLIENT dashboard
+    if (task.visibleToClient && task.taskContacts && task.taskContacts.length > 0) {
+      for (const tc of task.taskContacts) {
+        const clientContact = tc.contact;
+        if (!clientContact?.email) continue;
 
-        if (clientAccess && clientAccess.isActive && clientAccess.accessType === 'FULL_CLIENT') {
-          await sendClientTaskAssignedEmail(
-            task.contact.email,
-            task.contact.name,
-            task.title,
-            task.deadline,
-            task.description || undefined
-          );
-          console.log(`Task assignment email sent to ${task.contact.email}`);
-        } else {
-          console.log(`Task email NOT sent to ${task.contact.email} - no active full client dashboard (access type: ${clientAccess?.accessType || 'none'})`);
+        try {
+          const clientAccess = await prisma.clientAccess.findUnique({
+            where: { contactId: clientContact.id },
+          });
+
+          if (clientAccess && clientAccess.isActive && clientAccess.accessType === 'FULL_CLIENT') {
+            await sendClientTaskAssignedEmail(
+              clientContact.email,
+              clientContact.name,
+              task.title,
+              task.deadline,
+              task.description || undefined
+            );
+            console.log(`Task assignment email sent to ${clientContact.email}`);
+          } else {
+            console.log(`Task email NOT sent to ${clientContact.email} - no active full client dashboard (access type: ${clientAccess?.accessType || 'none'})`);
+          }
+        } catch (emailError) {
+          console.error(`Failed to send task assignment email to ${clientContact.email}:`, emailError);
         }
-      } catch (emailError) {
-        console.error('Failed to send task assignment email:', emailError);
-        // Don't fail the request if email fails
       }
     }
 
@@ -328,6 +395,7 @@ export const updateTask = async (req: AuthRequest, res: Response) => {
       title,
       description,
       contactId,
+      contactIds,
       categoryId,
       assignedTo,
       priority,
@@ -347,7 +415,24 @@ export const updateTask = async (req: AuthRequest, res: Response) => {
 
     if (title !== undefined) updateData.title = title;
     if (description !== undefined) updateData.description = description;
-    if (contactId !== undefined) updateData.contactId = contactId;
+    // Handle contactIds array (multi-client) - takes priority over single contactId
+    if (contactIds !== undefined) {
+      const resolvedIds: number[] = contactIds.map((cid: number) => parseInt(String(cid)));
+      updateData.contactId = resolvedIds.length > 0 ? resolvedIds[0] : null;
+      // Delete old junction records and recreate
+      await prisma.taskContact.deleteMany({
+        where: { taskId: parseInt(id) },
+      });
+      if (resolvedIds.length > 0) {
+        updateData.taskContacts = {
+          create: resolvedIds.map((cId: number) => ({
+            contactId: cId,
+          })),
+        };
+      }
+    } else if (contactId !== undefined) {
+      updateData.contactId = contactId;
+    }
     if (categoryId !== undefined) updateData.categoryId = categoryId;
     if (assignedTo !== undefined) updateData.assignedTo = assignedTo;
     if (priority !== undefined) updateData.priority = priority;
@@ -412,6 +497,18 @@ export const updateTask = async (req: AuthRequest, res: Response) => {
                 lastName: true,
                 email: true,
                 role: true,
+              },
+            },
+          },
+        },
+        taskContacts: {
+          include: {
+            contact: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                type: true,
               },
             },
           },

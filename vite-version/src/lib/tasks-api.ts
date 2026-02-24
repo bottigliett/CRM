@@ -40,6 +40,15 @@ export interface Task {
     firstName: string;
     lastName: string;
   };
+  taskContacts?: {
+    contactId: number;
+    contact: {
+      id: number;
+      name: string;
+      email?: string;
+      type?: string;
+    };
+  }[];
 }
 
 export interface TaskCategory {
@@ -71,6 +80,7 @@ export interface CreateTaskData {
   title: string;
   description?: string;
   contactId?: number;
+  contactIds?: number[];
   categoryId: number;
   assignedTo: number;
   priority?: 'P1' | 'P2' | 'P3';

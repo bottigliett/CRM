@@ -164,6 +164,17 @@ export const createColumns = (onViewTask?: (task: Task) => void, onTaskUpdated?:
     ),
     cell: ({ row }) => {
       const task = row.original
+      const taskContacts = (task as any).taskContacts || []
+
+      if (taskContacts.length > 0) {
+        const firstName = taskContacts[0].contact.name
+        const extraCount = taskContacts.length - 1
+        return (
+          <span className="text-sm">
+            {firstName}{extraCount > 0 && <span className="text-muted-foreground"> +{extraCount}</span>}
+          </span>
+        )
+      }
 
       if (!task.contact) return <span className="text-muted-foreground text-sm">-</span>
 

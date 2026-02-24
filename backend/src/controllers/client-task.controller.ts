@@ -19,7 +19,7 @@ export const getClientTasks = async (req: ClientAuthRequest, res: Response) => {
     const contactId = req.client.contactId;
 
     const where: any = {
-      contactId,
+      taskContacts: { some: { contactId } },
       isArchived: isArchived === 'true',
     };
 
@@ -87,7 +87,7 @@ export const getClientTaskById = async (req: ClientAuthRequest, res: Response) =
     const task = await prisma.task.findFirst({
       where: {
         id: parseInt(id),
-        contactId,
+        taskContacts: { some: { contactId } },
       },
       include: {
         contact: {
