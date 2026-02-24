@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { useLocation } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { SidebarTrigger } from "@/components/ui/sidebar"
@@ -10,6 +11,8 @@ import { NotificationsButton } from "@/components/notifications-button"
 import { getAppUrl } from "@/lib/utils"
 
 export function SiteHeader() {
+  const location = useLocation()
+  const isClientArea = location.pathname.startsWith('/client')
   const [searchOpen, setSearchOpen] = React.useState(false)
 
   React.useEffect(() => {
@@ -37,27 +40,31 @@ export function SiteHeader() {
             <SearchTrigger onClick={() => setSearchOpen(true)} />
           </div>
           <div className="ml-auto flex items-center gap-2">
-            <NotificationsButton />
-            <Button variant="ghost" asChild size="sm" className="hidden sm:flex">
-              <a
-                href={getAppUrl("/landing")}
-                rel="noopener noreferrer"
-                target="_blank"
-                className="dark:text-foreground"
-              >
-                Landing Page
-              </a>
-            </Button>
-            <Button variant="ghost" asChild size="sm" className="hidden sm:flex">
-              <a
-                href="https://studiomismo.it"
-                rel="noopener noreferrer"
-                target="_blank"
-                className="dark:text-foreground"
-              >
-                Website
-              </a>
-            </Button>
+            {!isClientArea && (
+              <>
+                <NotificationsButton />
+                <Button variant="ghost" asChild size="sm" className="hidden sm:flex">
+                  <a
+                    href={getAppUrl("/landing")}
+                    rel="noopener noreferrer"
+                    target="_blank"
+                    className="dark:text-foreground"
+                  >
+                    Landing Page
+                  </a>
+                </Button>
+                <Button variant="ghost" asChild size="sm" className="hidden sm:flex">
+                  <a
+                    href="https://studiomismo.it"
+                    rel="noopener noreferrer"
+                    target="_blank"
+                    className="dark:text-foreground"
+                  >
+                    Website
+                  </a>
+                </Button>
+              </>
+            )}
             <ModeToggle />
           </div>
         </div>
