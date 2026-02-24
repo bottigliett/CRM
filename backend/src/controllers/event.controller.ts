@@ -504,30 +504,31 @@ export const createEvent = async (req: Request, res: Response) => {
       }
     }
 
-    // Send email notification to client if event has "Appuntamenti clienti" category AND client has active FULL_CLIENT dashboard
+    // Send email notification to all clients if event has "Appuntamenti clienti" category AND client has active FULL_CLIENT dashboard
     const isClientAppointment = event.category?.name === 'Appuntamenti clienti';
-    if (event.contactId && isClientAppointment && event.contact?.email) {
-      try {
-        // Check if client has an active full dashboard (not just quote access)
-        const clientAccess = await prisma.clientAccess.findUnique({
-          where: { contactId: event.contactId },
-        });
+    if (isClientAppointment && event.eventContacts && event.eventContacts.length > 0) {
+      for (const ec of event.eventContacts) {
+        if (!ec.contact.email) continue;
+        try {
+          const clientAccess = await prisma.clientAccess.findUnique({
+            where: { contactId: ec.contactId },
+          });
 
-        if (clientAccess && clientAccess.isActive && clientAccess.accessType === 'FULL_CLIENT') {
-          await sendClientEventCreatedEmail(
-            event.contact.email,
-            event.contact.name,
-            event.title,
-            new Date(event.startDateTime),
-            event.location || undefined
-          );
-          console.log(`Event notification email sent to ${event.contact.email}`);
-        } else {
-          console.log(`Event email NOT sent to ${event.contact.email} - no active full client dashboard (access type: ${clientAccess?.accessType || 'none'})`);
+          if (clientAccess && clientAccess.isActive && clientAccess.accessType === 'FULL_CLIENT') {
+            await sendClientEventCreatedEmail(
+              ec.contact.email,
+              ec.contact.name,
+              event.title,
+              new Date(event.startDateTime),
+              event.location || undefined
+            );
+            console.log(`Event notification email sent to ${ec.contact.email}`);
+          } else {
+            console.log(`Event email NOT sent to ${ec.contact.email} - no active full client dashboard (access type: ${clientAccess?.accessType || 'none'})`);
+          }
+        } catch (emailError) {
+          console.error(`Failed to send event notification email to ${ec.contact.email}:`, emailError);
         }
-      } catch (emailError) {
-        console.error('Failed to send event notification email:', emailError);
-        // Don't fail the request if email fails
       }
     }
 
