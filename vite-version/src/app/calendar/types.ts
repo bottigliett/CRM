@@ -14,7 +14,17 @@ export interface CalendarEvent {
   categoryName?: string
   assignedTo?: number
   contactId?: number
+  contactIds?: number[]
   contactName?: string
+  eventContacts?: Array<{
+    contactId: number
+    contact: {
+      id: number
+      name: string
+      email?: string
+      type?: string
+    }
+  }>
   allDay?: boolean
   teamMembers?: Array<{
     id: number

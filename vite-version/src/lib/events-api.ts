@@ -34,6 +34,16 @@ export interface Event {
     email: string;
     role: string;
   };
+  eventContacts?: Array<{
+    id: number;
+    contactId: number;
+    contact: {
+      id: number;
+      name: string;
+      email?: string;
+      type?: string;
+    };
+  }>;
   participants?: EventParticipant[];
   teamMembers?: Array<{
     id: number;
@@ -107,6 +117,7 @@ export interface CreateEventData {
   endDateTime: string;
   categoryId?: number;
   contactId?: number;
+  contactIds?: number[];
   location?: string;
   notes?: string;
   status?: string;

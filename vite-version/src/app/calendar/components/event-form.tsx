@@ -74,7 +74,7 @@ export function EventForm({ event, open, onOpenChange, onSave, onDelete }: Event
     duration: event?.duration || "60 min",
     categoryId: undefined as number | undefined,
     assignedTo: undefined as number | undefined,
-    contactId: undefined as number | undefined,
+    contactIds: [] as number[],
     participants: [] as number[],
     location: event?.location || "",
     description: event?.description || "",
@@ -118,7 +118,7 @@ export function EventForm({ event, open, onOpenChange, onSave, onDelete }: Event
         duration: event.duration || "60 min",
         categoryId: event.categoryId,
         assignedTo: event.assignedTo,
-        contactId: event.contactId,
+        contactIds: event.contactIds || (event.contactId ? [event.contactId] : []),
         participants: allParticipants,
         location: event.location || "",
         description: event.description || "",
@@ -138,7 +138,7 @@ export function EventForm({ event, open, onOpenChange, onSave, onDelete }: Event
         duration: "60 min",
         categoryId: undefined,
         assignedTo: undefined,
-        contactId: undefined,
+        contactIds: [],
         participants: [],
         location: "",
         description: "",
@@ -204,6 +204,7 @@ export function EventForm({ event, open, onOpenChange, onSave, onDelete }: Event
       ...formData,
       ...(event?.id && { id: event.id }),
       assignedTo: formData.participants[0],
+      contactIds: formData.contactIds,
       color: selectedCategory?.color || formData.color
     }
     onSave(eventData)
@@ -419,46 +420,45 @@ export function EventForm({ event, open, onOpenChange, onSave, onDelete }: Event
             </div>
           </div>
 
-          {/* Cliente - Full width */}
+          {/* Clienti - Multi-select */}
           <div className="space-y-2">
             <Label className="flex items-center gap-2">
               <UserCircle className="w-4 h-4" />
-              Cliente
+              Clienti
             </Label>
             <div className="space-y-2">
-              {formData.contactId ? (
-                <div className="flex items-center gap-2 p-3 border rounded-md bg-muted/50">
-                  <div className="flex-1">
-                    <div className="font-medium">
-                      {contacts.find(c => c.id === formData.contactId)?.name || 'Cliente selezionato'}
-                    </div>
-                    {contacts.find(c => c.id === formData.contactId)?.email && (
-                      <div className="text-sm text-muted-foreground">
-                        {contacts.find(c => c.id === formData.contactId)?.email}
-                      </div>
-                    )}
-                  </div>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setFormData(prev => ({ ...prev, contactId: undefined }))}
-                    className="flex-shrink-0"
-                  >
-                    <X className="w-4 h-4" />
-                  </Button>
+              {formData.contactIds.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {formData.contactIds.map(cId => {
+                    const contact = contacts.find(c => c.id === cId)
+                    if (!contact) return null
+                    return (
+                      <Badge key={cId} variant="secondary" className="flex items-center gap-1">
+                        <span className="text-xs">{contact.name}</span>
+                        <button
+                          type="button"
+                          onClick={() => setFormData(prev => ({
+                            ...prev,
+                            contactIds: prev.contactIds.filter(id => id !== cId)
+                          }))}
+                          className="ml-1 hover:bg-muted rounded-full p-0.5"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </Badge>
+                    )
+                  })}
                 </div>
-              ) : (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setShowClientSearch(true)}
-                  className="w-full justify-start cursor-pointer"
-                >
-                  <Search className="w-4 h-4 mr-2" />
-                  Cerca nell'Anagrafica
-                </Button>
               )}
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowClientSearch(true)}
+                className="w-full justify-start cursor-pointer"
+              >
+                <Search className="w-4 h-4 mr-2" />
+                Cerca nell'Anagrafica
+              </Button>
             </div>
           </div>
 
@@ -775,24 +775,28 @@ export function EventForm({ event, open, onOpenChange, onSave, onDelete }: Event
                   )
                 })
                 .sort((a, b) => a.name.localeCompare(b.name))
-                .map(contact => (
+                .map(contact => {
+                  const isSelected = formData.contactIds.includes(contact.id)
+                  return (
                   <div
                     key={contact.id}
                     className={cn(
                       "p-4 hover:bg-muted cursor-pointer transition-colors",
-                      formData.contactId === contact.id && "bg-muted"
+                      isSelected && "bg-muted"
                     )}
                     onClick={() => {
-                      setFormData(prev => ({ ...prev, contactId: contact.id }))
-                      setShowClientSearch(false)
-                      setClientSearchQuery("")
+                      if (isSelected) {
+                        setFormData(prev => ({ ...prev, contactIds: prev.contactIds.filter(id => id !== contact.id) }))
+                      } else {
+                        setFormData(prev => ({ ...prev, contactIds: [...prev.contactIds, contact.id] }))
+                      }
                     }}
                   >
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
                           <h4 className="font-medium">{contact.name}</h4>
-                          {formData.contactId === contact.id && (
+                          {isSelected && (
                             <Badge variant="default" className="text-xs">Selezionato</Badge>
                           )}
                         </div>
@@ -810,7 +814,8 @@ export function EventForm({ event, open, onOpenChange, onSave, onDelete }: Event
                       </div>
                     </div>
                   </div>
-                ))}
+                  )
+                })}
                 {contacts.length === 0 && (
                   <div className="p-8 text-center text-muted-foreground">
                     Nessun contatto trovato
@@ -865,7 +870,13 @@ export function EventForm({ event, open, onOpenChange, onSave, onDelete }: Event
           </div>
 
           {/* Actions */}
-          <div className="flex justify-end gap-2">
+          <div className="flex items-center justify-between gap-2">
+            {formData.contactIds.length > 0 && (
+              <span className="text-sm text-muted-foreground">
+                {formData.contactIds.length} {formData.contactIds.length === 1 ? 'cliente selezionato' : 'clienti selezionati'}
+              </span>
+            )}
+            <div className="flex-1" />
             <Button
               type="button"
               variant="outline"

@@ -216,6 +216,7 @@ model Contact {
   eventParticipants EventParticipant[]   // Events where this contact is a participant
   tasks             Task[]               @relation("TaskContact") // Tasks linked to this contact (client)
   taskContactLinks  TaskContact[]        @relation("TaskContactJunction") // Tasks linked via junction table
+  eventContactLinks EventContact[]       @relation("EventContactJunction") // Events linked via junction table
   transactions      Transaction[]        // Transactions linked to this contact
   invoices          Invoice[]            // Invoices for this contact
   projects          Project[]            @relation("ProjectContact") // Projects for this contact
@@ -478,9 +479,10 @@ model Event {
   contact      Contact?           @relation(fields: [contactId], references: [id], onDelete: SetNull)
   assignedUser User?              @relation("AssignedEvents", fields: [assignedTo], references: [id], onDelete: SetNull)
   createdUser  User               @relation("CreatedEvents", fields: [createdBy], references: [id], onDelete: Cascade)
-  participants EventParticipant[]
-  teamMembers  EventTeamMember[]
-  reminders    EventReminder[]
+  participants  EventParticipant[]
+  teamMembers   EventTeamMember[]
+  reminders     EventReminder[]
+  eventContacts EventContact[]
 
   @@index([startDateTime])
   @@index([contactId])
@@ -537,6 +539,22 @@ model EventTeamMember {
   @@index([eventId])
   @@index([userId])
   @@map("event_team_members")
+}
+
+model EventContact {
+  id        Int      @id @default(autoincrement())
+  eventId   Int      @map("event_id")
+  contactId Int      @map("contact_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations
+  event   Event   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  contact Contact @relation("EventContactJunction", fields: [contactId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, contactId])
+  @@index([eventId])
+  @@index([contactId])
+  @@map("event_contacts")
 }
 
 // ===================================

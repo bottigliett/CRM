@@ -57,9 +57,16 @@ export const getEvents = async (req: Request, res: Response) => {
       where.categoryId = parseInt(categoryId as string);
     }
 
-    // Contact filter
+    // Contact filter - search in both legacy contactId and eventContacts junction
     if (contactId) {
-      where.contactId = parseInt(contactId as string);
+      const cId = parseInt(contactId as string);
+      if (!where.AND) where.AND = [];
+      where.AND.push({
+        OR: [
+          { contactId: cId },
+          { eventContacts: { some: { contactId: cId } } },
+        ],
+      });
     }
 
     // Status filter
@@ -69,11 +76,14 @@ export const getEvents = async (req: Request, res: Response) => {
 
     // Search filter (title, description, location)
     if (search) {
-      where.OR = [
-        { title: { contains: search as string } },
-        { description: { contains: search as string } },
-        { location: { contains: search as string } },
-      ];
+      if (!where.AND) where.AND = [];
+      where.AND.push({
+        OR: [
+          { title: { contains: search as string } },
+          { description: { contains: search as string } },
+          { location: { contains: search as string } },
+        ],
+      });
     }
 
     // Get total count
@@ -133,6 +143,18 @@ export const getEvents = async (req: Request, res: Response) => {
                 lastName: true,
                 email: true,
                 role: true,
+              },
+            },
+          },
+        },
+        eventContacts: {
+          include: {
+            contact: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                type: true,
               },
             },
           },
@@ -233,6 +255,18 @@ export const getEventById = async (req: Request, res: Response) => {
             },
           },
         },
+        eventContacts: {
+          include: {
+            contact: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                type: true,
+              },
+            },
+          },
+        },
         reminders: true,
       },
     });
@@ -271,6 +305,7 @@ export const createEvent = async (req: Request, res: Response) => {
       endDateTime,
       categoryId,
       contactId,
+      contactIds,
       location,
       notes,
       status = 'scheduled',
@@ -293,6 +328,11 @@ export const createEvent = async (req: Request, res: Response) => {
       assignedTo,
     });
 
+    // Resolve contactIds: prefer contactIds[], fallback to single contactId
+    const resolvedContactIds: number[] = contactIds
+      ? contactIds.map((id: any) => parseInt(id))
+      : (contactId ? [parseInt(contactId)] : []);
+
     // Validation
     if (!title || !startDateTime || !endDateTime) {
       return res.status(400).json({
@@ -311,7 +351,7 @@ export const createEvent = async (req: Request, res: Response) => {
         startDateTime: new Date(startDateTime),
         endDateTime: new Date(endDateTime),
         categoryId: categoryId ? parseInt(categoryId) : null,
-        contactId: contactId ? parseInt(contactId) : null,
+        contactId: resolvedContactIds.length > 0 ? resolvedContactIds[0] : null,
         location,
         notes,
         status,
@@ -330,6 +370,11 @@ export const createEvent = async (req: Request, res: Response) => {
         teamMembers: {
           create: teamMembers.map((userId: number) => ({
             userId: parseInt(String(userId)),
+          })),
+        },
+        eventContacts: {
+          create: resolvedContactIds.map((cId: number) => ({
+            contactId: cId,
           })),
         },
       },
@@ -383,6 +428,18 @@ export const createEvent = async (req: Request, res: Response) => {
                 lastName: true,
                 email: true,
                 role: true,
+              },
+            },
+          },
+        },
+        eventContacts: {
+          include: {
+            contact: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                type: true,
               },
             },
           },
@@ -503,6 +560,7 @@ export const updateEvent = async (req: Request, res: Response) => {
       endDateTime,
       categoryId,
       contactId,
+      contactIds,
       location,
       notes,
       status,
@@ -536,7 +594,20 @@ export const updateEvent = async (req: Request, res: Response) => {
     if (startDateTime !== undefined) updateData.startDateTime = new Date(startDateTime);
     if (endDateTime !== undefined) updateData.endDateTime = new Date(endDateTime);
     if (categoryId !== undefined) updateData.categoryId = categoryId ? parseInt(categoryId) : null;
-    if (contactId !== undefined) updateData.contactId = contactId ? parseInt(contactId) : null;
+    if (contactIds !== undefined) {
+      // Multi-client: set legacy contactId to first, update junction table
+      const resolvedIds: number[] = contactIds.map((id: any) => parseInt(id));
+      updateData.contactId = resolvedIds.length > 0 ? resolvedIds[0] : null;
+      // Delete old eventContacts and recreate
+      await prisma.eventContact.deleteMany({ where: { eventId: parseInt(id) } });
+      if (resolvedIds.length > 0) {
+        updateData.eventContacts = {
+          create: resolvedIds.map((cId: number) => ({ contactId: cId })),
+        };
+      }
+    } else if (contactId !== undefined) {
+      updateData.contactId = contactId ? parseInt(contactId) : null;
+    }
     if (location !== undefined) updateData.location = location;
     if (notes !== undefined) updateData.notes = notes;
     if (status !== undefined) updateData.status = status;
@@ -632,6 +703,18 @@ export const updateEvent = async (req: Request, res: Response) => {
                 lastName: true,
                 email: true,
                 role: true,
+              },
+            },
+          },
+        },
+        eventContacts: {
+          include: {
+            contact: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                type: true,
               },
             },
           },

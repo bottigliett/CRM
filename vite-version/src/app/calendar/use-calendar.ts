@@ -67,7 +67,16 @@ function convertAPIEvent(apiEvent: APIEvent): CalendarEvent {
     categoryName: apiEvent.category?.name,
     assignedTo: apiEvent.assignedTo,
     contactId: apiEvent.contactId,
-    contactName: apiEvent.contact?.name,
+    contactIds: apiEvent.eventContacts?.map(ec => ec.contactId) || (apiEvent.contactId ? [apiEvent.contactId] : []),
+    contactName: apiEvent.eventContacts && apiEvent.eventContacts.length > 0
+      ? apiEvent.eventContacts.length === 1
+        ? apiEvent.eventContacts[0].contact.name
+        : `${apiEvent.eventContacts[0].contact.name} +${apiEvent.eventContacts.length - 1}`
+      : apiEvent.contact?.name,
+    eventContacts: apiEvent.eventContacts?.map(ec => ({
+      contactId: ec.contactId,
+      contact: ec.contact,
+    })),
     allDay: apiEvent.isAllDay || false,
     teamMembers: apiEvent.teamMembers?.map(tm => ({
       id: tm.user.id,
@@ -190,7 +199,7 @@ export function useCalendar(initialEvents: CalendarEvent[] = []): UseCalendarRet
     // In a real app, this would open a new calendar form
   }, [])
 
-  const handleSaveEvent = useCallback(async (eventData: Partial<CalendarEvent> & { categoryId?: number, assignedTo?: number, contactId?: number, endDate?: Date, reminderEnabled?: boolean, reminderType?: string, reminderEmail?: boolean, participants?: number[] }) => {
+  const handleSaveEvent = useCallback(async (eventData: Partial<CalendarEvent> & { categoryId?: number, assignedTo?: number, contactId?: number, contactIds?: number[], endDate?: Date, reminderEnabled?: boolean, reminderType?: string, reminderEmail?: boolean, participants?: number[] }) => {
     try {
       const eventDate = eventData.date || selectedDate
       let startDateTime: Date
@@ -247,7 +256,7 @@ export function useCalendar(initialEvents: CalendarEvent[] = []): UseCalendarRet
           color: eventData.color,
           categoryId: eventData.categoryId,
           assignedTo: eventData.assignedTo,
-          contactId: eventData.contactId,
+          contactIds: eventData.contactIds || (eventData.contactId ? [eventData.contactId] : []),
           isAllDay: eventData.allDay || false,
           reminderEnabled: eventData.reminderEnabled || false,
           reminderType: eventData.reminderType || 'MINUTES_15',
@@ -267,7 +276,7 @@ export function useCalendar(initialEvents: CalendarEvent[] = []): UseCalendarRet
           color: eventData.color,
           categoryId: eventData.categoryId,
           assignedTo: eventData.assignedTo,
-          contactId: eventData.contactId,
+          contactIds: eventData.contactIds || (eventData.contactId ? [eventData.contactId] : []),
           isAllDay: eventData.allDay || false,
           reminderEnabled: eventData.reminderEnabled || false,
           reminderType: eventData.reminderType || 'MINUTES_15',
