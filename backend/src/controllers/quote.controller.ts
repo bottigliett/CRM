@@ -519,6 +519,8 @@ export const updateQuote = async (req: Request, res: Response) => {
           payment3Discount,
           payment4Discount,
           status,
+          ...(status === 'ACCEPTED' && !existingQuote.acceptedDate && { acceptedDate: new Date() }),
+          ...(status === 'REJECTED' && !existingQuote.rejectedDate && { rejectedDate: new Date() }),
           validUntil,
           ...(projectDurationDays !== undefined && { projectDurationDays: projectDurationDays ? parseInt(projectDurationDays) : null }),
         },
