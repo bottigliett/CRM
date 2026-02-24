@@ -241,16 +241,21 @@ export const createQuote = async (req: Request, res: Response) => {
       });
     }
 
-    // Genera numero preventivo
+    // Genera numero preventivo (usa il numero massimo esistente per evitare duplicati dopo cancellazioni)
     const year = new Date().getFullYear();
-    const count = await prisma.quote.count({
+    const lastQuote = await prisma.quote.findFirst({
       where: {
         quoteNumber: {
           startsWith: `Q${year}-`,
         },
       },
+      orderBy: { quoteNumber: 'desc' },
+      select: { quoteNumber: true },
     });
-    const quoteNumber = `Q${year}-${String(count + 1).padStart(4, '0')}`;
+    const lastNumber = lastQuote
+      ? parseInt(lastQuote.quoteNumber.split('-')[1])
+      : 0;
+    const quoteNumber = `Q${year}-${String(lastNumber + 1).padStart(4, '0')}`;
 
     // Calcola subtotale
     const subtotal = items.reduce((sum: number, item: any) => {
