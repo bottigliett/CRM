@@ -577,10 +577,27 @@ export default function ClientDetailPage() {
                     {showActivationCode && (
                       <div className="p-3 rounded-lg border bg-muted/50">
                         <Label className="text-xs text-muted-foreground">Codice di Attivazione</Label>
-                        <p className="font-mono text-lg font-semibold mt-1">{client.activationToken}</p>
-                        <p className="text-xs text-muted-foreground mt-2">
-                          Il cliente può inserire questo codice su studiomismo.com
-                        </p>
+                        {(() => {
+                          try {
+                            const parsed = JSON.parse(client.activationToken!)
+                            if (parsed.code) {
+                              const isExpired = new Date(parsed.expiresAt) < new Date()
+                              return (
+                                <>
+                                  <p className="font-mono text-2xl font-semibold mt-1 tracking-widest">{parsed.code}</p>
+                                  {isExpired && (
+                                    <p className="text-xs text-destructive mt-1">Codice scaduto - il cliente deve richiederne uno nuovo</p>
+                                  )}
+                                </>
+                              )
+                            }
+                          } catch {}
+                          return (
+                            <p className="text-sm text-muted-foreground mt-1">
+                              Nessun codice generato. Il cliente deve andare su studiomismo.com/client/activate, inserire lo username e richiedere l'invio del codice via email.
+                            </p>
+                          )
+                        })()}
                       </div>
                     )}
                   </div>
