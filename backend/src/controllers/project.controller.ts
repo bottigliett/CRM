@@ -322,17 +322,13 @@ export const getProjectById = async (req: AuthRequest, res: Response) => {
     });
 
     // Get related tasks (search in both legacy contactId and taskContacts junction)
-    // Use deadline (not createdAt) to match tasks relevant to the project period
+    // No date filter: show all tasks associated with this client
     const tasks = await prisma.task.findMany({
       where: {
         OR: [
           { contactId: project.contactId },
           { taskContacts: { some: { contactId: project.contactId } } },
         ],
-        deadline: {
-          gte: project.startDate,
-          ...(project.completedAt && { lte: project.completedAt }),
-        },
       },
       select: {
         id: true,
