@@ -18,9 +18,13 @@ async function calculateProjectMetrics(
   completedAt: Date | null
 ): Promise<ProjectMetrics> {
   // Calculate actual hours from Events (excluding all-day events)
+  // Search in both legacy contactId and eventContacts junction table
   const events = await prisma.event.findMany({
     where: {
-      contactId,
+      OR: [
+        { contactId },
+        { eventContacts: { some: { contactId } } },
+      ],
       isAllDay: false, // Exclude all-day events from hour calculations
       startDateTime: {
         gte: startDate,
@@ -47,9 +51,13 @@ async function calculateProjectMetrics(
   }, 0);
 
   // Calculate estimated hours from Tasks
+  // Search in both legacy contactId and taskContacts junction table
   const tasks = await prisma.task.findMany({
     where: {
-      contactId,
+      OR: [
+        { contactId },
+        { taskContacts: { some: { contactId } } },
+      ],
       createdAt: {
         gte: startDate,
         ...(completedAt && { lte: completedAt }),
@@ -91,7 +99,10 @@ async function getTimeBreakdowns(
 ): Promise<{ weekly: TimeBreakdown[]; monthly: TimeBreakdown[] }> {
   const events = await prisma.event.findMany({
     where: {
-      contactId,
+      OR: [
+        { contactId },
+        { eventContacts: { some: { contactId } } },
+      ],
       isAllDay: false, // Exclude all-day events from hour calculations
       startDateTime: {
         gte: startDate,
@@ -279,10 +290,13 @@ export const getProjectById = async (req: AuthRequest, res: Response) => {
       project.completedAt
     );
 
-    // Get related events
+    // Get related events (search in both legacy contactId and eventContacts junction)
     const events = await prisma.event.findMany({
       where: {
-        contactId: project.contactId,
+        OR: [
+          { contactId: project.contactId },
+          { eventContacts: { some: { contactId: project.contactId } } },
+        ],
         startDateTime: {
           gte: project.startDate,
           ...(project.completedAt && { lte: project.completedAt }),
@@ -306,10 +320,13 @@ export const getProjectById = async (req: AuthRequest, res: Response) => {
       take: 50,
     });
 
-    // Get related tasks
+    // Get related tasks (search in both legacy contactId and taskContacts junction)
     const tasks = await prisma.task.findMany({
       where: {
-        contactId: project.contactId,
+        OR: [
+          { contactId: project.contactId },
+          { taskContacts: { some: { contactId: project.contactId } } },
+        ],
         createdAt: {
           gte: project.startDate,
           ...(project.completedAt && { lte: project.completedAt }),
