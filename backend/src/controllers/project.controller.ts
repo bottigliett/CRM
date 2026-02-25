@@ -52,13 +52,14 @@ async function calculateProjectMetrics(
 
   // Calculate estimated hours from Tasks
   // Search in both legacy contactId and taskContacts junction table
+  // Use deadline (not createdAt) to match tasks relevant to the project period
   const tasks = await prisma.task.findMany({
     where: {
       OR: [
         { contactId },
         { taskContacts: { some: { contactId } } },
       ],
-      createdAt: {
+      deadline: {
         gte: startDate,
         ...(completedAt && { lte: completedAt }),
       },
@@ -321,13 +322,14 @@ export const getProjectById = async (req: AuthRequest, res: Response) => {
     });
 
     // Get related tasks (search in both legacy contactId and taskContacts junction)
+    // Use deadline (not createdAt) to match tasks relevant to the project period
     const tasks = await prisma.task.findMany({
       where: {
         OR: [
           { contactId: project.contactId },
           { taskContacts: { some: { contactId: project.contactId } } },
         ],
-        createdAt: {
+        deadline: {
           gte: project.startDate,
           ...(project.completedAt && { lte: project.completedAt }),
         },
