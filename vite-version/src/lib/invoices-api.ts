@@ -176,6 +176,7 @@ class InvoicesAPI {
     if (params.limit) queryParams.append('limit', params.limit.toString());
     if (params.status) queryParams.append('status', params.status);
     if (params.period) queryParams.append('period', params.period);
+    if (params.year) queryParams.append('year', params.year);
     if (params.search) queryParams.append('search', params.search);
     if (params.unpaidOnly) queryParams.append('unpaidOnly', 'true');
     if (params.currentYear !== undefined) queryParams.append('currentYear', params.currentYear.toString());

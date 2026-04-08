@@ -485,6 +485,7 @@ export const updateInvoice = async (req: Request, res: Response) => {
     const newStatus = (status?.toUpperCase() as InvoiceStatus) || 'DRAFT';
     const statusChanged = existingInvoice.status !== newStatus;
     const isBecomingPaid = statusChanged && newStatus === 'PAID';
+    const isLeavingPaid = statusChanged && existingInvoice.status === 'PAID' && newStatus !== 'PAID';
 
     // Get user ID from request or find first user
     let userId = (req as any).user?.id;
@@ -535,42 +536,78 @@ export const updateInvoice = async (req: Request, res: Response) => {
       },
     });
 
-    // Create income transaction when invoice becomes PAID
+    // Create income transaction when invoice becomes PAID (only for cointestato/default payment entity)
     if (isBecomingPaid) {
-      // Get or create "Fatture" income category
-      let incomeCategory = await prisma.transactionCategory.findFirst({
-        where: {
-          name: { contains: 'Fatture' },
-          type: 'INCOME',
-        },
-      });
+      const isDefaultEntity = invoice.paymentEntity?.isDefault === true;
 
-      if (!incomeCategory) {
-        incomeCategory = await prisma.transactionCategory.create({
-          data: {
-            name: 'Fatture',
+      if (isDefaultEntity || !invoice.paymentEntityId) {
+        // Cointestato or no payment entity: create income transaction in finance tracker
+        let incomeCategory = await prisma.transactionCategory.findFirst({
+          where: {
+            name: { contains: 'Fatture' },
             type: 'INCOME',
-            icon: 'file-text',
-            color: '#10b981',
           },
         });
+
+        if (!incomeCategory) {
+          incomeCategory = await prisma.transactionCategory.create({
+            data: {
+              name: 'Fatture',
+              type: 'INCOME',
+              icon: 'file-text',
+              color: '#10b981',
+            },
+          });
+        }
+
+        await prisma.transaction.create({
+          data: {
+            type: 'INCOME',
+            amount: invoice.total,
+            date: paymentDate ? new Date(paymentDate) : invoice.issueDate,
+            categoryId: incomeCategory.id,
+            description: `Pagamento fattura ${invoice.invoiceNumber} - ${invoice.clientName}`,
+            invoiceId: invoice.id,
+            contactId: invoice.contactId,
+            createdBy: userId,
+          },
+        });
+
+        console.log(`Created income transaction for invoice ${invoice.invoiceNumber} (cointestato)`);
+      } else {
+        console.log(`Skipped income transaction for invoice ${invoice.invoiceNumber} (personal account: ${invoice.paymentEntity?.name || invoice.paymentEntityId})`);
+      }
+    }
+
+    // Cleanup when invoice leaves PAID status (back to ISSUED, DRAFT, or STORNATA)
+    if (isLeavingPaid) {
+      // Delete income transaction linked to this invoice
+      const deletedTx = await prisma.transaction.deleteMany({
+        where: { invoiceId: invoice.id, type: 'INCOME' },
+      });
+      if (deletedTx.count > 0) {
+        console.log(`Deleted ${deletedTx.count} income transaction(s) for invoice ${invoice.invoiceNumber}`);
       }
 
-      // Create income transaction
-      await prisma.transaction.create({
-        data: {
-          type: 'INCOME',
-          amount: invoice.total,
-          date: paymentDate ? new Date(paymentDate) : invoice.issueDate,
-          categoryId: incomeCategory.id,
-          description: `Pagamento fattura ${invoice.invoiceNumber} - ${invoice.clientName}`,
-          invoiceId: invoice.id,
-          contactId: invoice.contactId,
-          createdBy: userId,
-        },
-      });
+      // Reset tax reservation if it was set
+      if (existingInvoice.taxReserved) {
+        // Delete the tax expense transaction (matches description pattern)
+        await prisma.transaction.deleteMany({
+          where: {
+            type: 'EXPENSE',
+            description: { contains: `Fattura ${invoice.invoiceNumber}` },
+            category: { name: { contains: 'Tasse' } },
+          },
+        });
 
-      console.log(`Created income transaction for invoice ${invoice.invoiceNumber}`);
+        // Reset tax flags on the invoice
+        await prisma.invoice.update({
+          where: { id: invoice.id },
+          data: { taxReserved: false, taxAmount: null },
+        });
+
+        console.log(`Reset tax reservation for invoice ${invoice.invoiceNumber}`);
+      }
     }
 
     // Send email notification to client when invoice status changes to ISSUED AND client has active FULL_CLIENT dashboard

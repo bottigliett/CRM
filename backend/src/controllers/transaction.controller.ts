@@ -450,6 +450,14 @@ export const getTransactionStats = async (req: Request, res: Response) => {
 
     const balance = income - expenses;
 
+    // Bank balance: exclude "Accantonamento tasse" from expenses
+    // (they are virtual provisions, not real bank movements)
+    const taxProvisionExpenses = transactions
+      .filter((t: any) => t.type === TransactionType.EXPENSE && t.description?.includes('Accantonamento'))
+      .reduce((sum: number, t: any) => sum + t.amount, 0);
+
+    const bankBalance = income - (expenses - taxProvisionExpenses);
+
     // Get category breakdown
     const categoryBreakdown = transactions.reduce((acc: any, t: any) => {
       if (t.category) {
@@ -510,6 +518,7 @@ export const getTransactionStats = async (req: Request, res: Response) => {
           income,
           expenses,
           balance,
+          bankBalance,
           incomeChange,
           expensesChange,
         },

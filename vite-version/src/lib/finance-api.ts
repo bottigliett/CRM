@@ -104,6 +104,7 @@ export interface TransactionStatsResponse {
       income: number;
       expenses: number;
       balance: number;
+      bankBalance: number;
       incomeChange: number;
       expensesChange: number;
     };

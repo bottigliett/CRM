@@ -107,6 +107,7 @@ export default function FinancePage() {
   // Separate state for all-time totals (not filtered by period)
   const [allTimeStats, setAllTimeStats] = useState({
     balance: 0,
+    bankBalance: 0,
     reservedTaxes: 0,
   })
 
@@ -261,7 +262,7 @@ export default function FinancePage() {
     loadStats()
   }, [selectedYear, selectedMonth, selectedPeriod])
 
-  // Function to load all-time statistics
+  // Function to load all-time account balance (no date filter)
   const loadAllTimeStats = async () => {
     try {
       const response = await transactionsAPI.getTransactionStats({ startDate: undefined, endDate: undefined })
@@ -273,6 +274,7 @@ export default function FinancePage() {
 
         setAllTimeStats({
           balance: response.data.summary.balance,
+          bankBalance: response.data.summary.bankBalance ?? response.data.summary.balance,
           reservedTaxes: taxesReserved,
         })
       }
@@ -568,7 +570,7 @@ export default function FinancePage() {
             ) : (
               <>
                 <div className="text-2xl font-bold">
-                  € {allTimeStats.balance.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  € {allTimeStats.bankBalance.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
                   Saldo attuale del conto (tutti i tempi)
