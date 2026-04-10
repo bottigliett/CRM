@@ -64,12 +64,14 @@ import {
   Trash2,
   Loader2,
   LayoutList,
-  LayoutGrid
+  LayoutGrid,
+  Download
 } from "lucide-react"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { contactsAPI, type Contact, type CreateContactData } from "@/lib/contacts-api"
 import { userPreferencesAPI } from "@/lib/user-preferences-api"
 import { toast } from "sonner"
+import { format } from "date-fns"
 import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd"
 
 export default function ContactsPage() {
@@ -293,6 +295,90 @@ export default function ContactsPage() {
     return () => clearTimeout(timer)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchQuery, typeFilter, viewMode, pageLimit, preferencesLoaded])
+
+  // Handle CSV export
+  const handleExportCSV = async () => {
+    try {
+      const response = await contactsAPI.getContacts({
+        page: 1,
+        limit: 10000,
+        search: searchQuery || undefined,
+        type: typeFilter || undefined,
+      })
+
+      const allContacts = response.data.contacts
+      if (!allContacts.length) {
+        toast.error("Nessun contatto da esportare")
+        return
+      }
+
+      const headers = [
+        "Nome",
+        "Tipo",
+        "Email",
+        "Telefono",
+        "Cellulare",
+        "Indirizzo",
+        "Città",
+        "Provincia",
+        "CAP",
+        "Paese",
+        "Partita IVA",
+        "Codice Fiscale",
+        "Sito Web",
+        "Stato",
+        "Note",
+        "Data Creazione",
+      ]
+      const csvRows = [headers.join(",")]
+
+      const typeLabels: Record<string, string> = {
+        COLLABORATION: "Collaborazione",
+        USEFUL_CONTACT: "Contatto Utile",
+        PROSPECT: "Prospect",
+        CLIENT: "Cliente",
+      }
+
+      allContacts.forEach((c) => {
+        const row = [
+          `"${(c.name || "").replace(/"/g, '""')}"`,
+          typeLabels[c.type] || c.type,
+          `"${(c.email || "").replace(/"/g, '""')}"`,
+          `"${(c.phone || "").replace(/"/g, '""')}"`,
+          `"${(c.mobile || "").replace(/"/g, '""')}"`,
+          `"${(c.address || "").replace(/"/g, '""')}"`,
+          `"${(c.city || "").replace(/"/g, '""')}"`,
+          `"${(c.province || "").replace(/"/g, '""')}"`,
+          `"${(c.zipCode || "").replace(/"/g, '""')}"`,
+          `"${(c.country || "").replace(/"/g, '""')}"`,
+          `"${(c.partitaIva || "").replace(/"/g, '""')}"`,
+          `"${(c.codiceFiscale || "").replace(/"/g, '""')}"`,
+          `"${(c.website || "").replace(/"/g, '""')}"`,
+          `"${(c.status || "").replace(/"/g, '""')}"`,
+          `"${(c.notes || "").replace(/"/g, '""').replace(/\n/g, " ")}"`,
+          format(new Date(c.createdAt), "dd/MM/yyyy"),
+        ]
+        csvRows.push(row.join(","))
+      })
+
+      const csvContent = csvRows.join("\n")
+      const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" })
+      const link = document.createElement("a")
+      const url = URL.createObjectURL(blob)
+
+      link.setAttribute("href", url)
+      link.setAttribute("download", `contatti_${format(new Date(), "yyyy-MM-dd")}.csv`)
+      link.style.visibility = "hidden"
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+
+      toast.success(`Esportati ${allContacts.length} contatti`)
+    } catch (error) {
+      console.error("Failed to export CSV:", error)
+      toast.error("Errore durante l'esportazione del CSV")
+    }
+  }
 
   // Handle create contact
   const handleCreate = async () => {
@@ -597,10 +683,16 @@ export default function ContactsPage() {
                   Gestisci tutti i tuoi contatti, lead e clienti
                 </CardDescription>
               </div>
-              <Button onClick={() => setIsCreateDialogOpen(true)} className="cursor-pointer">
-                <Plus className="mr-2 h-4 w-4" />
-                Nuovo Contatto
-              </Button>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={handleExportCSV} className="cursor-pointer">
+                  <Download className="mr-2 h-4 w-4" />
+                  Esporta CSV
+                </Button>
+                <Button onClick={() => setIsCreateDialogOpen(true)} className="cursor-pointer">
+                  <Plus className="mr-2 h-4 w-4" />
+                  Nuovo Contatto
+                </Button>
+              </div>
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -717,7 +809,6 @@ export default function ContactsPage() {
                       <TableHead>Tipo</TableHead>
                       <TableHead>Email</TableHead>
                       <TableHead>Telefono</TableHead>
-                      <TableHead>Tags</TableHead>
                       <TableHead>Stato</TableHead>
                       <TableHead className="w-[50px]"></TableHead>
                     </TableRow>
@@ -780,15 +871,6 @@ export default function ContactsPage() {
                             ) : (
                               <span className="text-sm text-muted-foreground">-</span>
                             )}
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex flex-wrap gap-1">
-                              {contact.tags.map((tagObj) => (
-                                <Badge key={tagObj.id} variant="secondary" className="text-xs">
-                                  {tagObj.tag}
-                                </Badge>
-                              ))}
-                            </div>
                           </TableCell>
                           <TableCell>
                             <Badge variant={getStatusColor(contact.status)}>
@@ -886,23 +968,6 @@ export default function ContactsPage() {
                                         </div>
                                       </div>
                                     </div>
-                                    {contact.tags && contact.tags.length > 0 && (
-                                      <div className="flex flex-wrap gap-1 mt-2">
-                                        {contact.tags.slice(0, 2).map((tag, idx) => (
-                                          <Badge
-                                            key={idx}
-                                            variant="outline"
-                                            className="text-xs"
-                                            style={{
-                                              borderColor: tag.color,
-                                              color: tag.color,
-                                            }}
-                                          >
-                                            {tag.tag}
-                                          </Badge>
-                                        ))}
-                                      </div>
-                                    )}
                                   </div>
                                 )}
                               </Draggable>
@@ -965,23 +1030,6 @@ export default function ContactsPage() {
                                         </div>
                                       </div>
                                     </div>
-                                    {contact.tags && contact.tags.length > 0 && (
-                                      <div className="flex flex-wrap gap-1 mt-2">
-                                        {contact.tags.slice(0, 2).map((tag, idx) => (
-                                          <Badge
-                                            key={idx}
-                                            variant="outline"
-                                            className="text-xs"
-                                            style={{
-                                              borderColor: tag.color,
-                                              color: tag.color,
-                                            }}
-                                          >
-                                            {tag.tag}
-                                          </Badge>
-                                        ))}
-                                      </div>
-                                    )}
                                   </div>
                                 )}
                               </Draggable>
@@ -1044,23 +1092,6 @@ export default function ContactsPage() {
                                         </div>
                                       </div>
                                     </div>
-                                    {contact.tags && contact.tags.length > 0 && (
-                                      <div className="flex flex-wrap gap-1 mt-2">
-                                        {contact.tags.slice(0, 2).map((tag, idx) => (
-                                          <Badge
-                                            key={idx}
-                                            variant="outline"
-                                            className="text-xs"
-                                            style={{
-                                              borderColor: tag.color,
-                                              color: tag.color,
-                                            }}
-                                          >
-                                            {tag.tag}
-                                          </Badge>
-                                        ))}
-                                      </div>
-                                    )}
                                   </div>
                                 )}
                               </Draggable>
@@ -1421,16 +1452,6 @@ export default function ContactsPage() {
                       <Badge variant="outline">
                         {selectedContact.status || "N/A"}
                       </Badge>
-                      {selectedContact.tags.slice(0, 2).map((tagObj) => (
-                        <Badge key={tagObj.id} variant="outline">
-                          {tagObj.tag}
-                        </Badge>
-                      ))}
-                      {selectedContact.tags.length > 2 && (
-                        <Badge variant="outline">
-                          +{selectedContact.tags.length - 2}
-                        </Badge>
-                      )}
                     </div>
                   </div>
                 </div>
@@ -1510,20 +1531,6 @@ export default function ContactsPage() {
                           <span className="text-muted-foreground">C.F.:</span> {selectedContact.codiceFiscale}
                         </div>
                       )}
-                    </div>
-                  </div>
-                )}
-
-                {/* Tags */}
-                {selectedContact.tags.length > 0 && (
-                  <div>
-                    <h4 className="text-sm font-semibold mb-2">Tags</h4>
-                    <div className="flex flex-wrap gap-1">
-                      {selectedContact.tags.map((tagObj) => (
-                        <Badge key={tagObj.id} variant="secondary">
-                          {tagObj.tag}
-                        </Badge>
-                      ))}
                     </div>
                   </div>
                 )}

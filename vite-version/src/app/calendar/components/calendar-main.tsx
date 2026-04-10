@@ -362,9 +362,9 @@ export function CalendarMain({ selectedDate, onDateSelect, onMenuClick, events, 
 
           return (
             <div key={weekIndex}>
-              {/* All-day events section */}
+              {/* All-day events section - hidden on mobile, shown on md+ */}
               {allDayEventsWithRows.length > 0 && (
-                <div className="relative border-b bg-muted/20" style={{ height: `${allDayHeight}px` }}>
+                <div className="hidden md:block relative border-b bg-muted/20" style={{ height: `${allDayHeight}px` }}>
                   <div className="grid grid-cols-7 h-full pointer-events-none">
                     {week.map((day) => (
                       <div key={`allday-${day.toISOString()}`} className="border-r last:border-r-0"></div>
@@ -399,11 +399,12 @@ export function CalendarMain({ selectedDate, onDateSelect, onMenuClick, events, 
               <div className="grid grid-cols-7 relative z-0">
                 {week.map((day, dayIndex) => {
                   const dayEvents = getEventsForDay(day)
-                  // Only show timed events (non-all-day events)
                   const timedEvents = dayEvents.filter(e => !e.allDay)
+                  const allDayEvents = dayEvents.filter(e => e.allDay)
                   const isCurrentMonth = isSameMonth(day, currentDate)
                   const isDayToday = isToday(day)
                   const isSelected = selectedDate && isSameDay(day, selectedDate)
+                  const totalMobileEvents = allDayEvents.length + timedEvents.length
 
                   return (
                     <div
@@ -426,18 +427,57 @@ export function CalendarMain({ selectedDate, onDateSelect, onMenuClick, events, 
                         )}>
                           {format(day, 'd')}
                         </span>
+                        {/* Desktop: count only timed events */}
                         {timedEvents.length > 2 && (
-                          <span className="text-xs text-muted-foreground">
+                          <span className="hidden md:inline text-xs text-muted-foreground">
                             +{timedEvents.length - 2}
+                          </span>
+                        )}
+                        {/* Mobile: count all events (all-day + timed) */}
+                        {totalMobileEvents > 2 && (
+                          <span className="md:hidden text-xs text-muted-foreground">
+                            +{totalMobileEvents - 2}
                           </span>
                         )}
                       </div>
 
                       <div className="space-y-1">
+                        {/* Mobile: show all-day events inside day cells */}
+                        {allDayEvents.slice(0, 2).map(event => (
+                          <div
+                            key={`mobile-allday-${event.id}`}
+                            className="md:hidden text-xs p-1 rounded-sm text-white cursor-pointer truncate"
+                            style={{ backgroundColor: event.color }}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleEventClick(event)
+                            }}
+                          >
+                            <span className="truncate">{event.title}</span>
+                          </div>
+                        ))}
+                        {/* Timed events: on mobile show remaining slots, on desktop show up to 2 */}
+                        {timedEvents.slice(0, Math.max(0, 2 - allDayEvents.length)).map(event => (
+                          <div
+                            key={`mobile-timed-${event.id}`}
+                            className="md:hidden text-xs p-1 rounded-sm text-white cursor-pointer truncate"
+                            style={{ backgroundColor: event.color }}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleEventClick(event)
+                            }}
+                          >
+                            <div className="flex items-center gap-1">
+                              <Clock className="w-3 h-3" />
+                              <span className="truncate">{event.title}</span>
+                            </div>
+                          </div>
+                        ))}
+                        {/* Desktop: only timed events (all-day shown in bar above) */}
                         {timedEvents.slice(0, 2).map(event => (
                           <div
                             key={event.id}
-                            className="text-xs p-1 rounded-sm text-white cursor-pointer truncate"
+                            className="hidden md:block text-xs p-1 rounded-sm text-white cursor-pointer truncate"
                             style={{ backgroundColor: event.color }}
                             onClick={(e) => {
                               e.stopPropagation()
@@ -791,6 +831,9 @@ export function CalendarMain({ selectedDate, onDateSelect, onMenuClick, events, 
     const hours = Array.from({ length: endHour - startHour + 1 }, (_, i) => i + startHour)
     const pixelsPerMinute = 1.5
 
+    // Separate all-day events
+    const allDayEventsForDay = getEventsForDay(currentDate).filter(event => event.allDay)
+
     // Get all events with calculated positions (filter out all-day events)
     const timedEvents = getEventsForDay(currentDate)
       .filter(event => !event.allDay)
@@ -848,6 +891,25 @@ export function CalendarMain({ selectedDate, onDateSelect, onMenuClick, events, 
               {format(currentDate, 'd MMMM yyyy', { locale: it })}
             </div>
           </div>
+
+          {/* All-day events section */}
+          {allDayEventsForDay.length > 0 && (
+            <div className="border-b bg-muted/20 p-2">
+              <div className="text-xs font-medium text-muted-foreground mb-1.5">Tutto il giorno</div>
+              <div className="space-y-1">
+                {allDayEventsForDay.map(event => (
+                  <div
+                    key={`dayview-allday-${event.id}`}
+                    className="text-xs p-1.5 rounded-sm text-white cursor-pointer truncate"
+                    style={{ backgroundColor: event.color }}
+                    onClick={() => handleEventClick(event)}
+                  >
+                    {event.title}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Time grid with absolute positioned events */}
           <div className="relative">
