@@ -25,6 +25,7 @@ import { tasksAPI, type Task } from "@/lib/tasks-api"
 import { eventsAPI, type Event } from "@/lib/events-api"
 import { api, type User } from "@/lib/api"
 import { transactionsAPI, type Transaction } from "@/lib/finance-api"
+import { invoicesAPI } from "@/lib/invoices-api"
 import { contactsAPI } from "@/lib/contacts-api"
 import { leadsAPI } from "@/lib/leads-api"
 import { format, addDays, endOfDay, startOfYear, endOfYear, startOfMonth, endOfMonth } from "date-fns"
@@ -91,6 +92,7 @@ export default function DashboardPage() {
   const [annualRevenue, setAnnualRevenue] = useState(0)
   const [annualExpenses, setAnnualExpenses] = useState(0)
   const [annualGoal] = useState(50000)
+  const [invoiceRevenue, setInvoiceRevenue] = useState(0)
   const [totalBalance, setTotalBalance] = useState(0)
   const [bestMonth, setBestMonth] = useState({ month: '', amount: 0 })
   const [cashflowData, setCashflowData] = useState<Array<{ month: string; entrate: number; uscite: number }>>([])
@@ -240,6 +242,22 @@ export default function DashboardPage() {
           setAnnualExpenses(annualStats.data.summary.expenses)
         }
 
+        // Load invoice revenue for 2026 (all invoices except CANCELLED and DRAFT)
+        try {
+          const invoicesResponse = await invoicesAPI.getInvoices({
+            year: '2026',
+            limit: 10000,
+          })
+          if (invoicesResponse.success) {
+            const totalFromInvoices = invoicesResponse.data.invoices
+              .filter(inv => inv.status !== 'CANCELLED' && inv.status !== 'DRAFT')
+              .reduce((sum, inv) => sum + inv.subtotal, 0)
+            setInvoiceRevenue(totalFromInvoices)
+          }
+        } catch (err) {
+          console.error('Failed to load invoice revenue:', err)
+        }
+
         // Load cashflow data for last 6 months and find best month
         const cashflowDataTemp: Array<{ month: string; entrate: number; uscite: number }> = []
         const monthNames = ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic']
@@ -275,10 +293,10 @@ export default function DashboardPage() {
         setCashflowData(cashflowDataTemp)
         setBestMonth({ month: maxIncomeMonth, amount: maxIncome })
 
-        // Calculate total balance (all-time income - expenses)
+        // Calculate total balance (all-time, using bankBalance like finance page)
         const allTimeStats = await transactionsAPI.getTransactionStats({})
         if (allTimeStats.success) {
-          setTotalBalance(allTimeStats.data.summary.balance)
+          setTotalBalance(allTimeStats.data.summary.bankBalance ?? allTimeStats.data.summary.balance)
         }
 
         // Load recent transactions
@@ -363,13 +381,13 @@ export default function DashboardPage() {
     loadLeadsStats()
   }, [hasLeadsAccess])
 
-  const revenueProgress = (annualRevenue / annualGoal) * 100
+  const revenueProgress = (invoiceRevenue / annualGoal) * 100
 
   // Calculate financial metrics
   const currentMonth = new Date().getMonth() + 1 // Current month number (1-12)
   const averageMonthlyExpenses = currentMonth > 0 ? annualExpenses / currentMonth : 0
-  const operatingMargin = annualRevenue > 0 ? ((annualRevenue - annualExpenses) / annualRevenue) * 100 : 0
-  const netProfit = annualRevenue - annualExpenses
+  const operatingMargin = invoiceRevenue > 0 ? ((invoiceRevenue - annualExpenses) / invoiceRevenue) * 100 : 0
+  const netProfit = invoiceRevenue - annualExpenses
 
   const pageContent = (
     <div className="px-4 lg:px-6 space-y-6">
@@ -405,10 +423,10 @@ export default function DashboardPage() {
             ) : (
               <>
                 <CardHeader>
-                  <CardDescription>Ricavi Annuali 2025</CardDescription>
+                  <CardDescription>Ricavi Annuali 2026</CardDescription>
                   <CardTitle className="text-3xl flex items-center gap-2 mt-2">
                     <Euro className="h-6 w-6" />
-                    {annualRevenue.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    {invoiceRevenue.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -468,7 +486,7 @@ export default function DashboardPage() {
             ) : (
               <>
                 <CardHeader>
-                  <CardDescription>Disponibilità sul Conto</CardDescription>
+                  <CardDescription>Saldo sul Conto</CardDescription>
                   <CardTitle className="text-3xl flex items-center gap-2 mt-2">
                     <Euro className="h-6 w-6" />
                     {totalBalance.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -478,13 +496,13 @@ export default function DashboardPage() {
                   {/* Metriche Principali */}
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <p className="text-xs text-muted-foreground mb-1">Ricavi Annuali</p>
+                      <p className="text-xs text-muted-foreground mb-1">Entrate Totali</p>
                       <p className="text-xl font-bold text-green-600">
                         +€{annualRevenue.toLocaleString('it-IT', { maximumFractionDigits: 0 })}
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground mb-1">Spese Annuali</p>
+                      <p className="text-xs text-muted-foreground mb-1">Uscite Totali</p>
                       <p className="text-xl font-bold text-red-600">
                         -€{annualExpenses.toLocaleString('it-IT', { maximumFractionDigits: 0 })}
                       </p>
