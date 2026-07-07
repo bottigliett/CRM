@@ -62,7 +62,7 @@ export function RecurringInvoiceDialog({ open, onOpenChange, onSuccess, recurrin
     clientAddress: '',
     clientPIva: '',
     clientCF: '',
-    subjectTemplate: 'Social Media Management - {mese} {anno}',
+    subjectTemplate: 'Gestione della comunicazione online - mese di {mese} {anno}',
     description: '',
     quantity: 1,
     unitPrice: 0,
@@ -195,7 +195,7 @@ export function RecurringInvoiceDialog({ open, onOpenChange, onSuccess, recurrin
         clientAddress: '',
         clientPIva: '',
         clientCF: '',
-        subjectTemplate: 'Social Media Management - {mese} {anno}',
+        subjectTemplate: 'Gestione della comunicazione online - mese di {mese} {anno}',
         description: '',
         quantity: 1,
         unitPrice: 0,
@@ -329,7 +329,7 @@ export function RecurringInvoiceDialog({ open, onOpenChange, onSuccess, recurrin
                     required
                     value={formData.subjectTemplate}
                     onChange={(e) => setFormData({ ...formData, subjectTemplate: e.target.value })}
-                    placeholder="Social Media Management - {mese} {anno}"
+                    placeholder="Gestione della comunicazione online - mese di {mese} {anno}"
                   />
                   <p className="text-xs text-muted-foreground">
                     Usa <code className="bg-muted px-1 rounded">{'{mese}'}</code> e <code className="bg-muted px-1 rounded">{'{anno}'}</code> come placeholder dinamici

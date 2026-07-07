@@ -2,8 +2,8 @@ import { Request, Response } from 'express';
 import prisma from '../config/database';
 
 const MESI_ITALIANI = [
-  'Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno',
-  'Luglio', 'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre',
+  'gennaio', 'febbraio', 'marzo', 'aprile', 'maggio', 'giugno',
+  'luglio', 'agosto', 'settembre', 'ottobre', 'novembre', 'dicembre',
 ];
 
 // Get all recurring invoice templates
