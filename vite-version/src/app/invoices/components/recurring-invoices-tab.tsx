@@ -47,7 +47,11 @@ const MESI_ITALIANI = [
   'Luglio', 'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre',
 ]
 
-export function RecurringInvoicesTab() {
+interface RecurringInvoicesTabProps {
+  onInvoicesGenerated?: () => void
+}
+
+export function RecurringInvoicesTab({ onInvoicesGenerated }: RecurringInvoicesTabProps) {
   const now = new Date()
   const [selectedMonth, setSelectedMonth] = useState((now.getMonth() + 1).toString())
   const [selectedYear, setSelectedYear] = useState(now.getFullYear().toString())
@@ -104,6 +108,7 @@ export function RecurringInvoicesTab() {
         setResultMessage(message)
         setResultDialogOpen(true)
         loadData()
+        onInvoicesGenerated?.()
       }
     } catch (error: any) {
       console.error('Failed to generate invoices:', error)

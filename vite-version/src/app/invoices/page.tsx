@@ -55,7 +55,14 @@ import { TaxReserveDialog } from "./components/tax-reserve-dialog"
 import { AlertDialogCustom } from "@/components/ui/alert-dialog-custom"
 import { PaymentEntitySettings } from "@/components/payment-entity-settings"
 import { generateInvoicePDF } from "@/lib/pdf-generator"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { CalendarCheck } from "lucide-react"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog"
 import { RecurringInvoicesTab } from "./components/recurring-invoices-tab"
 
 export default function InvoicesPage() {
@@ -74,6 +81,7 @@ export default function InvoicesPage() {
   const [invoiceToDelete, setInvoiceToDelete] = useState<number | null>(null)
   const [errorDialogOpen, setErrorDialogOpen] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
+  const [isRecurringOpen, setIsRecurringOpen] = useState(false)
 
   const shouldProtectData = isProtectionEnabled && !isUnlocked
 
@@ -258,15 +266,8 @@ export default function InvoicesPage() {
     </div>
   ) : (
     <div className="h-[calc(100vh-4rem)] flex flex-col px-4 lg:px-6 space-y-4 overflow-y-auto">
-      <Tabs defaultValue="invoices" className="pt-4">
-        <TabsList>
-          <TabsTrigger value="invoices">Fatture</TabsTrigger>
-          <TabsTrigger value="recurring">Fatture Ricorrenti</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="invoices">
         {/* Header con filtri e azioni */}
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-4 pt-4">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div className="flex flex-wrap items-center gap-2">
               <Filter className="h-5 w-5 text-muted-foreground" />
@@ -336,10 +337,16 @@ export default function InvoicesPage() {
               <PaymentEntitySettings />
             </div>
 
-            <Button onClick={handleNewInvoice} className="bg-primary hover:bg-primary/90">
-              <Plus className="mr-2 h-4 w-4" />
-              Nuova Fattura
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button onClick={() => setIsRecurringOpen(true)} variant="outline">
+                <CalendarCheck className="mr-2 h-4 w-4" />
+                Fatture Ricorrenti
+              </Button>
+              <Button onClick={handleNewInvoice} className="bg-primary hover:bg-primary/90">
+                <Plus className="mr-2 h-4 w-4" />
+                Nuova Fattura
+              </Button>
+            </div>
           </div>
         </div>
 
@@ -603,12 +610,6 @@ export default function InvoicesPage() {
             )}
           </CardContent>
         </Card>
-        </TabsContent>
-
-        <TabsContent value="recurring">
-          <RecurringInvoicesTab />
-        </TabsContent>
-      </Tabs>
       </div>
   )
 
@@ -672,6 +673,19 @@ export default function InvoicesPage() {
         open={pinDialogOpen}
         onOpenChange={setPinDialogOpen}
       />
+
+      {/* Recurring Invoices Dialog */}
+      <Dialog open={isRecurringOpen} onOpenChange={setIsRecurringOpen}>
+        <DialogContent className="max-w-[95vw] w-[1200px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Fatture Ricorrenti</DialogTitle>
+            <DialogDescription>
+              Gestisci i template e genera le fatture mensili
+            </DialogDescription>
+          </DialogHeader>
+          <RecurringInvoicesTab onInvoicesGenerated={handleInvoiceCreated} />
+        </DialogContent>
+      </Dialog>
     </BaseLayout>
   )
 }
