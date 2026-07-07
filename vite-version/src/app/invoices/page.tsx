@@ -676,14 +676,16 @@ export default function InvoicesPage() {
 
       {/* Recurring Invoices Dialog */}
       <Dialog open={isRecurringOpen} onOpenChange={setIsRecurringOpen}>
-        <DialogContent className="max-w-[95vw] w-[1200px] max-h-[90vh] overflow-y-auto">
+        <DialogContent className="!max-w-[95vw] w-[95vw] h-[90vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>Fatture Ricorrenti</DialogTitle>
             <DialogDescription>
               Gestisci i template e genera le fatture mensili
             </DialogDescription>
           </DialogHeader>
-          <RecurringInvoicesTab onInvoicesGenerated={handleInvoiceCreated} />
+          <div className="flex-1 overflow-y-auto min-h-0">
+            <RecurringInvoicesTab onInvoicesGenerated={handleInvoiceCreated} />
+          </div>
         </DialogContent>
       </Dialog>
     </BaseLayout>
