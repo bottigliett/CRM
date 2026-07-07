@@ -63,6 +63,7 @@ model User {
   notifications          Notification[]      // Notifications for this user
   notificationPreference NotificationPreference?
   createdInvoices        Invoice[]           @relation("InvoiceCreator") // Invoices created by this user
+  createdRecurringInvoices RecurringInvoice[] @relation("RecurringInvoiceCreator") // Recurring invoice templates created by this user
   createdProjects        Project[]           @relation("ProjectCreator") // Projects created by this user
   completedProjectTasks  ProjectTask[]       @relation("TaskCompletedBy") // Project tasks completed by this user
   completedClientTasks   ClientProjectTask[] @relation("ClientTaskCompletedBy") // Client project tasks completed by this user
@@ -219,6 +220,7 @@ model Contact {
   eventContactLinks EventContact[]       @relation("EventContactJunction") // Events linked via junction table
   transactions      Transaction[]        // Transactions linked to this contact
   invoices          Invoice[]            // Invoices for this contact
+  recurringInvoices RecurringInvoice[]   // Recurring invoice templates for this contact
   projects          Project[]            @relation("ProjectContact") // Projects for this contact
   clientAccess      ClientAccess?        // Client access credentials (if client)
   quotes            Quote[]              // Quotes for this contact
@@ -643,7 +645,8 @@ model PaymentEntity {
   updatedAt     DateTime  @updatedAt @map("updated_at")
 
   // Relations
-  invoices      Invoice[]
+  invoices          Invoice[]
+  recurringInvoices RecurringInvoice[]
 
   @@map("payment_entities")
 }
@@ -717,6 +720,7 @@ model Invoice {
   transactions    Transaction[]  @relation("InvoiceTransactions")
   items           InvoiceItem[]  // Invoice line items
   paymentEntity   PaymentEntity? @relation(fields: [paymentEntityId], references: [id], onDelete: SetNull)
+  recurringGenerations RecurringInvoiceGeneration[] // Generations that created this invoice
 
   @@index([invoiceNumber])
   @@index([contactId])
@@ -755,6 +759,80 @@ enum InvoiceStatus {
   ISSUED    // Emessa - inviata al cliente
   PAID      // Pagata - saldato
   CANCELLED // Stornata - annullata
+}
+
+// ===================================
+// RECURRING INVOICES (FATTURE RICORRENTI)
+// ===================================
+
+model RecurringInvoice {
+  id              Int       @id @default(autoincrement())
+
+  // Client information
+  contactId       Int       @map("contact_id")
+  clientName      String    @map("client_name")
+  clientAddress   String?   @map("client_address")
+  clientPIva      String?   @map("client_piva")
+  clientCF        String?   @map("client_cf")
+
+  // Template details
+  subjectTemplate String    @map("subject_template") // es. "Social Media Management - {mese} {anno}"
+  description     String?   @db.Text // JSON services array, same format as Invoice
+
+  // Amounts
+  quantity        Float     @default(1.00)
+  unitPrice       Float     @map("unit_price")
+  subtotal        Float
+  vatPercentage   Float     @default(0) @map("vat_percentage")
+  vatAmount       Float     @map("vat_amount")
+  total           Float
+
+  // Payment settings
+  paymentEntityId Int       @map("payment_entity_id")
+  paymentDays     Int       @default(30) @map("payment_days")
+  generationDay   Int       @default(10) @map("generation_day") // 9, 10, 11
+
+  // Legal notes
+  fiscalNotes     String?   @db.Text @map("fiscal_notes")
+
+  // Status
+  isActive        Boolean   @default(true) @map("is_active")
+
+  // Metadata
+  createdBy       Int       @map("created_by")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  contact         Contact   @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  paymentEntity   PaymentEntity @relation(fields: [paymentEntityId], references: [id], onDelete: Cascade)
+  creator         User      @relation("RecurringInvoiceCreator", fields: [createdBy], references: [id])
+  generations     RecurringInvoiceGeneration[]
+
+  @@index([contactId])
+  @@index([paymentEntityId])
+  @@index([isActive])
+  @@index([createdBy])
+  @@map("recurring_invoices")
+}
+
+model RecurringInvoiceGeneration {
+  id                  Int       @id @default(autoincrement())
+  recurringInvoiceId  Int       @map("recurring_invoice_id")
+  invoiceId           Int       @map("invoice_id")
+  month               Int       // 1-12
+  year                Int
+  generatedAt         DateTime  @default(now()) @map("generated_at")
+
+  // Relations
+  recurringInvoice    RecurringInvoice @relation(fields: [recurringInvoiceId], references: [id], onDelete: Cascade)
+  invoice             Invoice          @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@unique([recurringInvoiceId, month, year])
+  @@index([recurringInvoiceId])
+  @@index([invoiceId])
+  @@index([month, year])
+  @@map("recurring_invoice_generations")
 }
 
 // ===================================

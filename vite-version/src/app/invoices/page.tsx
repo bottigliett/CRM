@@ -55,6 +55,8 @@ import { TaxReserveDialog } from "./components/tax-reserve-dialog"
 import { AlertDialogCustom } from "@/components/ui/alert-dialog-custom"
 import { PaymentEntitySettings } from "@/components/payment-entity-settings"
 import { generateInvoicePDF } from "@/lib/pdf-generator"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { RecurringInvoicesTab } from "./components/recurring-invoices-tab"
 
 export default function InvoicesPage() {
   const { isProtectionEnabled, isUnlocked } = usePinProtection()
@@ -256,8 +258,15 @@ export default function InvoicesPage() {
     </div>
   ) : (
     <div className="h-[calc(100vh-4rem)] flex flex-col px-4 lg:px-6 space-y-4 overflow-y-auto">
+      <Tabs defaultValue="invoices" className="pt-4">
+        <TabsList>
+          <TabsTrigger value="invoices">Fatture</TabsTrigger>
+          <TabsTrigger value="recurring">Fatture Ricorrenti</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="invoices">
         {/* Header con filtri e azioni */}
-        <div className="flex flex-col gap-4 pt-4">
+        <div className="flex flex-col gap-4">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div className="flex flex-wrap items-center gap-2">
               <Filter className="h-5 w-5 text-muted-foreground" />
@@ -594,6 +603,12 @@ export default function InvoicesPage() {
             )}
           </CardContent>
         </Card>
+        </TabsContent>
+
+        <TabsContent value="recurring">
+          <RecurringInvoicesTab />
+        </TabsContent>
+      </Tabs>
       </div>
   )
 

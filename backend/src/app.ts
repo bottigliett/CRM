@@ -32,6 +32,7 @@ import clientProjectTaskRoutes from './routes/client-project-task.routes';
 import announcementRoutes, { clientAnnouncementRouter } from './routes/announcement.routes';
 import developerRoutes from './routes/developer.routes';
 import paymentEntityRoutes from './routes/payment-entity.routes';
+import recurringInvoiceRoutes from './routes/recurring-invoice.routes';
 import { errorHandler, notFound } from './middleware/errorHandler';
 import { initializeUploadsDirectory } from './utils/file-upload';
 
@@ -99,6 +100,7 @@ app.use('/api/admin/notifications', adminNotificationRoutes);
 app.use('/api/announcements', announcementRoutes);
 app.use('/api/developer', developerRoutes);
 app.use('/api/payment-entities', paymentEntityRoutes);
+app.use('/api/recurring-invoices', recurringInvoiceRoutes);
 
 // Client-specific routes (require client authentication)
 app.use('/api/client/tickets', clientTicketRouter);
