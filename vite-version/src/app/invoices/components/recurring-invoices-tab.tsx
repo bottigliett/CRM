@@ -33,6 +33,7 @@ import {
   RefreshCw,
   CheckCircle2,
   Clock,
+  Filter,
 } from "lucide-react"
 import {
   recurringInvoicesAPI,
@@ -54,8 +55,8 @@ interface RecurringInvoicesTabProps {
 
 export function RecurringInvoicesTab({ onInvoicesGenerated }: RecurringInvoicesTabProps) {
   const now = new Date()
-  const [selectedMonth, setSelectedMonth] = useState((now.getMonth() + 1).toString())
-  const [selectedYear, setSelectedYear] = useState(now.getFullYear().toString())
+  const currentMonth = now.getMonth() + 1
+  const currentYear = now.getFullYear()
   const [recurringInvoices, setRecurringInvoices] = useState<RecurringInvoice[]>([])
   const [generationStatus, setGenerationStatus] = useState<GenerationStatus[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -69,6 +70,7 @@ export function RecurringInvoicesTab({ onInvoicesGenerated }: RecurringInvoicesT
   const [errorDialogOpen, setErrorDialogOpen] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
   const [paymentEntities, setPaymentEntities] = useState<PaymentEntity[]>([])
+  const [entityFilter, setEntityFilter] = useState<string>('all')
 
   // Load payment entities once
   useEffect(() => {
@@ -82,7 +84,7 @@ export function RecurringInvoicesTab({ onInvoicesGenerated }: RecurringInvoicesT
       setIsLoading(true)
       const [templatesRes, statusRes] = await Promise.all([
         recurringInvoicesAPI.getAll(),
-        recurringInvoicesAPI.getGenerationStatus(parseInt(selectedMonth), parseInt(selectedYear)),
+        recurringInvoicesAPI.getGenerationStatus(currentMonth, currentYear),
       ])
       if (templatesRes.success) {
         setRecurringInvoices(templatesRes.data)
@@ -99,7 +101,7 @@ export function RecurringInvoicesTab({ onInvoicesGenerated }: RecurringInvoicesT
 
   useEffect(() => {
     loadData()
-  }, [selectedMonth, selectedYear])
+  }, [])
 
   const handleGenerate = async (paymentEntityId?: number) => {
     try {
@@ -108,13 +110,13 @@ export function RecurringInvoicesTab({ onInvoicesGenerated }: RecurringInvoicesT
         ? paymentEntities.find(e => e.id === paymentEntityId)?.name || ''
         : 'Tutti'
       const response = await recurringInvoicesAPI.generateMonthly(
-        parseInt(selectedMonth),
-        parseInt(selectedYear),
+        currentMonth,
+        currentYear,
         paymentEntityId
       )
       if (response.success) {
         const { generated, skipped } = response.data
-        let message = `${generated} fatture generate come BOZZA per ${MESI_ITALIANI[parseInt(selectedMonth) - 1]} ${selectedYear}`
+        let message = `${generated} fatture generate come BOZZA per ${MESI_ITALIANI[currentMonth - 1]} ${currentYear}`
         if (paymentEntityId) {
           message += ` (${entityName})`
         }
@@ -178,38 +180,33 @@ export function RecurringInvoicesTab({ onInvoicesGenerated }: RecurringInvoicesT
     return <Badge variant="secondary"><Clock className="mr-1 h-3 w-3" />Da generare</Badge>
   }
 
-  // Check if all templates have been generated
+  // Filter templates by entity
+  const filteredInvoices = entityFilter === 'all'
+    ? recurringInvoices
+    : recurringInvoices.filter(r => r.paymentEntityId.toString() === entityFilter)
+
+  // Check generation status
   const allGenerated = generationStatus.length > 0 && generationStatus.every(s => s.generated)
   const someGenerated = generationStatus.some(s => s.generated)
 
   return (
     <div className="space-y-4">
-      {/* Header with month selector and generate button */}
+      {/* Header */}
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div className="flex items-center gap-2">
-          <CalendarCheck className="h-5 w-5 text-muted-foreground" />
+          <Filter className="h-5 w-5 text-muted-foreground" />
 
-          <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-            <SelectTrigger className="w-40">
+          <Select value={entityFilter} onValueChange={setEntityFilter}>
+            <SelectTrigger className="w-44">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {MESI_ITALIANI.map((mese, index) => (
-                <SelectItem key={index + 1} value={(index + 1).toString()}>
-                  {mese}
+              <SelectItem value="all">Tutte le entità</SelectItem>
+              {paymentEntities.map((entity) => (
+                <SelectItem key={entity.id} value={entity.id.toString()}>
+                  {entity.name}
                 </SelectItem>
               ))}
-            </SelectContent>
-          </Select>
-
-          <Select value={selectedYear} onValueChange={setSelectedYear}>
-            <SelectTrigger className="w-28">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="2026">2026</SelectItem>
-              <SelectItem value="2025">2025</SelectItem>
-              <SelectItem value="2027">2027</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -257,15 +254,15 @@ export function RecurringInvoicesTab({ onInvoicesGenerated }: RecurringInvoicesT
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           {allGenerated ? (
             <span className="text-green-600 font-medium">
-              Tutte le {generationStatus.length} fatture di {MESI_ITALIANI[parseInt(selectedMonth) - 1]} {selectedYear} sono state generate
+              Tutte le {generationStatus.length} fatture di {MESI_ITALIANI[currentMonth - 1]} {currentYear} sono state generate
             </span>
           ) : someGenerated ? (
             <span>
-              {generationStatus.filter(s => s.generated).length} di {generationStatus.length} fatture generate per {MESI_ITALIANI[parseInt(selectedMonth) - 1]} {selectedYear}
+              {generationStatus.filter(s => s.generated).length} di {generationStatus.length} fatture generate per {MESI_ITALIANI[currentMonth - 1]} {currentYear}
             </span>
           ) : (
             <span>
-              {recurringInvoices.length} template attivi - nessuna fattura generata per {MESI_ITALIANI[parseInt(selectedMonth) - 1]} {selectedYear}
+              {recurringInvoices.length} template attivi - {MESI_ITALIANI[currentMonth - 1]} {currentYear}
             </span>
           )}
         </div>
@@ -282,10 +279,12 @@ export function RecurringInvoicesTab({ onInvoicesGenerated }: RecurringInvoicesT
             <div className="flex items-center justify-center h-48">
               <Loader2 className="h-6 w-6 animate-spin" />
             </div>
-          ) : recurringInvoices.length === 0 ? (
+          ) : filteredInvoices.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-48 gap-2">
               <CalendarCheck className="h-12 w-12 text-muted-foreground" />
-              <p className="text-sm text-muted-foreground">Nessun template di fattura ricorrente</p>
+              <p className="text-sm text-muted-foreground">
+                {entityFilter !== 'all' ? 'Nessun template per questa entità' : 'Nessun template di fattura ricorrente'}
+              </p>
               <Button onClick={handleNewRecurring} variant="outline" size="sm">
                 <Plus className="mr-2 h-4 w-4" />
                 Crea il primo template
@@ -300,13 +299,12 @@ export function RecurringInvoicesTab({ onInvoicesGenerated }: RecurringInvoicesT
                     <TableHead className="min-w-[250px]">Oggetto</TableHead>
                     <TableHead className="w-[110px] text-right">Importo</TableHead>
                     <TableHead className="w-[130px]">Entità</TableHead>
-                    <TableHead className="w-[70px] text-center">Giorno</TableHead>
-                    <TableHead className="w-[140px]">Stato {MESI_ITALIANI[parseInt(selectedMonth) - 1].substring(0, 3)}</TableHead>
+                    <TableHead className="w-[140px]">Stato {MESI_ITALIANI[currentMonth - 1].substring(0, 3)}</TableHead>
                     <TableHead className="w-[50px]"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {recurringInvoices.map((recurring) => (
+                  {filteredInvoices.map((recurring) => (
                     <TableRow key={recurring.id}>
                       <TableCell>
                         <div className="font-medium text-sm">{recurring.clientName}</div>
@@ -322,9 +320,6 @@ export function RecurringInvoicesTab({ onInvoicesGenerated }: RecurringInvoicesT
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline">{recurring.paymentEntity?.name || '-'}</Badge>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        {recurring.generationDay}
                       </TableCell>
                       <TableCell>
                         {getGenerationBadge(recurring.id)}

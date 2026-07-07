@@ -451,8 +451,8 @@ export const generateMonthlyInvoices = async (req: Request, res: Response) => {
           }
         }
 
-        // Calculate issue date
-        const issueDate = new Date(parsedYear, parsedMonth - 1, template.generationDay);
+        // Issue date = today
+        const issueDate = new Date();
 
         // Calculate due date
         const dueDate = new Date(issueDate);

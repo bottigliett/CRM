@@ -336,43 +336,24 @@ export function RecurringInvoiceDialog({ open, onOpenChange, onSuccess, recurrin
                   </p>
                 </div>
 
-                {/* Generation Day */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="generationDay">Giorno Emissione *</Label>
-                    <Select
-                      value={formData.generationDay?.toString()}
-                      onValueChange={(value) => setFormData({ ...formData, generationDay: parseInt(value) })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="9">9 del mese</SelectItem>
-                        <SelectItem value="10">10 del mese</SelectItem>
-                        <SelectItem value="11">11 del mese</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="paymentDays">Giorni Pagamento *</Label>
-                    <Select
-                      value={formData.paymentDays?.toString()}
-                      onValueChange={(value) => setFormData({ ...formData, paymentDays: parseInt(value) })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="0">Immediato</SelectItem>
-                        <SelectItem value="7">7 giorni</SelectItem>
-                        <SelectItem value="15">15 giorni</SelectItem>
-                        <SelectItem value="30">30 giorni</SelectItem>
-                        <SelectItem value="60">60 giorni</SelectItem>
-                        <SelectItem value="90">90 giorni</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+                <div className="space-y-2">
+                  <Label htmlFor="paymentDays">Giorni Pagamento *</Label>
+                  <Select
+                    value={formData.paymentDays?.toString()}
+                    onValueChange={(value) => setFormData({ ...formData, paymentDays: parseInt(value) })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="0">Immediato</SelectItem>
+                      <SelectItem value="7">7 giorni</SelectItem>
+                      <SelectItem value="15">15 giorni</SelectItem>
+                      <SelectItem value="30">30 giorni</SelectItem>
+                      <SelectItem value="60">60 giorni</SelectItem>
+                      <SelectItem value="90">90 giorni</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 {/* Payment Entity */}
