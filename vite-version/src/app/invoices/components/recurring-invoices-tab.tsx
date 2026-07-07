@@ -39,6 +39,7 @@ import {
   type RecurringInvoice,
   type GenerationStatus,
 } from "@/lib/recurring-invoices-api"
+import { paymentEntityAPI, type PaymentEntity } from "@/lib/payment-entity-api"
 import { RecurringInvoiceDialog } from "./recurring-invoice-dialog"
 import { AlertDialogCustom } from "@/components/ui/alert-dialog-custom"
 
@@ -67,6 +68,14 @@ export function RecurringInvoicesTab({ onInvoicesGenerated }: RecurringInvoicesT
   const [resultMessage, setResultMessage] = useState('')
   const [errorDialogOpen, setErrorDialogOpen] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
+  const [paymentEntities, setPaymentEntities] = useState<PaymentEntity[]>([])
+
+  // Load payment entities once
+  useEffect(() => {
+    paymentEntityAPI.getAll(true).then(res => {
+      if (res.success) setPaymentEntities(res.data)
+    })
+  }, [])
 
   const loadData = async () => {
     try {
@@ -92,16 +101,24 @@ export function RecurringInvoicesTab({ onInvoicesGenerated }: RecurringInvoicesT
     loadData()
   }, [selectedMonth, selectedYear])
 
-  const handleGenerate = async () => {
+  const handleGenerate = async (paymentEntityId?: number) => {
     try {
       setIsGenerating(true)
+      const entityName = paymentEntityId
+        ? paymentEntities.find(e => e.id === paymentEntityId)?.name || ''
+        : 'Tutti'
       const response = await recurringInvoicesAPI.generateMonthly(
         parseInt(selectedMonth),
-        parseInt(selectedYear)
+        parseInt(selectedYear),
+        paymentEntityId
       )
       if (response.success) {
         const { generated, skipped } = response.data
-        let message = `${generated} fatture generate come BOZZA per ${MESI_ITALIANI[parseInt(selectedMonth) - 1]} ${selectedYear}.`
+        let message = `${generated} fatture generate come BOZZA per ${MESI_ITALIANI[parseInt(selectedMonth) - 1]} ${selectedYear}`
+        if (paymentEntityId) {
+          message += ` (${entityName})`
+        }
+        message += '.'
         if (skipped > 0) {
           message += `\n${skipped} fatture saltate (già generate).`
         }
@@ -202,18 +219,36 @@ export function RecurringInvoicesTab({ onInvoicesGenerated }: RecurringInvoicesT
             <Plus className="mr-2 h-4 w-4" />
             Nuova Fattura Ricorrente
           </Button>
-          <Button
-            onClick={handleGenerate}
-            disabled={isGenerating || allGenerated || recurringInvoices.length === 0}
-            className="bg-primary hover:bg-primary/90"
-          >
-            {isGenerating ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <RefreshCw className="mr-2 h-4 w-4" />
-            )}
-            Genera fatture del mese
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                disabled={isGenerating || allGenerated || recurringInvoices.length === 0}
+                className="bg-primary hover:bg-primary/90"
+              >
+                {isGenerating ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                )}
+                Genera fatture del mese
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {paymentEntities.map((entity) => (
+                <DropdownMenuItem
+                  key={entity.id}
+                  onClick={() => handleGenerate(entity.id)}
+                >
+                  Genera fatture {entity.name}
+                </DropdownMenuItem>
+              ))}
+              {paymentEntities.length > 1 && (
+                <DropdownMenuItem onClick={() => handleGenerate()}>
+                  Genera tutte
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 

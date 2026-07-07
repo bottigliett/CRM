@@ -362,7 +362,7 @@ export const getGenerationStatus = async (req: Request, res: Response) => {
 // Generate monthly invoices from active templates
 export const generateMonthlyInvoices = async (req: Request, res: Response) => {
   try {
-    const { month, year } = req.body;
+    const { month, year, paymentEntityId } = req.body;
     const userId = (req as any).user?.userId;
 
     if (!month || !year || month < 1 || month > 12) {
@@ -375,9 +375,14 @@ export const generateMonthlyInvoices = async (req: Request, res: Response) => {
     const parsedMonth = parseInt(month);
     const parsedYear = parseInt(year);
 
-    // Get all active templates
+    // Get active templates, optionally filtered by payment entity
+    const whereClause: any = { isActive: true };
+    if (paymentEntityId) {
+      whereClause.paymentEntityId = parseInt(paymentEntityId);
+    }
+
     const templates = await prisma.recurringInvoice.findMany({
-      where: { isActive: true },
+      where: whereClause,
       include: {
         contact: true,
         paymentEntity: true,

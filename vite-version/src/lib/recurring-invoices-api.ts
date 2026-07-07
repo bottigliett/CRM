@@ -113,7 +113,7 @@ export const recurringInvoicesAPI = {
     return await api.delete(`/recurring-invoices/${id}`);
   },
 
-  async generateMonthly(month: number, year: number): Promise<{
+  async generateMonthly(month: number, year: number, paymentEntityId?: number): Promise<{
     success: boolean;
     message: string;
     data: {
@@ -122,7 +122,7 @@ export const recurringInvoicesAPI = {
       invoices: any[];
     };
   }> {
-    return await api.post('/recurring-invoices/generate', { month, year });
+    return await api.post('/recurring-invoices/generate', { month, year, paymentEntityId });
   },
 
   async getGenerationStatus(month: number, year: number): Promise<{ success: boolean; data: GenerationStatus[] }> {
