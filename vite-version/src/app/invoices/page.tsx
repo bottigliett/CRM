@@ -48,8 +48,10 @@ import {
   FileCheck,
   Square,
   CheckSquare,
+  RotateCcw,
 } from "lucide-react"
 import { invoicesAPI, type Invoice, type GetInvoicesParams } from "@/lib/invoices-api"
+import { ColumnToggle, type ColumnDef as ToggleColumnDef } from "@/components/ui/column-toggle"
 import { format } from "date-fns"
 import { it } from "date-fns/locale"
 import { InvoiceDialog } from "./components/invoice-dialog"
@@ -98,6 +100,7 @@ export default function InvoicesPage() {
   )
   const [selectedYear, setSelectedYear] = useState(() => localStorage.getItem('inv_year') || '2026')
   const [searchTerm, setSearchTerm] = useState('')
+  const [dateFilter, setDateFilter] = useState('')
   const [sortBy, setSortBy] = useState<'issueDate' | 'invoiceNumber' | 'total' | 'clientName'>(() =>
     (localStorage.getItem('inv_sortBy') as any) || 'issueDate'
   )
@@ -116,6 +119,74 @@ export default function InvoicesPage() {
   useEffect(() => { localStorage.setItem('inv_year', selectedYear) }, [selectedYear])
   useEffect(() => { localStorage.setItem('inv_sortBy', sortBy) }, [sortBy])
   useEffect(() => { localStorage.setItem('inv_sortOrder', sortOrder) }, [sortOrder])
+
+  // Column config — same pattern as organizations page
+  const DEFAULT_COLUMNS: ToggleColumnDef[] = [
+    { id: 'invoiceNumber', label: 'Numero' },
+    { id: 'clientName', label: 'Cliente' },
+    { id: 'paymentEntity', label: 'Destinatario' },
+    { id: 'fiscal', label: 'Fiscale' },
+    { id: 'total', label: 'Importo' },
+    { id: 'issueDate', label: 'Data' },
+    { id: 'status', label: 'Stato' },
+  ]
+
+  const [columns, setColumns] = useState<ToggleColumnDef[]>(() => {
+    try {
+      const saved = localStorage.getItem('inv_col_order')
+      if (saved) {
+        const order: string[] = JSON.parse(saved)
+        return [
+          ...order.map(id => DEFAULT_COLUMNS.find(c => c.id === id)).filter(Boolean) as ToggleColumnDef[],
+          ...DEFAULT_COLUMNS.filter(c => !order.includes(c.id)),
+        ]
+      }
+    } catch {}
+    return DEFAULT_COLUMNS
+  })
+
+  const [visibleColumnsMap, setVisibleColumnsMap] = useState<Record<string, boolean>>(() => {
+    try {
+      const saved = localStorage.getItem('inv_col_vis')
+      if (saved) {
+        const defaultVis = Object.fromEntries(DEFAULT_COLUMNS.map(c => [c.id, true]))
+        return { ...defaultVis, ...JSON.parse(saved) }
+      }
+    } catch {}
+    return Object.fromEntries(DEFAULT_COLUMNS.map(c => [c.id, true]))
+  })
+
+  const persistColumnPrefs = (cols: ToggleColumnDef[], vis: Record<string, boolean>) => {
+    localStorage.setItem('inv_col_order', JSON.stringify(cols.map(c => c.id)))
+    localStorage.setItem('inv_col_vis', JSON.stringify(vis))
+  }
+
+  const toggleColumn = (columnId: string) => {
+    setVisibleColumnsMap(prev => {
+      const next = { ...prev, [columnId]: !prev[columnId] }
+      persistColumnPrefs(columns, next)
+      return next
+    })
+  }
+
+  const handleReorder = (newOrder: string[]) => {
+    const reordered = [
+      ...newOrder.map(id => columns.find(c => c.id === id)).filter(Boolean) as ToggleColumnDef[],
+      ...columns.filter(c => !newOrder.includes(c.id)),
+    ]
+    setColumns(reordered)
+    persistColumnPrefs(reordered, visibleColumnsMap)
+  }
+
+  const visibleCols = columns.filter(c => visibleColumnsMap[c.id] !== false)
+
+  // Client-side date filter — matches against the formatted dd/MM/yy string
+  const filteredInvoices = dateFilter
+    ? invoices.filter(inv => {
+        const formatted = format(new Date(inv.issueDate), 'dd/MM/yy', { locale: it })
+        return formatted.includes(dateFilter)
+      })
+    : invoices
 
   const [stats, setStats] = useState({
     totalIssued: 0,
@@ -336,20 +407,6 @@ export default function InvoicesPage() {
           <div className="flex flex-wrap items-center gap-2 flex-1">
           <Filter className="h-5 w-5 text-muted-foreground" />
 
-          <Select value={selectedStatus} onValueChange={(v: any) => setSelectedStatus(v)}>
-            <SelectTrigger className="w-36">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Tutte</SelectItem>
-              <SelectItem value="draft">Bozze</SelectItem>
-              <SelectItem value="issued">Emesse</SelectItem>
-              <SelectItem value="paid">Pagate</SelectItem>
-              <SelectItem value="overdue">Scadute</SelectItem>
-              <SelectItem value="cancelled">Annullate</SelectItem>
-            </SelectContent>
-          </Select>
-
           <Select value={selectedPeriod} onValueChange={(v: any) => setSelectedPeriod(v)}>
             <SelectTrigger className="w-40">
               <SelectValue />
@@ -375,13 +432,6 @@ export default function InvoicesPage() {
               </SelectContent>
             </Select>
           )}
-
-          <Input
-            placeholder="Cerca cliente o numero..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-60"
-          />
 
           <Select value={`${sortBy}-${sortOrder}`} onValueChange={(v) => {
             const [field, order] = v.split('-') as [typeof sortBy, typeof sortOrder]
@@ -528,95 +578,170 @@ export default function InvoicesPage() {
                 <CardTitle>Elenco Fatture</CardTitle>
                 <CardDescription>Gestisci e monitora le tue fatture</CardDescription>
               </div>
+              <ColumnToggle
+                columns={columns}
+                visibleColumns={visibleColumnsMap}
+                onToggle={toggleColumn}
+                onReorder={handleReorder}
+              />
             </div>
           </CardHeader>
           <CardContent>
-            {isLoadingInvoices ? (
-              <div className="flex items-center justify-center h-48">
-                <Loader2 className="h-6 w-6 animate-spin" />
-              </div>
-            ) : !invoices || invoices.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-48 gap-2">
-                <FileText className="h-12 w-12 text-muted-foreground" />
-                <p className="text-sm text-muted-foreground">Nessuna fattura trovata</p>
-                <Button onClick={handleNewInvoice} variant="outline" size="sm">
-                  <Plus className="mr-2 h-4 w-4" />
-                  Crea la tua prima fattura
-                </Button>
-              </div>
-            ) : (
-              <>
                 <div className="relative rounded-md border">
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="w-[100px]">Numero</TableHead>
-                        <TableHead className="min-w-[200px]">Cliente</TableHead>
-                        <TableHead className="w-[160px]">Fiscale</TableHead>
-                        <TableHead className="w-[110px] text-right">Importo</TableHead>
-                        <TableHead className="w-[90px]">Data</TableHead>
-                        <TableHead className="w-[90px]">Stato</TableHead>
+                        {visibleCols.map(col => {
+                          const styles: Record<string, string> = {
+                            invoiceNumber: 'w-[100px]',
+                            clientName: 'min-w-[200px]',
+                            paymentEntity: 'w-[150px]',
+                            fiscal: 'w-[160px]',
+                            total: 'w-[110px] text-right',
+                            issueDate: 'w-[90px]',
+                            status: 'w-[90px]',
+                          }
+                          return <TableHead key={col.id} className={styles[col.id] ?? ''}>{col.label}</TableHead>
+                        })}
                         <TableHead className="w-[50px]"></TableHead>
+                      </TableRow>
+                      <TableRow>
+                        {visibleCols.map(col => {
+                          if (col.id === 'status') {
+                            return (
+                              <TableHead key={`filter-${col.id}`} className="p-1">
+                                <Select value={selectedStatus} onValueChange={(v: any) => setSelectedStatus(v)}>
+                                  <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Stato" /></SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="all">Tutti</SelectItem>
+                                    <SelectItem value="draft">Bozze</SelectItem>
+                                    <SelectItem value="issued">Emesse</SelectItem>
+                                    <SelectItem value="paid">Pagate</SelectItem>
+                                    <SelectItem value="overdue">Scadute</SelectItem>
+                                    <SelectItem value="cancelled">Annullate</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </TableHead>
+                            )
+                          }
+                          if (col.id === 'clientName' || col.id === 'invoiceNumber') {
+                            return (
+                              <TableHead key={`filter-${col.id}`} className="p-1">
+                                <Input
+                                  className="h-8 text-xs"
+                                  placeholder={col.id === 'clientName' ? 'Cliente...' : 'Numero...'}
+                                  value={searchTerm}
+                                  onChange={(e) => setSearchTerm(e.target.value)}
+                                />
+                              </TableHead>
+                            )
+                          }
+                          if (col.id === 'issueDate') {
+                            return (
+                              <TableHead key={`filter-${col.id}`} className="p-1">
+                                <Input
+                                  className="h-8 text-xs"
+                                  placeholder="dd/mm/aa"
+                                  value={dateFilter}
+                                  onChange={(e) => setDateFilter(e.target.value)}
+                                />
+                              </TableHead>
+                            )
+                          }
+                          return <TableHead key={`filter-${col.id}`} className="p-1"></TableHead>
+                        })}
+                        <TableHead className="w-[50px] p-1">
+                          {(searchTerm || dateFilter || selectedStatus !== 'all' || selectedPeriod !== 'all') && (
+                            <Button
+                              variant="ghost" size="icon" className="h-8 w-8"
+                              onClick={() => { setSearchTerm(''); setDateFilter(''); setSelectedStatus('all'); setSelectedPeriod('all') }}
+                              title="Reset filtri"
+                            >
+                              <RotateCcw className="h-3.5 w-3.5" />
+                            </Button>
+                          )}
+                        </TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {invoices.map((invoice) => (
-                        <TableRow key={invoice.id}>
-                          <TableCell className="font-mono text-xs font-medium">
-                            {invoice.invoiceNumber}
+                      {isLoadingInvoices ? (
+                        <TableRow>
+                          <TableCell colSpan={visibleCols.length + 1} className="text-center py-8">
+                            <Loader2 className="h-6 w-6 animate-spin mx-auto" />
                           </TableCell>
-                          <TableCell>
-                            <div className="font-medium text-sm">{invoice.clientName}</div>
-                            <div className="text-xs text-muted-foreground truncate max-w-[280px]">{invoice.subject}</div>
+                        </TableRow>
+                      ) : filteredInvoices.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={visibleCols.length + 1} className="text-center py-8">
+                            <div className="flex flex-col items-center gap-2">
+                              <FileText className="h-12 w-12 text-muted-foreground" />
+                              <p className="text-sm text-muted-foreground">Nessuna fattura trovata</p>
+                              {!searchTerm && !dateFilter && selectedStatus === 'all' && (
+                                <Button onClick={handleNewInvoice} variant="outline" size="sm">
+                                  <Plus className="mr-2 h-4 w-4" />
+                                  Crea la tua prima fattura
+                                </Button>
+                              )}
+                            </div>
                           </TableCell>
-                          <TableCell className="text-xs">
-                            {invoice.status === 'PAID' ? (
-                              <div className="space-y-1">
-                                <div className="flex items-center gap-1.5">
-                                  {invoice.taxReserved ? (
-                                    <Landmark className="h-3.5 w-3.5 text-orange-500 shrink-0" />
-                                  ) : (
-                                    <Landmark className="h-3.5 w-3.5 text-muted-foreground/30 shrink-0" />
-                                  )}
-                                  <span className={invoice.taxReserved ? 'text-orange-600' : 'text-muted-foreground/40'}>
-                                    Tasse acc.
-                                  </span>
-                                </div>
-                                <button
-                                  onClick={(e) => { e.stopPropagation(); handleToggleElectronicInvoice(invoice) }}
-                                  className="flex items-center gap-1.5 group"
-                                  title={invoice.electronicInvoiceNumber ? `N. ${invoice.electronicInvoiceNumber}` : undefined}
-                                >
-                                  {invoice.electronicInvoiceNumber ? (
-                                    <>
-                                      <CheckSquare className="h-3.5 w-3.5 text-blue-500 shrink-0" />
-                                      <span className="text-blue-600 truncate max-w-[100px]">
-                                        FE {invoice.electronicInvoiceNumber}
-                                      </span>
-                                    </>
-                                  ) : (
-                                    <>
-                                      <Square className="h-3.5 w-3.5 text-muted-foreground/30 shrink-0 group-hover:text-muted-foreground" />
-                                      <span className="text-muted-foreground/40 group-hover:text-muted-foreground">
-                                        Fatt. elettronica
-                                      </span>
-                                    </>
-                                  )}
-                                </button>
-                              </div>
-                            ) : (
-                              <span className="text-muted-foreground/30">—</span>
-                            )}
-                          </TableCell>
-                          <TableCell className="font-semibold text-right tabular-nums">
-                            € {invoice.total.toLocaleString('it-IT', { minimumFractionDigits: 2 })}
-                          </TableCell>
-                          <TableCell className="text-xs whitespace-nowrap">
-                            {format(new Date(invoice.issueDate), 'dd/MM/yy', { locale: it })}
-                          </TableCell>
-                          <TableCell>
-                            {getStatusBadge(invoice.status, invoice.isOverdue)}
-                          </TableCell>
+                        </TableRow>
+                      ) : filteredInvoices.map((invoice) => (
+                        <TableRow key={invoice.id} className={invoice.isOverdue && invoice.status === 'ISSUED' ? 'bg-red-50 dark:bg-red-950/20' : ''}>
+                          {visibleCols.map(col => {
+                            switch (col.id) {
+                              case 'invoiceNumber':
+                                return <TableCell key={col.id} className="font-mono text-xs font-medium">{invoice.invoiceNumber}</TableCell>
+                              case 'clientName':
+                                return (
+                                  <TableCell key={col.id}>
+                                    <div className="font-medium text-sm">{invoice.clientName}</div>
+                                    <div className="text-xs text-muted-foreground truncate max-w-[280px]">{invoice.subject}</div>
+                                  </TableCell>
+                                )
+                              case 'paymentEntity':
+                                return <TableCell key={col.id} className="text-sm">{invoice.paymentEntity?.name ?? '—'}</TableCell>
+                              case 'fiscal':
+                                return (
+                                  <TableCell key={col.id} className="text-xs">
+                                    {invoice.status === 'PAID' ? (
+                                      <div className="space-y-1">
+                                        <div className="flex items-center gap-1.5">
+                                          <Landmark className={`h-3.5 w-3.5 shrink-0 ${invoice.taxReserved ? 'text-orange-500' : 'text-muted-foreground/30'}`} />
+                                          <span className={invoice.taxReserved ? 'text-orange-600' : 'text-muted-foreground/40'}>Tasse acc.</span>
+                                        </div>
+                                        <button
+                                          onClick={(e) => { e.stopPropagation(); handleToggleElectronicInvoice(invoice) }}
+                                          className="flex items-center gap-1.5 group"
+                                          title={invoice.electronicInvoiceNumber ? `N. ${invoice.electronicInvoiceNumber}` : undefined}
+                                        >
+                                          {invoice.electronicInvoiceNumber ? (
+                                            <>
+                                              <CheckSquare className="h-3.5 w-3.5 text-blue-500 shrink-0" />
+                                              <span className="text-blue-600 truncate max-w-[100px]">FE {invoice.electronicInvoiceNumber}</span>
+                                            </>
+                                          ) : (
+                                            <>
+                                              <Square className="h-3.5 w-3.5 text-muted-foreground/30 shrink-0 group-hover:text-muted-foreground" />
+                                              <span className="text-muted-foreground/40 group-hover:text-muted-foreground">Fatt. elettronica</span>
+                                            </>
+                                          )}
+                                        </button>
+                                      </div>
+                                    ) : (
+                                      <span className="text-muted-foreground/30">—</span>
+                                    )}
+                                  </TableCell>
+                                )
+                              case 'total':
+                                return <TableCell key={col.id} className="font-semibold text-right tabular-nums">€ {invoice.total.toLocaleString('it-IT', { minimumFractionDigits: 2 })}</TableCell>
+                              case 'issueDate':
+                                return <TableCell key={col.id} className="text-xs whitespace-nowrap">{format(new Date(invoice.issueDate), 'dd/MM/yy', { locale: it })}</TableCell>
+                              case 'status':
+                                return <TableCell key={col.id}>{getStatusBadge(invoice.status, invoice.isOverdue)}</TableCell>
+                              default:
+                                return <TableCell key={col.id}>—</TableCell>
+                            }
+                          })}
                           <TableCell>
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
@@ -666,6 +791,7 @@ export default function InvoicesPage() {
                   </Table>
                 </div>
 
+                {pagination.totalPages > 1 && (
                 <div className="flex items-center justify-between mt-4">
                   <p className="text-sm text-muted-foreground">
                     Mostrando {((pagination.page - 1) * pagination.limit) + 1} - {Math.min(pagination.page * pagination.limit, pagination.total)} di {pagination.total} fatture
@@ -717,8 +843,7 @@ export default function InvoicesPage() {
                     </Button>
                   </div>
                 </div>
-              </>
-            )}
+                )}
           </CardContent>
         </Card>
       </div>
