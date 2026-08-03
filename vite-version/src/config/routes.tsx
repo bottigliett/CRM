@@ -15,6 +15,7 @@ const Users = lazy(() => import('@/app/users/page'))
 // CRM pages
 const LeadBoard = lazy(() => import('@/app/lead-board/page'))
 const Contacts = lazy(() => import('@/app/contacts/page'))
+const ContactDetail = lazy(() => import('@/app/contacts/[id]/page'))
 const Clients = lazy(() => import('@/app/clients/page'))
 const ClientDetail = lazy(() => import('@/app/clients/[id]/page'))
 const Quotes = lazy(() => import('@/app/quotes/page'))
@@ -104,6 +105,10 @@ export const routes: RouteConfig[] = [
   {
     path: "/contacts",
     element: <ProtectedRoute><ModuleProtectedRoute moduleName="contacts"><Contacts /></ModuleProtectedRoute></ProtectedRoute>
+  },
+  {
+    path: "/contacts/:id",
+    element: <ProtectedRoute><ModuleProtectedRoute moduleName="contacts"><ContactDetail /></ModuleProtectedRoute></ProtectedRoute>
   },
   {
     path: "/clients",
