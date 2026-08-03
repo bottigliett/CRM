@@ -8,7 +8,7 @@ import { EventPreview } from "./event-preview"
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { type CalendarEvent } from "../types"
 import { useCalendar } from "../use-calendar"
-import { usersAPI } from "@/lib/users-api"
+import { usersAPI, type CalendarPreferences } from "@/lib/users-api"
 
 interface CalendarProps {
   events: CalendarEvent[]
@@ -16,41 +16,37 @@ interface CalendarProps {
 }
 
 export function Calendar({ events, eventDates }: CalendarProps) {
-  const calendar = useCalendar(events)
-  const [hideSidebar, setHideSidebar] = useState(false)
+  const [preferences, setPreferences] = useState<CalendarPreferences | null>(null)
+  const calendar = useCalendar(events, preferences)
 
-  // Load sidebar preference
+  // Load all preferences once
   useEffect(() => {
     const loadPreferences = async () => {
       try {
         const response = await usersAPI.getCalendarPreferences()
-        if (response.success && response.data.hideSidebar !== undefined) {
-          setHideSidebar(response.data.hideSidebar)
+        if (response.success && response.data) {
+          setPreferences(response.data)
         }
       } catch (error) {
         // Fallback to localStorage
         const saved = localStorage.getItem('calendar-user-preferences')
         if (saved) {
-          const prefs = JSON.parse(saved)
-          setHideSidebar(prefs.hideSidebar ?? false)
+          setPreferences(JSON.parse(saved))
         }
       }
     }
     loadPreferences()
   }, [])
 
+  const hideSidebar = preferences?.hideSidebar ?? false
+  const showWeekends = preferences?.showWeekends ?? true
+  const startHour = preferences?.defaultStartHour ?? 7
+  const endHour = preferences?.defaultEndHour ?? 22
+
   // Filter events based on hidden categories
   const filteredEvents = calendar.events.filter(event => {
     // Hide events that belong to hidden categories
     return !event.categoryId || !calendar.hiddenCategories.has(event.categoryId)
-  })
-
-  // Debug log to show filtering
-  console.log('[DEBUG] Event filtering:', {
-    totalEvents: calendar.events.length,
-    hiddenCategories: Array.from(calendar.hiddenCategories),
-    filteredEvents: filteredEvents.length,
-    hiddenEventsCount: calendar.events.length - filteredEvents.length
   })
 
   return (
@@ -85,6 +81,9 @@ export function Calendar({ events, eventDates }: CalendarProps) {
               currentView={calendar.currentView}
               onViewChange={calendar.setCurrentView}
               hideSidebar={hideSidebar}
+              showWeekends={showWeekends}
+              startHour={startHour}
+              endHour={endHour}
             />
           </div>
         </div>

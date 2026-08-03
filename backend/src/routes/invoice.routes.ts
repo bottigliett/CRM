@@ -4,6 +4,7 @@ import {
   getInvoice,
   createInvoice,
   updateInvoice,
+  patchInvoice,
   deleteInvoice,
   duplicateInvoice,
   getNextInvoiceNumber,
@@ -34,6 +35,9 @@ router.post('/', createInvoice);
 
 // PUT /api/invoices/:id - Update invoice
 router.put('/:id', updateInvoice);
+
+// PATCH /api/invoices/:id - Partial update (e.g. electronic invoice number)
+router.patch('/:id', patchInvoice);
 
 // DELETE /api/invoices/:id - Delete invoice (only drafts)
 router.delete('/:id', deleteInvoice);

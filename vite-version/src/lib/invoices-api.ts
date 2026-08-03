@@ -50,6 +50,9 @@ export interface Invoice {
   taxReserved: boolean;
   taxAmount?: number;
 
+  // Electronic invoice
+  electronicInvoiceNumber?: string;
+
   // Payment entity
   paymentEntityId?: number;
 
@@ -94,6 +97,8 @@ export interface GetInvoicesParams {
   unpaidOnly?: boolean;
   currentYear?: boolean;
   includeStats?: boolean;
+  sortBy?: 'issueDate' | 'invoiceNumber' | 'total' | 'clientName';
+  sortOrder?: 'asc' | 'desc';
 }
 
 export interface CreateInvoiceData {
@@ -124,6 +129,8 @@ export interface CreateInvoiceData {
   invoiceNumber?: string;
 
   paymentEntityId?: number;
+
+  electronicInvoiceNumber?: string;
 }
 
 export interface UpdateInvoiceData extends Partial<CreateInvoiceData> {}
@@ -181,6 +188,8 @@ class InvoicesAPI {
     if (params.unpaidOnly) queryParams.append('unpaidOnly', 'true');
     if (params.currentYear !== undefined) queryParams.append('currentYear', params.currentYear.toString());
     if (params.includeStats) queryParams.append('includeStats', 'true');
+    if (params.sortBy) queryParams.append('sortBy', params.sortBy);
+    if (params.sortOrder) queryParams.append('sortOrder', params.sortOrder);
 
     const query = queryParams.toString();
     return this.request<any>(`/invoices${query ? `?${query}` : ''}`);
@@ -211,6 +220,17 @@ class InvoicesAPI {
   }> {
     return this.request<any>(`/invoices/${id}`, {
       method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async patchInvoice(id: number, data: Partial<Pick<Invoice, 'electronicInvoiceNumber'>>): Promise<{
+    success: boolean;
+    message: string;
+    data: Invoice;
+  }> {
+    return this.request<any>(`/invoices/${id}`, {
+      method: 'PATCH',
       body: JSON.stringify(data),
     });
   }

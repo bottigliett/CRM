@@ -75,9 +75,12 @@ interface CalendarMainProps {
   currentView?: CalendarView
   onViewChange?: (view: CalendarView) => void
   hideSidebar?: boolean
+  showWeekends?: boolean
+  startHour?: number
+  endHour?: number
 }
 
-export function CalendarMain({ selectedDate, onDateSelect, onMenuClick, events, onEventClick, onTimeSlotClick, currentView, onViewChange, hideSidebar = false }: CalendarMainProps) {
+export function CalendarMain({ selectedDate, onDateSelect, onMenuClick, events, onEventClick, onTimeSlotClick, currentView, onViewChange, hideSidebar = false, showWeekends = true, startHour: propStartHour = 7, endHour: propEndHour = 22 }: CalendarMainProps) {
   const navigateTo = useNavigate()
   // Convert JSON events to CalendarEvent objects with proper Date objects, fallback to imported data
   const sampleEvents: CalendarEvent[] = events || eventsData.map(event => ({
@@ -250,12 +253,16 @@ export function CalendarMain({ selectedDate, onDateSelect, onMenuClick, events, 
   }
 
   const renderCalendarGrid = () => {
-    const weekDays = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom']
+    const allWeekDays = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom']
+    const weekDays = showWeekends ? allWeekDays : allWeekDays.slice(0, 5)
+    const colCount = weekDays.length
 
-    // Group calendar days by week rows
+    // Group calendar days by week rows, filtering weekends if needed
     const weeks: Date[][] = []
     for (let i = 0; i < calendarDays.length; i += 7) {
-      weeks.push(calendarDays.slice(i, i + 7))
+      const fullWeek = calendarDays.slice(i, i + 7)
+      const filteredWeek = showWeekends ? fullWeek : fullWeek.filter(d => d.getDay() !== 0 && d.getDay() !== 6)
+      if (filteredWeek.length > 0) weeks.push(filteredWeek)
     }
 
     // Track unique all-day multi-day events to avoid duplicates
@@ -264,7 +271,7 @@ export function CalendarMain({ selectedDate, onDateSelect, onMenuClick, events, 
     return (
       <div className="flex-1 bg-background">
         {/* Calendar Header */}
-        <div className="grid grid-cols-7 border-b">
+        <div className="grid border-b" style={{ gridTemplateColumns: `repeat(${colCount}, 1fr)` }}>
           {weekDays.map(day => (
             <div key={day} className="p-4 text-center font-medium text-sm text-muted-foreground border-r last:border-r-0">
               {day}
@@ -365,7 +372,7 @@ export function CalendarMain({ selectedDate, onDateSelect, onMenuClick, events, 
               {/* All-day events section - hidden on mobile, shown on md+ */}
               {allDayEventsWithRows.length > 0 && (
                 <div className="hidden md:block relative border-b bg-muted/20" style={{ height: `${allDayHeight}px` }}>
-                  <div className="grid grid-cols-7 h-full pointer-events-none">
+                  <div className="grid h-full pointer-events-none" style={{ gridTemplateColumns: `repeat(${colCount}, 1fr)` }}>
                     {week.map((day) => (
                       <div key={`allday-${day.toISOString()}`} className="border-r last:border-r-0"></div>
                     ))}
@@ -378,8 +385,8 @@ export function CalendarMain({ selectedDate, onDateSelect, onMenuClick, events, 
                         className="absolute pointer-events-auto text-xs p-1 rounded-sm text-white cursor-pointer truncate"
                         style={{
                           backgroundColor: event.color,
-                          left: `${((event.startCol - 1) * 100) / 7}%`,
-                          width: `${(event.span * 100) / 7}%`,
+                          left: `${((event.startCol - 1) * 100) / colCount}%`,
+                          width: `${(event.span * 100) / colCount}%`,
                           top: `${(event.row - 1) * 22 + 4}px`,
                           height: '20px'
                         }}
@@ -396,7 +403,7 @@ export function CalendarMain({ selectedDate, onDateSelect, onMenuClick, events, 
               )}
 
               {/* Regular day cells */}
-              <div className="grid grid-cols-7 relative z-0">
+              <div className="grid relative z-0" style={{ gridTemplateColumns: `repeat(${colCount}, 1fr)` }}>
                 {week.map((day, dayIndex) => {
                   const dayEvents = getEventsForDay(day)
                   const timedEvents = dayEvents.filter(e => !e.allDay)
@@ -506,10 +513,12 @@ export function CalendarMain({ selectedDate, onDateSelect, onMenuClick, events, 
     const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 })
     const weekEnd = endOfWeek(currentDate, { weekStartsOn: 1 })
     const daysInWeek = eachDayOfInterval({ start: weekStart, end: weekEnd })
-    const filteredDays = workWeekOnly ? daysInWeek.filter(day => day.getDay() !== 0 && day.getDay() !== 6) : daysInWeek
+    // Hide weekends if workWeekOnly OR if showWeekends preference is false
+    const hideWeekendDays = workWeekOnly || !showWeekends
+    const filteredDays = hideWeekendDays ? daysInWeek.filter(day => day.getDay() !== 0 && day.getDay() !== 6) : daysInWeek
 
-    const startHour = 7
-    const endHour = 22
+    const startHour = propStartHour
+    const endHour = propEndHour
     const hours = Array.from({ length: endHour - startHour + 1 }, (_, i) => i + startHour)
     const minutesPerHour = 60
     const pixelsPerMinute = 1
@@ -826,8 +835,8 @@ export function CalendarMain({ selectedDate, onDateSelect, onMenuClick, events, 
   }
 
   const renderDayView = () => {
-    const startHour = 7
-    const endHour = 22
+    const startHour = propStartHour
+    const endHour = propEndHour
     const hours = Array.from({ length: endHour - startHour + 1 }, (_, i) => i + startHour)
     const pixelsPerMinute = 1.5
 

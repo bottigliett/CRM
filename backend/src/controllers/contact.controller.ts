@@ -115,7 +115,7 @@ export const getContacts = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Errore nel recupero dei contatti',
-      error: error.message,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };
@@ -153,7 +153,7 @@ export const getContactById = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Errore nel recupero del contatto',
-      error: error.message,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };
@@ -257,7 +257,7 @@ export const createContact = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Errore nella creazione del contatto',
-      error: error.message,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };
@@ -389,7 +389,7 @@ export const updateContact = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: "Errore nell'aggiornamento del contatto",
-      error: error.message,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };
@@ -428,7 +428,90 @@ export const deleteContact = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: "Errore nell'eliminazione del contatto",
-      error: error.message,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+    });
+  }
+};
+
+/**
+ * GET /api/contacts/:id/full
+ * Get a single contact with ALL relations (invoices, tasks, events, tickets, quotes, projects, etc.)
+ */
+export const getContactFull = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    const contact: any = await prisma.contact.findUnique({
+      where: { id: parseInt(id) },
+      include: {
+        tags: true,
+        socials: true,
+        customFields: true,
+        invoices: {
+          include: { items: true },
+          orderBy: { createdAt: 'desc' },
+        },
+        transactions: {
+          orderBy: { date: 'desc' },
+        },
+        events: {
+          orderBy: { startDateTime: 'desc' },
+        },
+        eventContactLinks: {
+          include: { event: true },
+        },
+        tasks: {
+          orderBy: { createdAt: 'desc' },
+        },
+        taskContactLinks: {
+          include: { task: true },
+        },
+        tickets: {
+          orderBy: { createdAt: 'desc' },
+        },
+        quotes: {
+          orderBy: { createdAt: 'desc' },
+        },
+        projects: {
+          orderBy: { createdAt: 'desc' },
+        },
+        recurringInvoices: true,
+        clientAccess: true,
+      },
+    });
+
+    if (!contact) {
+      return res.status(404).json({
+        success: false,
+        message: 'Contatto non trovato',
+      });
+    }
+
+    // Calculated fields
+    const totalInvoiced = contact.invoices.reduce((sum: number, inv: any) => sum + (inv.total || 0), 0);
+    const totalPaid = contact.transactions
+      .filter((t: any) => t.type === 'INCOME')
+      .reduce((sum: number, t: any) => sum + (t.amount || 0), 0);
+    const openTickets = contact.tickets.filter((t: any) => t.status !== 'CLOSED' && t.status !== 'RESOLVED').length;
+    const now = new Date();
+    const upcomingEvents = contact.events.filter((e: any) => new Date(e.startDateTime) > now).length;
+
+    res.json({
+      success: true,
+      data: {
+        ...contact,
+        totalInvoiced,
+        totalPaid,
+        openTickets,
+        upcomingEvents,
+      },
+    });
+  } catch (error: any) {
+    console.error('Error getting full contact:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Errore nel recupero del contatto completo',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };
@@ -468,7 +551,7 @@ export const getAllTags = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Errore nel recupero dei tags',
-      error: error.message,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };

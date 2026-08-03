@@ -147,6 +147,19 @@ class ContactsAPI {
     return this.getContacts(params);
   }
 
+  async getContactFull(id: number): Promise<ContactResponse> {
+    const response = await fetch(`${API_BASE_URL}/contacts/${id}/full`, {
+      headers: this.getAuthHeader(),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Errore nel recupero del contatto');
+    }
+
+    return response.json();
+  }
+
   async getContactById(id: number): Promise<ContactResponse> {
     const response = await fetch(`${API_BASE_URL}/contacts/${id}`, {
       headers: this.getAuthHeader(),

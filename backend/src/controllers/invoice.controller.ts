@@ -16,6 +16,8 @@ export const getInvoices = async (req: Request, res: Response) => {
       page = '1',
       limit = '20',
       includeStats = 'false',
+      sortBy = 'issueDate',
+      sortOrder = 'desc',
     } = req.query;
 
     // Build where clause
@@ -130,7 +132,7 @@ export const getInvoices = async (req: Request, res: Response) => {
           },
         },
       },
-      orderBy: { issueDate: 'desc' },
+      orderBy: { [sortBy as string]: sortOrder === 'asc' ? 'asc' : 'desc' },
       skip,
       take: limitNum,
     });
@@ -200,7 +202,7 @@ export const getInvoices = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Errore nel recupero delle fatture',
-      error: error.message,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };
@@ -249,7 +251,7 @@ export const getInvoice = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Errore nel recupero della fattura',
-      error: error.message,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };
@@ -403,7 +405,7 @@ export const createInvoice = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Errore nella creazione della fattura',
-      error: error.message,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };
@@ -436,6 +438,7 @@ export const updateInvoice = async (req: Request, res: Response) => {
       paymentNotes,
       fiscalNotes,
       paymentEntityId,
+      electronicInvoiceNumber,
     } = req.body;
 
     // Check if invoice exists
@@ -521,6 +524,7 @@ export const updateInvoice = async (req: Request, res: Response) => {
         paymentNotes,
         fiscalNotes,
         paymentEntityId: paymentEntityId ? parseInt(paymentEntityId) : null,
+        ...(electronicInvoiceNumber !== undefined && { electronicInvoiceNumber: electronicInvoiceNumber || null }),
       },
       include: {
         contact: true,
@@ -652,7 +656,7 @@ export const updateInvoice = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: "Errore nell'aggiornamento della fattura",
-      error: error.message,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };
@@ -694,7 +698,7 @@ export const deleteInvoice = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: "Errore nell'eliminazione della fattura",
-      error: error.message,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };
@@ -783,7 +787,7 @@ export const duplicateInvoice = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Errore nella duplicazione della fattura',
-      error: error.message,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };
@@ -932,7 +936,7 @@ export const getNextInvoiceNumber = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Errore nella generazione del numero fattura',
-      error: error.message,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };
@@ -1046,7 +1050,40 @@ export const reserveTaxes = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Errore durante l\'accantonamento delle tasse',
-      error: error.message,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
+  }
+};
+
+/**
+ * PATCH /api/invoices/:id
+ * Partial update — only touches fields present in the body
+ */
+export const patchInvoice = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const existing = await prisma.invoice.findUnique({ where: { id: parseInt(id) } });
+    if (!existing) {
+      return res.status(404).json({ success: false, message: 'Fattura non trovata' });
+    }
+
+    const allowed = ['electronicInvoiceNumber'] as const;
+    const data: any = {};
+    for (const key of allowed) {
+      if (req.body[key] !== undefined) {
+        data[key] = req.body[key] || null;
+      }
+    }
+
+    const invoice = await prisma.invoice.update({
+      where: { id: parseInt(id) },
+      data,
+      include: { contact: true, creator: { select: { id: true, username: true, firstName: true, lastName: true } }, paymentEntity: true },
+    });
+
+    res.json({ success: true, message: 'Fattura aggiornata', data: invoice });
+  } catch (error: any) {
+    console.error('Error patching invoice:', error);
+    res.status(500).json({ success: false, message: 'Errore nell\'aggiornamento' });
   }
 };

@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect } from "react"
 import { type CalendarEvent, type CalendarView } from "./types"
 import { eventsAPI, type Event as APIEvent } from "@/lib/events-api"
 import { format, startOfMonth, endOfMonth } from "date-fns"
+import { type CalendarPreferences } from "@/lib/users-api"
 
 export interface UseCalendarState {
   selectedDate: Date
@@ -90,7 +91,7 @@ function convertAPIEvent(apiEvent: APIEvent): CalendarEvent {
   }
 }
 
-export function useCalendar(initialEvents: CalendarEvent[] = []): UseCalendarReturn {
+export function useCalendar(initialEvents: CalendarEvent[] = [], preferences?: CalendarPreferences | null): UseCalendarReturn {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date())
   const [showEventForm, setShowEventForm] = useState(false)
   const [showEventPreview, setShowEventPreview] = useState(false)
@@ -99,12 +100,23 @@ export function useCalendar(initialEvents: CalendarEvent[] = []): UseCalendarRet
   const [showCalendarSheet, setShowCalendarSheet] = useState(false)
   const [events, setEvents] = useState<CalendarEvent[]>(initialEvents)
   const [isLoading, setIsLoading] = useState(false)
+  const [prefsApplied, setPrefsApplied] = useState(false)
   const [currentView, setCurrentView] = useState<CalendarView>(() => {
-    // Load saved view from localStorage, default to "month" if not found
     const savedView = localStorage.getItem('calendar-view')
     return (savedView as CalendarView) || "month"
   })
   const [hiddenCategories, setHiddenCategories] = useState<Set<number>>(new Set())
+
+  // Apply defaultView from preferences when loaded (only once, and only if user hasn't manually chosen a view)
+  useEffect(() => {
+    if (preferences?.defaultView && !prefsApplied) {
+      const hasManualView = localStorage.getItem('calendar-view')
+      if (!hasManualView) {
+        setCurrentView(preferences.defaultView as CalendarView)
+      }
+      setPrefsApplied(true)
+    }
+  }, [preferences, prefsApplied])
 
   const loadEvents = useCallback(async (startDate?: Date, endDate?: Date) => {
     try {

@@ -696,6 +696,9 @@ model Invoice {
   taxReserved     Boolean        @default(false) @map("tax_reserved") // Se le tasse sono state accantonate
   taxAmount       Float?         @map("tax_amount") // Importo tasse accantonate
 
+  // Electronic invoice
+  electronicInvoiceNumber String? @map("electronic_invoice_number") // Numero fattura elettronica
+
   // Legal notes
   fiscalNotes     String?        @db.Text @map("fiscal_notes") // Note fiscali personalizzate
 

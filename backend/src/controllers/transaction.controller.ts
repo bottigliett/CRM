@@ -450,13 +450,14 @@ export const getTransactionStats = async (req: Request, res: Response) => {
 
     const balance = income - expenses;
 
-    // Bank balance: exclude "Accantonamento tasse" from expenses
-    // (they are virtual provisions, not real bank movements)
-    const taxProvisionExpenses = transactions
-      .filter((t: any) => t.type === TransactionType.EXPENSE && t.description?.includes('Accantonamento'))
-      .reduce((sum: number, t: any) => sum + t.amount, 0);
+    const bankBalance = income - expenses;
 
-    const bankBalance = income - (expenses - taxProvisionExpenses);
+    // Reserved taxes: 28% of all PAID invoices total
+    const paidInvoices = await prisma.invoice.aggregate({
+      _sum: { total: true },
+      where: { status: 'PAID' },
+    });
+    const reservedTaxes = (paidInvoices._sum.total || 0) * 0.28;
 
     // Get category breakdown
     const categoryBreakdown = transactions.reduce((acc: any, t: any) => {
@@ -519,6 +520,7 @@ export const getTransactionStats = async (req: Request, res: Response) => {
           expenses,
           balance,
           bankBalance,
+          reservedTaxes,
           incomeChange,
           expensesChange,
         },

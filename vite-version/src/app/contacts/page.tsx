@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
+import { useNavigate } from "react-router-dom"
 import { BaseLayout } from "@/components/layouts/base-layout"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -65,7 +66,8 @@ import {
   Loader2,
   LayoutList,
   LayoutGrid,
-  Download
+  Download,
+  Eye,
 } from "lucide-react"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { contactsAPI, type Contact, type CreateContactData } from "@/lib/contacts-api"
@@ -75,6 +77,7 @@ import { format } from "date-fns"
 import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd"
 
 export default function ContactsPage() {
+  const navigate = useNavigate()
   const [contacts, setContacts] = useState<Contact[]>([])
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
@@ -1546,6 +1549,16 @@ export default function ContactsPage() {
 
               {/* Azioni */}
               <div className="flex justify-end gap-2 pt-4 border-t">
+                <Button
+                  onClick={() => {
+                    setIsPreviewDialogOpen(false)
+                    navigate(`/contacts/${selectedContact.id}`)
+                  }}
+                  className="cursor-pointer"
+                >
+                  <Eye className="mr-2 h-4 w-4" />
+                  Visualizza Scheda
+                </Button>
                 <Button
                   variant="outline"
                   onClick={() => {

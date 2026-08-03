@@ -111,11 +111,6 @@ export default function FinancePage() {
     reservedTaxes: 0,
   })
 
-  // Calculate reserved taxes from category breakdown (filtered by period)
-  const reservedTaxes = stats.categoryBreakdown.find(
-    cat => cat.type === 'EXPENSE' && cat.name.toLowerCase().includes('tasse')
-  )?.total || 0
-
   const [monthlyData, setMonthlyData] = useState<Array<{
     month: string
     income: number
@@ -268,14 +263,10 @@ export default function FinancePage() {
       const response = await transactionsAPI.getTransactionStats({ startDate: undefined, endDate: undefined })
 
       if (response.success) {
-        const taxesReserved = response.data.categoryBreakdown?.find(
-          (cat: any) => cat.type === 'EXPENSE' && cat.name.toLowerCase().includes('tasse')
-        )?.total || 0
-
         setAllTimeStats({
           balance: response.data.summary.balance,
           bankBalance: response.data.summary.bankBalance ?? response.data.summary.balance,
-          reservedTaxes: taxesReserved,
+          reservedTaxes: response.data.summary.reservedTaxes ?? 0,
         })
       }
     } catch (error: any) {
@@ -420,7 +411,7 @@ export default function FinancePage() {
   }
 
   // Genera lista anni (solo 2025 e 2026)
-  const years = [2025, 2026]
+  const years = [2024, 2025, 2026]
   const months = [
     { value: '1', label: 'Gennaio' },
     { value: '2', label: 'Febbraio' },

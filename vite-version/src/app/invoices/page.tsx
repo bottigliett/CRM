@@ -45,6 +45,9 @@ import {
   Eye,
   Lock,
   Landmark,
+  FileCheck,
+  Square,
+  CheckSquare,
 } from "lucide-react"
 import { invoicesAPI, type Invoice, type GetInvoicesParams } from "@/lib/invoices-api"
 import { format } from "date-fns"
@@ -85,12 +88,34 @@ export default function InvoicesPage() {
 
   const shouldProtectData = isProtectionEnabled && !isUnlocked
 
-  // Filtri
+  // Filtri — persisted in localStorage
   const currentYear = new Date().getFullYear()
-  const [selectedStatus, setSelectedStatus] = useState<'all' | 'draft' | 'issued' | 'paid' | 'cancelled' | 'overdue'>('all')
-  const [selectedPeriod, setSelectedPeriod] = useState<'all' | 'this-month' | 'this-quarter' | 'this-year' | 'last-month' | 'last-quarter' | 'last-year'>('this-year')
-  const [selectedYear, setSelectedYear] = useState('2026')
+  const [selectedStatus, setSelectedStatus] = useState<'all' | 'draft' | 'issued' | 'paid' | 'cancelled' | 'overdue'>(() =>
+    (localStorage.getItem('inv_status') as any) || 'all'
+  )
+  const [selectedPeriod, setSelectedPeriod] = useState<'all' | 'this-month' | 'this-quarter' | 'this-year' | 'last-month' | 'last-quarter' | 'last-year'>(() =>
+    (localStorage.getItem('inv_period') as any) || 'this-year'
+  )
+  const [selectedYear, setSelectedYear] = useState(() => localStorage.getItem('inv_year') || '2026')
   const [searchTerm, setSearchTerm] = useState('')
+  const [sortBy, setSortBy] = useState<'issueDate' | 'invoiceNumber' | 'total' | 'clientName'>(() =>
+    (localStorage.getItem('inv_sortBy') as any) || 'issueDate'
+  )
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>(() =>
+    (localStorage.getItem('inv_sortOrder') as any) || 'desc'
+  )
+
+  // E-invoice dialog state
+  const [eInvoiceDialogOpen, setEInvoiceDialogOpen] = useState(false)
+  const [eInvoiceTarget, setEInvoiceTarget] = useState<Invoice | null>(null)
+  const [eInvoiceNumber, setEInvoiceNumber] = useState('')
+
+  // Persist filters
+  useEffect(() => { localStorage.setItem('inv_status', selectedStatus) }, [selectedStatus])
+  useEffect(() => { localStorage.setItem('inv_period', selectedPeriod) }, [selectedPeriod])
+  useEffect(() => { localStorage.setItem('inv_year', selectedYear) }, [selectedYear])
+  useEffect(() => { localStorage.setItem('inv_sortBy', sortBy) }, [sortBy])
+  useEffect(() => { localStorage.setItem('inv_sortOrder', sortOrder) }, [sortOrder])
 
   const [stats, setStats] = useState({
     totalIssued: 0,
@@ -127,6 +152,8 @@ export default function InvoicesPage() {
             search: searchTerm || undefined,
             includeStats: true,
             currentYear: selectedPeriod === 'all' ? false : undefined,
+            sortBy,
+            sortOrder,
           }
 
           console.log('Loading invoices with params:', params)
@@ -160,7 +187,7 @@ export default function InvoicesPage() {
     }, searchTerm ? 500 : 0) // 500ms delay for search, instant for other filters
 
     return () => clearTimeout(timeoutId)
-  }, [pagination.page, pagination.limit, selectedStatus, selectedPeriod, selectedYear, searchTerm, refreshTrigger])
+  }, [pagination.page, pagination.limit, selectedStatus, selectedPeriod, selectedYear, searchTerm, sortBy, sortOrder, refreshTrigger])
 
   const handlePageChange = (newPage: number) => {
     setPagination(prev => ({ ...prev, page: newPage }))
@@ -239,6 +266,32 @@ export default function InvoicesPage() {
     setIsTaxReserveOpen(true)
   }
 
+  const handleToggleElectronicInvoice = async (invoice: Invoice) => {
+    if (invoice.electronicInvoiceNumber) {
+      try {
+        await invoicesAPI.patchInvoice(invoice.id, { electronicInvoiceNumber: '' })
+        setRefreshTrigger(prev => prev + 1)
+      } catch (error) {
+        console.error('Failed to update:', error)
+      }
+    } else {
+      setEInvoiceTarget(invoice)
+      setEInvoiceNumber('')
+      setEInvoiceDialogOpen(true)
+    }
+  }
+
+  const handleSaveElectronicInvoice = async () => {
+    if (!eInvoiceTarget || !eInvoiceNumber.trim()) return
+    try {
+      await invoicesAPI.patchInvoice(eInvoiceTarget.id, { electronicInvoiceNumber: eInvoiceNumber.trim() })
+      setRefreshTrigger(prev => prev + 1)
+      setEInvoiceDialogOpen(false)
+    } catch (error) {
+      console.error('Failed to update:', error)
+    }
+  }
+
   const getStatusBadge = (status: Invoice['status'], isOverdue?: boolean) => {
     if (isOverdue && status === 'ISSUED') {
       return <Badge variant="destructive">Scaduta</Badge>
@@ -266,88 +319,106 @@ export default function InvoicesPage() {
     </div>
   ) : (
     <div className="h-[calc(100vh-4rem)] flex flex-col px-4 lg:px-6 space-y-4 overflow-y-auto">
-        {/* Header con filtri e azioni */}
-        <div className="flex flex-col gap-4 pt-4">
-          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <div className="flex flex-wrap items-center gap-2">
-              <Filter className="h-5 w-5 text-muted-foreground" />
+        {/* Azioni */}
+        <div className="flex items-center justify-end gap-2 pt-4">
+          <Button onClick={() => setIsRecurringOpen(true)} variant="outline">
+            <CalendarCheck className="mr-2 h-4 w-4" />
+            Fatture Ricorrenti
+          </Button>
+          <Button onClick={handleNewInvoice} className="bg-primary hover:bg-primary/90">
+            <Plus className="mr-2 h-4 w-4" />
+            Nuova Fattura
+          </Button>
+        </div>
 
-              <Select value={selectedStatus} onValueChange={(v: any) => setSelectedStatus(v)}>
-                <SelectTrigger className="w-36">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Tutte</SelectItem>
-                  <SelectItem value="draft">Bozze</SelectItem>
-                  <SelectItem value="issued">Emesse</SelectItem>
-                  <SelectItem value="paid">Pagate</SelectItem>
-                  <SelectItem value="overdue">Scadute</SelectItem>
-                  <SelectItem value="cancelled">Annullate</SelectItem>
-                </SelectContent>
-              </Select>
+        {/* Filtri */}
+        <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 flex-1">
+          <Filter className="h-5 w-5 text-muted-foreground" />
 
-              <Select value={selectedPeriod} onValueChange={(v: any) => setSelectedPeriod(v)}>
-                <SelectTrigger className="w-40">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Tutto il periodo</SelectItem>
-                  <SelectItem value="this-month">Questo mese</SelectItem>
-                  <SelectItem value="this-quarter">Questo trimestre</SelectItem>
-                  <SelectItem value="this-year">Anno</SelectItem>
-                  <SelectItem value="last-month">Mese scorso</SelectItem>
-                  <SelectItem value="last-quarter">Trimestre scorso</SelectItem>
-                </SelectContent>
-              </Select>
+          <Select value={selectedStatus} onValueChange={(v: any) => setSelectedStatus(v)}>
+            <SelectTrigger className="w-36">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tutte</SelectItem>
+              <SelectItem value="draft">Bozze</SelectItem>
+              <SelectItem value="issued">Emesse</SelectItem>
+              <SelectItem value="paid">Pagate</SelectItem>
+              <SelectItem value="overdue">Scadute</SelectItem>
+              <SelectItem value="cancelled">Annullate</SelectItem>
+            </SelectContent>
+          </Select>
 
-              {(selectedPeriod === 'this-year' || selectedPeriod === 'all') && (
-                <Select value={selectedYear} onValueChange={setSelectedYear}>
-                  <SelectTrigger className="w-28">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="2026">2026</SelectItem>
-                    <SelectItem value="2025">2025</SelectItem>
-                  </SelectContent>
-                </Select>
-              )}
+          <Select value={selectedPeriod} onValueChange={(v: any) => setSelectedPeriod(v)}>
+            <SelectTrigger className="w-40">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tutto il periodo</SelectItem>
+              <SelectItem value="this-month">Questo mese</SelectItem>
+              <SelectItem value="this-quarter">Questo trimestre</SelectItem>
+              <SelectItem value="this-year">Anno</SelectItem>
+              <SelectItem value="last-month">Mese scorso</SelectItem>
+              <SelectItem value="last-quarter">Trimestre scorso</SelectItem>
+            </SelectContent>
+          </Select>
 
-              <Input
-                placeholder="Cerca cliente o numero..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-60"
-              />
+          {(selectedPeriod === 'this-year' || selectedPeriod === 'all') && (
+            <Select value={selectedYear} onValueChange={setSelectedYear}>
+              <SelectTrigger className="w-28">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="2026">2026</SelectItem>
+                <SelectItem value="2025">2025</SelectItem>
+              </SelectContent>
+            </Select>
+          )}
 
-              <Select
-                value={pagination.limit.toString()}
-                onValueChange={(v) => setPagination({ ...pagination, limit: parseInt(v), page: 1 })}
-              >
-                <SelectTrigger className="w-32">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="10">10 per pagina</SelectItem>
-                  <SelectItem value="20">20 per pagina</SelectItem>
-                  <SelectItem value="50">50 per pagina</SelectItem>
-                  <SelectItem value="100">100 per pagina</SelectItem>
-                </SelectContent>
-              </Select>
+          <Input
+            placeholder="Cerca cliente o numero..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-60"
+          />
 
-              <PaymentEntitySettings />
-            </div>
+          <Select value={`${sortBy}-${sortOrder}`} onValueChange={(v) => {
+            const [field, order] = v.split('-') as [typeof sortBy, typeof sortOrder]
+            setSortBy(field)
+            setSortOrder(order)
+          }}>
+            <SelectTrigger className="w-44">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="invoiceNumber-asc">N. Fattura (cresc.)</SelectItem>
+              <SelectItem value="invoiceNumber-desc">N. Fattura (decresc.)</SelectItem>
+              <SelectItem value="issueDate-desc">Data (recenti)</SelectItem>
+              <SelectItem value="issueDate-asc">Data (meno recenti)</SelectItem>
+              <SelectItem value="total-desc">Importo (decresc.)</SelectItem>
+              <SelectItem value="total-asc">Importo (cresc.)</SelectItem>
+              <SelectItem value="clientName-asc">Cliente (A-Z)</SelectItem>
+              <SelectItem value="clientName-desc">Cliente (Z-A)</SelectItem>
+            </SelectContent>
+          </Select>
 
-            <div className="flex items-center gap-2">
-              <Button onClick={() => setIsRecurringOpen(true)} variant="outline">
-                <CalendarCheck className="mr-2 h-4 w-4" />
-                Fatture Ricorrenti
-              </Button>
-              <Button onClick={handleNewInvoice} className="bg-primary hover:bg-primary/90">
-                <Plus className="mr-2 h-4 w-4" />
-                Nuova Fattura
-              </Button>
-            </div>
+          <Select
+            value={pagination.limit.toString()}
+            onValueChange={(v) => setPagination({ ...pagination, limit: parseInt(v), page: 1 })}
+          >
+            <SelectTrigger className="w-32">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="10">10 per pagina</SelectItem>
+              <SelectItem value="20">20 per pagina</SelectItem>
+              <SelectItem value="50">50 per pagina</SelectItem>
+              <SelectItem value="100">100 per pagina</SelectItem>
+            </SelectContent>
+          </Select>
           </div>
+          <PaymentEntitySettings />
         </div>
 
         {/* Stats Overview */}
@@ -481,6 +552,7 @@ export default function InvoicesPage() {
                       <TableRow>
                         <TableHead className="w-[100px]">Numero</TableHead>
                         <TableHead className="min-w-[200px]">Cliente</TableHead>
+                        <TableHead className="w-[160px]">Fiscale</TableHead>
                         <TableHead className="w-[110px] text-right">Importo</TableHead>
                         <TableHead className="w-[90px]">Data</TableHead>
                         <TableHead className="w-[90px]">Stato</TableHead>
@@ -496,6 +568,45 @@ export default function InvoicesPage() {
                           <TableCell>
                             <div className="font-medium text-sm">{invoice.clientName}</div>
                             <div className="text-xs text-muted-foreground truncate max-w-[280px]">{invoice.subject}</div>
+                          </TableCell>
+                          <TableCell className="text-xs">
+                            {invoice.status === 'PAID' ? (
+                              <div className="space-y-1">
+                                <div className="flex items-center gap-1.5">
+                                  {invoice.taxReserved ? (
+                                    <Landmark className="h-3.5 w-3.5 text-orange-500 shrink-0" />
+                                  ) : (
+                                    <Landmark className="h-3.5 w-3.5 text-muted-foreground/30 shrink-0" />
+                                  )}
+                                  <span className={invoice.taxReserved ? 'text-orange-600' : 'text-muted-foreground/40'}>
+                                    Tasse acc.
+                                  </span>
+                                </div>
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); handleToggleElectronicInvoice(invoice) }}
+                                  className="flex items-center gap-1.5 group"
+                                  title={invoice.electronicInvoiceNumber ? `N. ${invoice.electronicInvoiceNumber}` : undefined}
+                                >
+                                  {invoice.electronicInvoiceNumber ? (
+                                    <>
+                                      <CheckSquare className="h-3.5 w-3.5 text-blue-500 shrink-0" />
+                                      <span className="text-blue-600 truncate max-w-[100px]">
+                                        FE {invoice.electronicInvoiceNumber}
+                                      </span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Square className="h-3.5 w-3.5 text-muted-foreground/30 shrink-0 group-hover:text-muted-foreground" />
+                                      <span className="text-muted-foreground/40 group-hover:text-muted-foreground">
+                                        Fatt. elettronica
+                                      </span>
+                                    </>
+                                  )}
+                                </button>
+                              </div>
+                            ) : (
+                              <span className="text-muted-foreground/30">—</span>
+                            )}
                           </TableCell>
                           <TableCell className="font-semibold text-right tabular-nums">
                             € {invoice.total.toLocaleString('it-IT', { minimumFractionDigits: 2 })}
@@ -636,6 +747,31 @@ export default function InvoicesPage() {
         invoice={previewInvoice}
         onDownloadPDF={handleDownloadPDF}
       />
+
+      {/* Electronic Invoice Number Dialog */}
+      <Dialog open={eInvoiceDialogOpen} onOpenChange={setEInvoiceDialogOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Fattura Elettronica</DialogTitle>
+            <DialogDescription>
+              Inserisci il numero della fattura elettronica per {eInvoiceTarget?.invoiceNumber}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-4">
+            <Input
+              placeholder="Es. FE-001/2026"
+              value={eInvoiceNumber}
+              onChange={(e) => setEInvoiceNumber(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSaveElectronicInvoice()}
+              autoFocus
+            />
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setEInvoiceDialogOpen(false)}>Annulla</Button>
+              <Button onClick={handleSaveElectronicInvoice} disabled={!eInvoiceNumber.trim()}>Salva</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Tax Reserve Dialog */}
       <TaxReserveDialog

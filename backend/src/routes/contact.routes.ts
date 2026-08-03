@@ -2,6 +2,7 @@ import express from 'express';
 import {
   getContacts,
   getContactById,
+  getContactFull,
   createContact,
   updateContact,
   deleteContact,
@@ -17,6 +18,7 @@ router.use(authenticate);
 // Contact routes
 router.get('/', getContacts);
 router.get('/tags/all', getAllTags); // Must be before /:id to avoid conflict
+router.get('/:id/full', getContactFull); // Must be before /:id to avoid conflict
 router.get('/:id', getContactById);
 router.post('/', createContact);
 router.put('/:id', updateContact);
