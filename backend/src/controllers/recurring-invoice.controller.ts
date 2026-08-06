@@ -423,22 +423,22 @@ export const generateMonthlyInvoices = async (req: Request, res: Response) => {
           .replace(/\{mese\}/gi, meseNome)
           .replace(/\{anno\}/gi, parsedYear.toString());
 
-        // Generate next invoice number
-        const lastInvoice = await tx.invoice.findFirst({
-          where: {
-            invoiceNumber: { contains: parsedYear.toString() },
-          },
-          orderBy: { invoiceNumber: 'desc' },
+        // Generate next invoice number (numeric max, not string sort)
+        const allInvoices = await tx.invoice.findMany({
+          where: { invoiceNumber: { contains: parsedYear.toString() } },
+          select: { invoiceNumber: true },
         });
 
-        let nextNumber = `#01${parsedYear}`;
-        if (lastInvoice) {
-          const match = lastInvoice.invoiceNumber.match(/#(\d+)(\d{4})$/);
-          if (match && match[2] === parsedYear.toString()) {
-            const sequentialNum = parseInt(match[1]);
-            nextNumber = `#${String(sequentialNum + 1).padStart(2, '0')}${parsedYear}`;
+        let maxSeq = 0;
+        for (const inv of allInvoices) {
+          const match = inv.invoiceNumber.match(/#(\d+)\d{4}$/);
+          if (match) {
+            const seq = parseInt(match[1]);
+            if (seq > maxSeq) maxSeq = seq;
           }
         }
+
+        let nextNumber = `#${String(maxSeq + 1).padStart(2, '0')}${parsedYear}`;
 
         // Also check invoices just created in this transaction
         if (generatedInvoices.length > 0) {

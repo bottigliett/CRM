@@ -917,29 +917,22 @@ export const getNextInvoiceNumber = async (req: Request, res: Response) => {
   try {
     const year = new Date().getFullYear();
 
-    // Get the last invoice ordered by invoice number descending
-    const lastInvoice = await prisma.invoice.findFirst({
-      where: {
-        invoiceNumber: { contains: year.toString() },
-      },
-      orderBy: { invoiceNumber: 'desc' },
+    // Get all invoices for this year and find max sequential number numerically
+    const invoices = await prisma.invoice.findMany({
+      where: { invoiceNumber: { contains: year.toString() } },
+      select: { invoiceNumber: true },
     });
 
-    let nextNumber = `#01${year}`;
-    if (lastInvoice) {
-      // Extract the sequential number from format like #272025
-      const match = lastInvoice.invoiceNumber.match(/#(\d+)(\d{4})$/);
+    let maxSeq = 0;
+    for (const inv of invoices) {
+      const match = inv.invoiceNumber.match(/#(\d+)\d{4}$/);
       if (match) {
-        const sequentialNum = parseInt(match[1]);
-        const invoiceYear = match[2];
-
-        // If same year, increment; otherwise start from 01
-        if (invoiceYear === year.toString()) {
-          const nextNum = sequentialNum + 1;
-          nextNumber = `#${String(nextNum).padStart(2, '0')}${year}`;
-        }
+        const seq = parseInt(match[1]);
+        if (seq > maxSeq) maxSeq = seq;
       }
     }
+
+    const nextNumber = `#${String(maxSeq + 1).padStart(2, '0')}${year}`;
 
     res.json({
       success: true,
@@ -968,9 +961,10 @@ export const reserveTaxes = async (req: Request, res: Response) => {
       userId = firstUser?.id || 2; // Fallback to ID 2
     }
 
-    // Get the invoice
+    // Get the invoice with payment entity
     const invoice = await prisma.invoice.findUnique({
       where: { id: parseInt(id) },
+      include: { paymentEntity: true },
     });
 
     if (!invoice) {
@@ -999,37 +993,42 @@ export const reserveTaxes = async (req: Request, res: Response) => {
     // Calculate tax amount
     const taxAmount = invoice.total * (taxPercentage / 100);
 
-    // Get or create "Tasse e Imposte" category
-    let taxCategory = await prisma.transactionCategory.findFirst({
-      where: {
-        name: { contains: 'Tasse' },
-        type: 'EXPENSE',
-      },
-    });
+    // Only create expense transaction in finance tracker for cointestato (joint account)
+    const isJointAccount = invoice.paymentEntity?.isDefault === true || !invoice.paymentEntityId;
+    let taxTransaction = null;
 
-    if (!taxCategory) {
-      taxCategory = await prisma.transactionCategory.create({
-        data: {
-          name: 'Tasse e Imposte',
+    if (isJointAccount) {
+      // Get or create "Tasse e Imposte" category
+      let taxCategory = await prisma.transactionCategory.findFirst({
+        where: {
+          name: { contains: 'Tasse' },
           type: 'EXPENSE',
-          icon: 'landmark',
-          color: '#ef4444',
+        },
+      });
+
+      if (!taxCategory) {
+        taxCategory = await prisma.transactionCategory.create({
+          data: {
+            name: 'Tasse e Imposte',
+            type: 'EXPENSE',
+            icon: 'landmark',
+            color: '#ef4444',
+          },
+        });
+      }
+
+      taxTransaction = await prisma.transaction.create({
+        data: {
+          type: 'EXPENSE',
+          amount: taxAmount,
+          date: invoice.paymentDate || invoice.issueDate,
+          categoryId: taxCategory.id,
+          description: `Accantonamento tasse (${taxPercentage}%) - Fattura ${invoice.invoiceNumber}`,
+          invoiceId: invoice.id,
+          createdBy: userId,
         },
       });
     }
-
-    // Create expense transaction for tax reserve
-    const taxTransaction = await prisma.transaction.create({
-      data: {
-        type: 'EXPENSE',
-        amount: taxAmount,
-        date: invoice.paymentDate || invoice.issueDate,
-        categoryId: taxCategory.id,
-        description: `Accantonamento tasse (${taxPercentage}%) - Fattura ${invoice.invoiceNumber}`,
-        invoiceId: invoice.id,
-        createdBy: userId,
-      },
-    });
 
     // Update invoice to mark taxes as reserved
     const updatedInvoice = await prisma.invoice.update({
