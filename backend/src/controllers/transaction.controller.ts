@@ -452,10 +452,14 @@ export const getTransactionStats = async (req: Request, res: Response) => {
 
     const bankBalance = income - expenses;
 
-    // Reserved taxes: 28% of all PAID invoices total
+    // Reserved taxes: 28% of PAID invoices on the joint account (cointestato) only
+    const defaultEntity = await prisma.paymentEntity.findFirst({ where: { isDefault: true } });
     const paidInvoices = await prisma.invoice.aggregate({
       _sum: { total: true },
-      where: { status: 'PAID' },
+      where: {
+        status: 'PAID',
+        ...(defaultEntity ? { paymentEntityId: defaultEntity.id } : {}),
+      },
     });
     const reservedTaxes = (paidInvoices._sum.total || 0) * 0.28;
 

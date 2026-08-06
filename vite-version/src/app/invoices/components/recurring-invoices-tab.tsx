@@ -23,6 +23,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { Checkbox } from "@/components/ui/checkbox"
 import {
   Plus,
   MoreHorizontal,
@@ -71,6 +72,7 @@ export function RecurringInvoicesTab({ onInvoicesGenerated }: RecurringInvoicesT
   const [errorMessage, setErrorMessage] = useState('')
   const [paymentEntities, setPaymentEntities] = useState<PaymentEntity[]>([])
   const [entityFilter, setEntityFilter] = useState<string>('all')
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
 
   // Load payment entities once
   useEffect(() => {
@@ -103,29 +105,26 @@ export function RecurringInvoicesTab({ onInvoicesGenerated }: RecurringInvoicesT
     loadData()
   }, [])
 
-  const handleGenerate = async (paymentEntityId?: number) => {
+  const handleGenerate = async () => {
     try {
       setIsGenerating(true)
-      const entityName = paymentEntityId
-        ? paymentEntities.find(e => e.id === paymentEntityId)?.name || ''
-        : 'Tutti'
+      // If specific templates selected, pass their IDs; otherwise generate all not-yet-generated
+      const ids = selectedIds.size > 0 ? Array.from(selectedIds) : undefined
       const response = await recurringInvoicesAPI.generateMonthly(
         currentMonth,
         currentYear,
-        paymentEntityId
+        undefined,
+        ids
       )
       if (response.success) {
         const { generated, skipped } = response.data
-        let message = `${generated} fatture generate come BOZZA per ${MESI_ITALIANI[currentMonth - 1]} ${currentYear}`
-        if (paymentEntityId) {
-          message += ` (${entityName})`
-        }
-        message += '.'
+        let message = `${generated} fatture generate come BOZZA per ${MESI_ITALIANI[currentMonth - 1]} ${currentYear}.`
         if (skipped > 0) {
           message += `\n${skipped} fatture saltate (già generate).`
         }
         setResultMessage(message)
         setResultDialogOpen(true)
+        setSelectedIds(new Set())
         loadData()
         onInvoicesGenerated?.()
       }
@@ -188,6 +187,8 @@ export function RecurringInvoicesTab({ onInvoicesGenerated }: RecurringInvoicesT
   // Check generation status
   const allGenerated = generationStatus.length > 0 && generationStatus.every(s => s.generated)
   const someGenerated = generationStatus.some(s => s.generated)
+  const generatedSet = new Set(generationStatus.filter(s => s.generated).map(s => s.recurringInvoiceId))
+  const notGeneratedIds = filteredInvoices.filter(r => !generatedSet.has(r.id)).map(r => r.id)
 
   return (
     <div className="space-y-4">
@@ -216,36 +217,20 @@ export function RecurringInvoicesTab({ onInvoicesGenerated }: RecurringInvoicesT
             <Plus className="mr-2 h-4 w-4" />
             Nuova Fattura Ricorrente
           </Button>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                disabled={isGenerating || allGenerated || recurringInvoices.length === 0}
-                className="bg-primary hover:bg-primary/90"
-              >
-                {isGenerating ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <RefreshCw className="mr-2 h-4 w-4" />
-                )}
-                Genera fatture del mese
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {paymentEntities.map((entity) => (
-                <DropdownMenuItem
-                  key={entity.id}
-                  onClick={() => handleGenerate(entity.id)}
-                >
-                  Genera fatture {entity.name}
-                </DropdownMenuItem>
-              ))}
-              {paymentEntities.length > 1 && (
-                <DropdownMenuItem onClick={() => handleGenerate()}>
-                  Genera tutte
-                </DropdownMenuItem>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <Button
+            disabled={isGenerating || allGenerated || recurringInvoices.length === 0}
+            className="bg-primary hover:bg-primary/90"
+            onClick={handleGenerate}
+          >
+            {isGenerating ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <RefreshCw className="mr-2 h-4 w-4" />
+            )}
+            {selectedIds.size > 0
+              ? `Genera ${selectedIds.size} selezionate`
+              : 'Genera tutte'}
+          </Button>
         </div>
       </div>
 
@@ -295,6 +280,19 @@ export function RecurringInvoicesTab({ onInvoicesGenerated }: RecurringInvoicesT
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-[40px]">
+                      <Checkbox
+                        checked={notGeneratedIds.length > 0 && notGeneratedIds.every(id => selectedIds.has(id))}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setSelectedIds(new Set(notGeneratedIds))
+                          } else {
+                            setSelectedIds(new Set())
+                          }
+                        }}
+                        disabled={notGeneratedIds.length === 0}
+                      />
+                    </TableHead>
                     <TableHead className="min-w-[200px]">Cliente</TableHead>
                     <TableHead className="min-w-[250px]">Oggetto</TableHead>
                     <TableHead className="w-[110px] text-right">Importo</TableHead>
@@ -304,8 +302,24 @@ export function RecurringInvoicesTab({ onInvoicesGenerated }: RecurringInvoicesT
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredInvoices.map((recurring) => (
+                  {filteredInvoices.map((recurring) => {
+                    const isGenerated = generatedSet.has(recurring.id)
+                    return (
                     <TableRow key={recurring.id}>
+                      <TableCell>
+                        <Checkbox
+                          checked={selectedIds.has(recurring.id)}
+                          onCheckedChange={(checked) => {
+                            setSelectedIds(prev => {
+                              const next = new Set(prev)
+                              if (checked) next.add(recurring.id)
+                              else next.delete(recurring.id)
+                              return next
+                            })
+                          }}
+                          disabled={isGenerated}
+                        />
+                      </TableCell>
                       <TableCell>
                         <div className="font-medium text-sm">{recurring.clientName}</div>
                         {recurring.contact?.email && (
@@ -347,7 +361,7 @@ export function RecurringInvoicesTab({ onInvoicesGenerated }: RecurringInvoicesT
                         </DropdownMenu>
                       </TableCell>
                     </TableRow>
-                  ))}
+                  )})}
                 </TableBody>
               </Table>
             </div>

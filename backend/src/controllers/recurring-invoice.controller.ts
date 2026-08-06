@@ -38,7 +38,7 @@ export const getRecurringInvoices = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Errore nel recupero delle fatture ricorrenti',
-      error: error.message,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };
@@ -87,7 +87,7 @@ export const getRecurringInvoice = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Errore nel recupero della fattura ricorrente',
-      error: error.message,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };
@@ -172,7 +172,7 @@ export const createRecurringInvoice = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Errore nella creazione della fattura ricorrente',
-      error: error.message,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };
@@ -260,7 +260,7 @@ export const updateRecurringInvoice = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Errore nell\'aggiornamento della fattura ricorrente',
-      error: error.message,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };
@@ -295,7 +295,7 @@ export const deleteRecurringInvoice = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Errore nella disattivazione della fattura ricorrente',
-      error: error.message,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };
@@ -354,7 +354,7 @@ export const getGenerationStatus = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Errore nel recupero dello stato di generazione',
-      error: error.message,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };
@@ -362,7 +362,7 @@ export const getGenerationStatus = async (req: Request, res: Response) => {
 // Generate monthly invoices from active templates
 export const generateMonthlyInvoices = async (req: Request, res: Response) => {
   try {
-    const { month, year, paymentEntityId } = req.body;
+    const { month, year, paymentEntityId, templateIds } = req.body;
     const userId = (req as any).user?.userId;
 
     if (!month || !year || month < 1 || month > 12) {
@@ -375,9 +375,11 @@ export const generateMonthlyInvoices = async (req: Request, res: Response) => {
     const parsedMonth = parseInt(month);
     const parsedYear = parseInt(year);
 
-    // Get active templates, optionally filtered by payment entity
+    // Get active templates, optionally filtered by payment entity or specific IDs
     const whereClause: any = { isActive: true };
-    if (paymentEntityId) {
+    if (templateIds?.length) {
+      whereClause.id = { in: templateIds.map((id: any) => parseInt(id)) };
+    } else if (paymentEntityId) {
       whereClause.paymentEntityId = parseInt(paymentEntityId);
     }
 
@@ -515,7 +517,7 @@ export const generateMonthlyInvoices = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Errore nella generazione delle fatture mensili',
-      error: error.message,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };

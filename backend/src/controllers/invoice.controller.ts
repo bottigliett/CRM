@@ -106,6 +106,8 @@ export const getInvoices = async (req: Request, res: Response) => {
     const totalCount = await prisma.invoice.count({ where });
 
     // Fetch invoices with pagination
+    // For invoiceNumber sorting, use issueDate as DB sort then re-sort in memory (numeric extraction)
+    const isNumericSort = sortBy === 'invoiceNumber';
     const invoices = await prisma.invoice.findMany({
       where,
       include: {
@@ -132,10 +134,22 @@ export const getInvoices = async (req: Request, res: Response) => {
           },
         },
       },
-      orderBy: { [sortBy as string]: sortOrder === 'asc' ? 'asc' : 'desc' },
-      skip,
-      take: limitNum,
+      ...(isNumericSort
+        ? {} // fetch all matching, sort in memory
+        : { orderBy: { [sortBy as string]: sortOrder === 'asc' ? 'asc' : 'desc' }, skip, take: limitNum }),
     });
+
+    // Numeric sort for invoiceNumber (format: #<seq><4-digit-year>, e.g. #1002026)
+    if (isNumericSort) {
+      const extractSeq = (inv: string) => {
+        const m = inv.match(/#(\d+)\d{4}$/);
+        return m ? parseInt(m[1]) : 0;
+      };
+      const dir = sortOrder === 'asc' ? 1 : -1;
+      invoices.sort((a: any, b: any) => (extractSeq(a.invoiceNumber) - extractSeq(b.invoiceNumber)) * dir);
+      invoices.splice(0, skip);
+      invoices.splice(limitNum);
+    }
 
     // Add isOverdue flag (overdue only after due date, not on the same day)
     const invoicesWithFlags = invoices.map((invoice: any) => ({
