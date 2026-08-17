@@ -1,7 +1,7 @@
 import express from 'express';
 import multer from 'multer';
 import { authenticate } from '../middleware/auth';
-import { startOAuth, handleOAuthCallback } from '../controllers/social-auth.controller';
+import { startOAuth, handleOAuthCallback, metaDataDeletion } from '../controllers/social-auth.controller';
 import { getAccounts, disconnectAccount, refreshAccountToken, updateAccount, moveAccount } from '../controllers/social-account.controller';
 import { getPosts, getPostById, createPost, updatePost, deletePost, approvePost, schedulePost, publishNow, duplicatePost, duplicatePostBulk, promoteIdea, getPostMetrics } from '../controllers/social-post.controller';
 import { getAnalytics, getAnalyticsOverview, compareAnalytics, getPostAnalytics, getBenchmark } from '../controllers/social-analytics.controller';
@@ -47,6 +47,7 @@ const uploadPostMedia = upload.fields([
 // OAuth routes — callback is public (redirect from platform)
 router.get('/auth/:platform', authenticate, startOAuth);
 router.get('/auth/:platform/callback', handleOAuthCallback);
+router.post('/auth/meta/data-deletion', metaDataDeletion);
 
 // Client portal — public, auth via signed token
 router.get('/client-portal/posts', getPortalPosts);

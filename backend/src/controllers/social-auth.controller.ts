@@ -230,3 +230,60 @@ export const handleOAuthCallback = async (req: Request, res: Response) => {
     return res.redirect(`${frontendUrl}/social?error=oauth_failed`);
   }
 };
+
+/**
+ * POST /api/social/auth/meta/data-deletion
+ * Meta "Data Deletion Request Callback" — Meta calls this endpoint (public, no auth)
+ * with a signed_request when a user asks to delete their data from the app.
+ * We verify the HMAC signature, then return the confirmation JSON Meta expects.
+ */
+export const metaDataDeletion = async (req: Request, res: Response) => {
+  try {
+    const signedRequest: string =
+      req.body?.signed_request || req.body?.signedRequest || '';
+
+    if (!signedRequest) {
+      return res.status(400).json({ error: 'signed_request mancante' });
+    }
+
+    const parts = signedRequest.split('.');
+    if (parts.length !== 2) {
+      return res.status(400).json({ error: 'signed_request non valido' });
+    }
+
+    const [encodedSig, payload] = parts;
+    const secret = process.env.META_APP_SECRET || '';
+
+    // Facebook signed_request = <base64url(HMAC-SHA256(payload, secret))>.<base64url(payload)>
+    const expectedSig = crypto
+      .createHmac('sha256', secret)
+      .update(payload)
+      .digest('base64')
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=+$/, '');
+
+    if (expectedSig !== encodedSig) {
+      return res.status(400).json({ error: 'firma non valida' });
+    }
+
+    // Decode the payload (base64url → JSON)
+    const b64 = payload.replace(/-/g, '+').replace(/_/g, '/');
+    const padded = b64 + '='.repeat((4 - (b64.length % 4)) % 4);
+    const data = JSON.parse(Buffer.from(padded, 'base64').toString('utf8'));
+
+    const userId = data.user_id || 'unknown';
+    const confirmationCode = crypto.randomBytes(20).toString('hex');
+
+    // Log for manual processing (mapping Meta user_id → our data is handled by support)
+    console.log(`[meta][data-deletion] richiesta eliminazione dati — user_id=${userId} confirmation_code=${confirmationCode}`);
+
+    return res.json({
+      url: `https://studiomismo.com/data-deletion?code=${confirmationCode}`,
+      confirmation_code: confirmationCode,
+    });
+  } catch (error: any) {
+    console.error('[meta][data-deletion]', error.message);
+    return res.status(400).json({ error: 'errore durante l\'elaborazione' });
+  }
+};
