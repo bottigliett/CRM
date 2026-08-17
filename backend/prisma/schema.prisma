@@ -1557,7 +1557,7 @@ model SocialAccount {
   refreshToken   String?        @map("refresh_token") @db.Text
   tokenExpiresAt DateTime?      @map("token_expires_at")
   scope          String?        @db.Text
-  profilePicUrl  String?        @map("profile_pic_url")
+  profilePicUrl  String?        @map("profile_pic_url") @db.Text
   isActive       Boolean        @default(true) @map("is_active")
   lastSyncAt     DateTime?      @map("last_sync_at")
   metadata       Json?
