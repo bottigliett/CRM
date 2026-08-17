@@ -76,7 +76,7 @@ export const handleOAuthCallback = async (req: Request, res: Response) => {
     const platform = req.params.platform?.toUpperCase() as SocialPlatform;
     const { code, state, error: oauthError } = req.query;
 
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5174';
+    const frontendUrl = (process.env.FRONTEND_URL || 'http://localhost:5174').replace(/\/+$/, '');
 
     if (oauthError) {
       return res.redirect(`${frontendUrl}/social?error=${encodeURIComponent(oauthError as string)}`);
@@ -226,7 +226,7 @@ export const handleOAuthCallback = async (req: Request, res: Response) => {
     return res.redirect(`${frontendUrl}/social?error=unsupported_platform`);
   } catch (error: any) {
     console.error('OAuth callback error:', error);
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5174';
+    const frontendUrl = (process.env.FRONTEND_URL || 'http://localhost:5174').replace(/\/+$/, '');
     return res.redirect(`${frontendUrl}/social?error=oauth_failed`);
   }
 };
