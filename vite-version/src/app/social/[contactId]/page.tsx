@@ -704,12 +704,19 @@ function IdeaFormDialog({ open, onOpenChange, data, setData, onSubmit, creating,
 
   const [aiSuggestLoading, setAiSuggestLoading] = useState(false)
   const [showReview, setShowReview] = useState(false)
-  const handleAiSuggest = async () => {
+  const [showBriefing, setShowBriefing] = useState(false)
+
+  const runAiSuggest = async (answers?: string) => {
     setAiSuggestLoading(true)
     try {
-      const res = await socialAPI.aiGenerateIdeas(cid, 1)
+      const res = await socialAPI.aiGenerateIdeas(cid, 1, answers)
       const idea = res.data.ideas?.[0]
-      if (!idea) { toast.error("Nessuna idea generata"); return }
+      if (!idea) {
+        // No ideas (e.g. everything would be a duplicate) → ask clarifying questions
+        toast.info("Ho qualche dubbio: ti faccio una domanda")
+        setShowBriefing(true)
+        return
+      }
       const caption = idea.hashtags?.length ? `${idea.caption || ""} ${idea.hashtags.join(" ")}`.trim() : (idea.caption || "")
       setData(p => ({
         ...p,
@@ -722,6 +729,8 @@ function IdeaFormDialog({ open, onOpenChange, data, setData, onSubmit, creating,
     } catch (err: any) { toast.error(err.message) }
     finally { setAiSuggestLoading(false) }
   }
+
+  const handleAiSuggest = () => runAiSuggest()
 
   const [duplicateWarning, setDuplicateWarning] = useState<{ sameClient: { similar: boolean; matches: any[] }; otherClient: { similar: boolean; matches: any[] }; suggestion?: string } | null>(null)
   const [confirmDialog, setConfirmDialog] = useState(false)
@@ -1019,6 +1028,17 @@ function IdeaFormDialog({ open, onOpenChange, data, setData, onSubmit, creating,
           content: rewritten.content || p.content,
           ideaCaption: rewritten.caption || p.ideaCaption,
         }))}
+      />
+
+      {/* Clarifying questions when the AI has doubts / no ideas */}
+      <ClarifyingQuestionsDialog
+        open={showBriefing}
+        onOpenChange={setShowBriefing}
+        contactId={cid}
+        mode="ideas"
+        title="Ho qualche dubbio: qualche domanda"
+        generateLabel="Genera idea"
+        onGenerate={async answers => { await runAiSuggest(answers) }}
       />
 
       {/* Confirm close without saving */}
