@@ -217,6 +217,9 @@ const CLIENT_MATCH_OVERRIDES: Record<string, string> = {
   'valedent': 'ValeDent (Serimedical S.R.L.)',
   'paghesolution': 'PagheSolution',
   'mismo': 'MISMO',
+  'tecnorete industriale castiglione d/s': 'Industriale Castiglione SRL (Tecnorete Industriale)',
+  'tecnorete impresa brescia est': 'Brixia Industriale SRL (Tecnorete Industriale)',
+  'tecnocasa impresa desenzano d/g': 'Industriale Desenzano SRL (Tecnocasa Industriale)',
 };
 
 const CLIENT_EXCLUDED = new Set(['tecnocasa borgo roma']);

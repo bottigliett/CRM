@@ -212,8 +212,8 @@ export default function SocialClientHub() {
     Promise.all([
       contactsAPI.getContactById(cid).then(r => setContact(r.data)),
       socialAPI.getAccounts(cid).then(r => setAccounts(r.data)),
-      socialAPI.getPosts({ contactId: cid, stage: 'PRODUCTION', limit: 200 }).then(r => setPosts(r.data.posts || r.data || [])),
-      socialAPI.getPosts({ contactId: cid, stage: 'IDEA', limit: 200 }).then(r => setIdeas(r.data.posts || r.data || [])),
+      socialAPI.getPosts({ contactId: cid, stage: 'PRODUCTION', limit: 1000 }).then(r => setPosts(r.data.posts || r.data || [])),
+      socialAPI.getPosts({ contactId: cid, stage: 'IDEA', limit: 1000 }).then(r => setIdeas(r.data.posts || r.data || [])),
     ])
       .catch(err => toast.error(err.message))
       .finally(() => setLoading(false))
