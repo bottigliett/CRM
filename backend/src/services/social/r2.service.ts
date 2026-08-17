@@ -11,7 +11,11 @@ const BUCKET = process.env.R2_BUCKET_NAME || 'crm-social-media';
 const PUBLIC_URL = process.env.R2_PUBLIC_URL || '';
 const LOCAL_PORT = process.env.PORT || '3001';
 const SOCIAL_UPLOADS_DIR = path.join(__dirname, '../../../uploads/social');
-const LOCAL_URL_BASE = `http://localhost:${LOCAL_PORT}/uploads/social`;
+// Public base URL for media. In production set PUBLIC_MEDIA_URL=https://<domain>
+// so Instagram/Meta can fetch the uploaded files (localhost URLs are unreachable
+// from Meta's servers). Defaults to localhost for local dev.
+const PUBLIC_BASE = (process.env.PUBLIC_MEDIA_URL || `http://localhost:${LOCAL_PORT}`).replace(/\/+$/, '');
+const LOCAL_URL_BASE = `${PUBLIC_BASE}/uploads/social`;
 
 const s3 = isR2Configured
   ? new S3Client({
