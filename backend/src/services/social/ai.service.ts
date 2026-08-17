@@ -385,18 +385,14 @@ export async function generateContentIdeas(contactId: number, count = 5, answers
   ]);
 
   const existingTexts = existing.map(p => p.content).filter(Boolean) as string[];
-  const existingCaptions = existing.map(p => p.ideaCaption).filter(Boolean) as string[];
 
   const system = 'Sei un social media manager senior per un\'agenzia immobiliare. Rispondi SOLO con JSON valido.';
 
   // Helper: is a candidate too similar to existing content or already-chosen ideas?
-  // Checks BOTH the title and the caption (the actual "content"), so a new title
-  // with a caption that recycles an existing theme is also rejected.
-  const isDup = (title: string, caption: string, chosen: IdeaSuggestion[]) =>
+  // Title-only: caption comparison was too aggressive for niche clients (every
+  // caption shares the domain vocabulary) and caused "0 ideas" results.
+  const isDup = (title: string, chosen: IdeaSuggestion[]) =>
     existingTexts.some(t => textSimilarity(title, t) >= 0.40)
-    || existingCaptions.some(t => textSimilarity(title, t) >= 0.55)
-    || (caption && existingCaptions.some(t => textSimilarity(caption, t) >= 0.45))
-    || (caption && existingTexts.some(t => textSimilarity(caption, t) >= 0.55))
     || chosen.some(c => textSimilarity(title, c.content) >= 0.5);
 
   const chosen: IdeaSuggestion[] = [];
@@ -434,8 +430,7 @@ Rispondi con JSON:
     for (const idea of parsed.ideas || []) {
       const title = (idea?.content || idea?.title || '').trim();
       if (!title) continue;
-      const caption = (idea?.caption || '').trim();
-      if (isDup(title, caption, chosen)) {
+      if (isDup(title, chosen)) {
         avoidList.add(title); // tell the AI to avoid it next round
         continue;
       }
@@ -547,9 +542,7 @@ Rispondi con JSON:
     for (const it of parsed.items || []) {
       const title = (it?.content || it?.title || '').trim();
       if (!title) continue;
-      const caption = (it?.caption || '').trim();
       if (existingTexts.some(t => textSimilarity(title, t) >= 0.40)) { avoidList.add(title); continue; }
-      if (caption && existingTexts.some(t => textSimilarity(caption, t) >= 0.55)) { avoidList.add(title); continue; }
       if ([...seen].some(s => textSimilarity(title, s) >= 0.5)) { avoidList.add(title); continue; }
       seen.add(title);
       avoidList.add(title);
