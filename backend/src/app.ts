@@ -85,6 +85,10 @@ app.use('/api/activate', activateRoutes);
 app.use('/api/attachments', attachmentRoutes);
 app.use('/api/client/attachments', clientAttachmentRouter);
 
+// Social routes — mounted before the broad /api router so its public endpoints
+// (OAuth callback, Meta data-deletion callback) are not blocked by authenticate.
+app.use('/api/social', socialRoutes);
+
 app.use('/api/auth', authRoutes);
 app.use('/api', userRoutes);
 app.use('/api/contacts', contactRoutes);
@@ -109,7 +113,6 @@ app.use('/api/announcements', announcementRoutes);
 app.use('/api/developer', developerRoutes);
 app.use('/api/payment-entities', paymentEntityRoutes);
 app.use('/api/recurring-invoices', recurringInvoiceRoutes);
-app.use('/api/social', socialRoutes);
 
 // Client-specific routes (require client authentication)
 app.use('/api/client/tickets', clientTicketRouter);
