@@ -1,0 +1,281 @@
+/**
+ * Meta Graph API service for Instagram + Facebook
+ */
+
+const GRAPH_API_BASE = 'https://graph.facebook.com/v21.0';
+const META_APP_ID = () => process.env.META_APP_ID || '';
+const META_APP_SECRET = () => process.env.META_APP_SECRET || '';
+const REDIRECT_BASE = () => process.env.SOCIAL_OAUTH_REDIRECT_BASE || '';
+
+async function fetchJson(url: string, init?: RequestInit): Promise<any> {
+  const res = await fetch(url, init);
+  return res.json() as Promise<any>;
+}
+
+/** Authed fetch — sends token via Authorization header, never in URL */
+async function fetchAuthed(url: string, token: string, init?: RequestInit): Promise<any> {
+  const headers = { ...((init?.headers as Record<string, string>) || {}), Authorization: `Bearer ${token}` };
+  return fetchJson(url, { ...init, headers });
+}
+
+// === OAuth ===
+
+export function getMetaAuthUrl(platform: 'INSTAGRAM' | 'FACEBOOK', state: string): string {
+  const scopes = platform === 'INSTAGRAM'
+    ? 'instagram_basic,instagram_content_publish,instagram_manage_insights,pages_show_list,pages_read_engagement'
+    : 'pages_show_list,pages_read_engagement,pages_manage_posts,pages_read_user_content,read_insights';
+
+  const redirectUri = `${REDIRECT_BASE()}/${platform.toLowerCase()}/callback`;
+
+  return `https://www.facebook.com/v21.0/dialog/oauth?client_id=${META_APP_ID()}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scopes}&state=${state}&response_type=code`;
+}
+
+// ponytail: OAuth token exchange endpoints require credentials as query params per Meta spec — not a leak
+export async function exchangeMetaCode(code: string, platform: 'INSTAGRAM' | 'FACEBOOK'): Promise<{
+  accessToken: string;
+  expiresIn: number;
+}> {
+  const redirectUri = `${REDIRECT_BASE()}/${platform.toLowerCase()}/callback`;
+
+  const data = await fetchJson(`${GRAPH_API_BASE}/oauth/access_token?client_id=${META_APP_ID()}&client_secret=${META_APP_SECRET()}&redirect_uri=${encodeURIComponent(redirectUri)}&code=${code}`);
+  if (data.error) throw new Error(data.error.message);
+
+  // Exchange for long-lived token
+  const longData = await fetchJson(`${GRAPH_API_BASE}/oauth/access_token?grant_type=fb_exchange_token&client_id=${META_APP_ID()}&client_secret=${META_APP_SECRET()}&fb_exchange_token=${data.access_token}`);
+  if (longData.error) throw new Error(longData.error.message);
+
+  return {
+    accessToken: longData.access_token,
+    expiresIn: longData.expires_in || 5184000,
+  };
+}
+
+export async function getMetaPages(accessToken: string): Promise<Array<{
+  id: string;
+  name: string;
+  accessToken: string;
+  instagramAccountId?: string;
+}>> {
+  const data = await fetchAuthed(`${GRAPH_API_BASE}/me/accounts?fields=id,name,access_token,instagram_business_account`, accessToken);
+  if (data.error) throw new Error(data.error.message);
+
+  return (data.data || []).map((page: any) => ({
+    id: page.id,
+    name: page.name,
+    accessToken: page.access_token,
+    instagramAccountId: page.instagram_business_account?.id,
+  }));
+}
+
+/** Fetch username + profile picture for an Instagram business account. */
+export async function getMetaInstagramProfile(id: string, token: string): Promise<{ username?: string; profilePicUrl?: string }> {
+  try {
+    const data = await fetchAuthed(`${GRAPH_API_BASE}/${id}?fields=username,profile_picture_url`, token);
+    return { username: data?.username || undefined, profilePicUrl: data?.profile_picture_url || undefined };
+  } catch {
+    return {};
+  }
+}
+
+/** Fetch the profile picture URL for a Facebook page or Instagram business account. */
+export async function getMetaProfilePic(platform: 'INSTAGRAM' | 'FACEBOOK', id: string, token: string): Promise<string | undefined> {
+  try {
+    if (platform === 'FACEBOOK') {
+      const data = await fetchAuthed(`${GRAPH_API_BASE}/${id}/picture?redirect=false&type=large`, token);
+      return data?.data?.url || undefined;
+    }
+    const data = await fetchAuthed(`${GRAPH_API_BASE}/${id}?fields=profile_picture_url`, token);
+    return data?.profile_picture_url || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+export async function refreshMetaToken(accessToken: string): Promise<{
+  accessToken: string;
+  expiresIn: number;
+}> {
+  // ponytail: token exchange requires fb_exchange_token as query param per Meta spec
+  const data = await fetchJson(`${GRAPH_API_BASE}/oauth/access_token?grant_type=fb_exchange_token&client_id=${META_APP_ID()}&client_secret=${META_APP_SECRET()}&fb_exchange_token=${accessToken}`);
+  if (data.error) throw new Error(data.error.message);
+  return { accessToken: data.access_token, expiresIn: data.expires_in || 5184000 };
+}
+
+// === Publishing ===
+
+export async function publishToFacebook(pageAccessToken: string, pageId: string, content: string, mediaUrls?: string[]): Promise<{ id: string }> {
+  if (mediaUrls && mediaUrls.length > 0) {
+    if (mediaUrls.length === 1) {
+      const data = await fetchAuthed(`${GRAPH_API_BASE}/${pageId}/photos`, pageAccessToken, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: mediaUrls[0], message: content }),
+      });
+      if (data.error) throw new Error(data.error.message);
+      return { id: data.post_id || data.id };
+    }
+
+    const photoIds = await Promise.all(mediaUrls.map(async (url) => {
+      const data = await fetchAuthed(`${GRAPH_API_BASE}/${pageId}/photos`, pageAccessToken, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url, published: false }),
+      });
+      if (data.error) throw new Error(data.error.message);
+      return data.id;
+    }));
+
+    const attached = photoIds.reduce((acc: any, id: string, i: number) => {
+      acc[`attached_media[${i}]`] = JSON.stringify({ media_fbid: id });
+      return acc;
+    }, {});
+
+    const data = await fetchAuthed(`${GRAPH_API_BASE}/${pageId}/feed`, pageAccessToken, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: content, ...attached }),
+    });
+    if (data.error) throw new Error(data.error.message);
+    return { id: data.id };
+  }
+
+  const data = await fetchAuthed(`${GRAPH_API_BASE}/${pageId}/feed`, pageAccessToken, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ message: content }),
+  });
+  if (data.error) throw new Error(data.error.message);
+  return { id: data.id };
+}
+
+export async function publishToInstagram(accessToken: string, igAccountId: string, content: string, mediaUrls: string[], postType: string = 'POST'): Promise<{ id: string }> {
+  if (!mediaUrls.length) throw new Error('Instagram requires at least one media');
+
+  if (postType === 'CAROUSEL' && mediaUrls.length > 1) {
+    const itemIds = await Promise.all(mediaUrls.map(async (url) => {
+      const isVideo = /\.(mp4|mov)$/i.test(url);
+      const data = await fetchAuthed(`${GRAPH_API_BASE}/${igAccountId}/media`, accessToken, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          [isVideo ? 'video_url' : 'image_url']: url,
+          is_carousel_item: true,
+        }),
+      });
+      if (data.error) throw new Error(data.error.message);
+      return data.id;
+    }));
+
+    const container = await fetchAuthed(`${GRAPH_API_BASE}/${igAccountId}/media`, accessToken, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        media_type: 'CAROUSEL',
+        children: itemIds.join(','),
+        caption: content,
+      }),
+    });
+    if (container.error) throw new Error(container.error.message);
+
+    const pub = await fetchAuthed(`${GRAPH_API_BASE}/${igAccountId}/media_publish`, accessToken, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ creation_id: container.id }),
+    });
+    if (pub.error) throw new Error(pub.error.message);
+    return { id: pub.id };
+  }
+
+  // Single media
+  const url = mediaUrls[0];
+  const isVideo = /\.(mp4|mov)$/i.test(url);
+  const mediaType = postType === 'REEL' ? 'REELS' : postType === 'STORY' ? 'STORIES' : undefined;
+
+  const container = await fetchAuthed(`${GRAPH_API_BASE}/${igAccountId}/media`, accessToken, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      [isVideo ? 'video_url' : 'image_url']: url,
+      caption: content,
+      ...(mediaType && { media_type: mediaType }),
+    }),
+  });
+  if (container.error) throw new Error(container.error.message);
+
+  const pub = await fetchAuthed(`${GRAPH_API_BASE}/${igAccountId}/media_publish`, accessToken, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ creation_id: container.id }),
+  });
+  if (pub.error) throw new Error(pub.error.message);
+  return { id: pub.id };
+}
+
+// === Analytics ===
+
+export async function getInstagramInsights(accessToken: string, igAccountId: string, since: number, until: number): Promise<any> {
+  const metrics = 'impressions,reach,follower_count,profile_views';
+  const data = await fetchAuthed(`${GRAPH_API_BASE}/${igAccountId}/insights?metric=${metrics}&period=day&since=${since}&until=${until}`, accessToken);
+  if (data.error) throw new Error(data.error.message);
+  return data.data;
+}
+
+export async function getFacebookPageInsights(pageAccessToken: string, pageId: string, since: number, until: number): Promise<any> {
+  const metrics = 'page_impressions,page_engaged_users,page_fans,page_views_total,page_post_engagements';
+  const data = await fetchAuthed(`${GRAPH_API_BASE}/${pageId}/insights?metric=${metrics}&period=day&since=${since}&until=${until}`, pageAccessToken);
+  if (data.error) throw new Error(data.error.message);
+  return data.data;
+}
+
+// === Post-level Insights ===
+
+export async function getInstagramMediaInsights(accessToken: string, mediaId: string): Promise<{
+  impressions?: number; reach?: number; likes?: number; comments?: number; saves?: number; shares?: number;
+}> {
+  const metrics = 'impressions,reach,likes,comments,saved,shares';
+  const data = await fetchAuthed(`${GRAPH_API_BASE}/${mediaId}/insights?metric=${metrics}`, accessToken);
+  if (data.error) throw new Error(data.error.message);
+  const result: any = {};
+  for (const m of data.data || []) {
+    const v = m.values?.[0]?.value ?? null;
+    switch (m.name) {
+      case 'impressions': result.impressions = v; break;
+      case 'reach': result.reach = v; break;
+      case 'likes': result.likes = v; break;
+      case 'comments': result.comments = v; break;
+      case 'saved': result.saves = v; break;
+      case 'shares': result.shares = v; break;
+    }
+  }
+  return result;
+}
+
+export async function getFacebookPostInsights(accessToken: string, postId: string): Promise<{
+  impressions?: number; reach?: number; likes?: number; comments?: number; shares?: number;
+}> {
+  const metrics = 'post_impressions,post_impressions_unique,post_reactions_like_total,post_activity_by_action_type';
+  const data = await fetchAuthed(`${GRAPH_API_BASE}/${postId}/insights?metric=${metrics}`, accessToken);
+  if (data.error) throw new Error(data.error.message);
+  const result: any = {};
+  for (const m of data.data || []) {
+    const v = m.values?.[0]?.value;
+    switch (m.name) {
+      case 'post_impressions': result.impressions = v; break;
+      case 'post_impressions_unique': result.reach = v; break;
+      case 'post_reactions_like_total': result.likes = v; break;
+      case 'post_activity_by_action_type':
+        if (typeof v === 'object') {
+          result.comments = v.comment || 0;
+          result.shares = v.share || 0;
+        }
+        break;
+    }
+  }
+  return result;
+}
+
+export async function getInstagramFollowerCount(accessToken: string, igAccountId: string): Promise<number | null> {
+  const data = await fetchAuthed(`${GRAPH_API_BASE}/${igAccountId}?fields=followers_count`, accessToken);
+  if (data.error) throw new Error(data.error.message);
+  return data.followers_count ?? null;
+}

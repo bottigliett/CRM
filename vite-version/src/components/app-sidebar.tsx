@@ -17,6 +17,7 @@ import {
   MessageSquare,
   Megaphone,
   Code,
+  Share2,
 } from "lucide-react"
 import { Link } from "react-router-dom"
 import { Logo } from "@/components/logo"
@@ -130,6 +131,22 @@ const allNavGroups: NavGroup[] = [
         url: "/invoices",
         icon: FileText,
         moduleName: "invoices",
+      },
+      {
+        title: "Social Media",
+        url: "/social",
+        icon: Share2,
+        moduleName: "social_media",
+        items: [
+          { title: "Dashboard", url: "/social" },
+          { title: "Calendario", url: "/social/calendar" },
+          { title: "Post", url: "/social/posts" },
+          { title: "Analytics", url: "/social/analytics" },
+          { title: "Report", url: "/social/reports" },
+          { title: "Autorizzazioni", url: "/social/auth" },
+          { title: "Impostazioni AI", url: "/social/settings" },
+          { title: "Importa da Notion", url: "/social/notion-import" },
+        ],
       },
     ],
   },

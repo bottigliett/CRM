@@ -33,8 +33,10 @@ import announcementRoutes, { clientAnnouncementRouter } from './routes/announcem
 import developerRoutes from './routes/developer.routes';
 import paymentEntityRoutes from './routes/payment-entity.routes';
 import recurringInvoiceRoutes from './routes/recurring-invoice.routes';
+import socialRoutes from './routes/social.routes';
 import { errorHandler, notFound } from './middleware/errorHandler';
-import { initializeUploadsDirectory } from './utils/file-upload';
+import { globalApiLimiter } from './middleware/security';
+import { initializeUploadsDirectory, UPLOADS_DIR } from './utils/file-upload';
 
 // Load .env from backend root directory (not from dist/)
 const envPath = path.join(__dirname, '../.env');
@@ -64,10 +66,16 @@ app.use(express.urlencoded({ extended: true }));
 // Initialize uploads directory
 initializeUploadsDirectory().catch(console.error);
 
+// Serve uploaded media (social + tickets) locally
+app.use('/uploads', express.static(UPLOADS_DIR));
+
 // Health check
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', message: 'MismoStudio CRM API is running' });
 });
+
+// Global API rate limit — safety net for all /api routes (per IP)
+app.use('/api', globalApiLimiter);
 
 // Routes
 // ACTIVATION ROUTES - Must be FIRST to avoid middleware blocking
@@ -101,6 +109,7 @@ app.use('/api/announcements', announcementRoutes);
 app.use('/api/developer', developerRoutes);
 app.use('/api/payment-entities', paymentEntityRoutes);
 app.use('/api/recurring-invoices', recurringInvoiceRoutes);
+app.use('/api/social', socialRoutes);
 
 // Client-specific routes (require client authentication)
 app.use('/api/client/tickets', clientTicketRouter);

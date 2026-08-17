@@ -47,28 +47,32 @@ model User {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   // Relations
-  sessions               Session[]
-  permissions            UserPermission[]
-  accessLogs             AccessLog[]
-  assignedEvents         Event[]             @relation("AssignedEvents") // Events assigned to this user
-  createdEvents          Event[]             @relation("CreatedEvents") // Events created by this user
-  eventTeamMemberships   EventTeamMember[]   @relation("EventTeamMembers") // Events where this user is a team member
-  calendarPreference     CalendarPreference?
-  assignedTasks          Task[]              @relation("TaskAssigned") // Tasks assigned to this user
-  createdTasks           Task[]              @relation("TaskCreator") // Tasks created by this user
-  updatedTasks           Task[]              @relation("TaskUpdater") // Tasks updated by this user
-  archivedTasks          Task[]              @relation("TaskArchiver") // Tasks archived by this user
-  taskTeamMemberships    TaskTeamMember[]    @relation("TaskTeamMembers") // Tasks where this user is a team member
-  createdTransactions    Transaction[]       @relation("TransactionCreator") // Transactions created by this user
-  notifications          Notification[]      // Notifications for this user
-  notificationPreference NotificationPreference?
-  createdInvoices        Invoice[]           @relation("InvoiceCreator") // Invoices created by this user
-  createdRecurringInvoices RecurringInvoice[] @relation("RecurringInvoiceCreator") // Recurring invoice templates created by this user
-  createdProjects        Project[]           @relation("ProjectCreator") // Projects created by this user
-  completedProjectTasks  ProjectTask[]       @relation("TaskCompletedBy") // Project tasks completed by this user
-  completedClientTasks   ClientProjectTask[] @relation("ClientTaskCompletedBy") // Client project tasks completed by this user
-  ticketMessages         TicketMessage[]     // Messages sent by this user
-  createdAnnouncements   SystemAnnouncement[] @relation("AnnouncementCreator") // Announcements created by this user
+  sessions                 Session[]
+  permissions              UserPermission[]
+  accessLogs               AccessLog[]
+  assignedEvents           Event[]                 @relation("AssignedEvents") // Events assigned to this user
+  createdEvents            Event[]                 @relation("CreatedEvents") // Events created by this user
+  eventTeamMemberships     EventTeamMember[]       @relation("EventTeamMembers") // Events where this user is a team member
+  calendarPreference       CalendarPreference?
+  assignedTasks            Task[]                  @relation("TaskAssigned") // Tasks assigned to this user
+  createdTasks             Task[]                  @relation("TaskCreator") // Tasks created by this user
+  updatedTasks             Task[]                  @relation("TaskUpdater") // Tasks updated by this user
+  archivedTasks            Task[]                  @relation("TaskArchiver") // Tasks archived by this user
+  taskTeamMemberships      TaskTeamMember[]        @relation("TaskTeamMembers") // Tasks where this user is a team member
+  createdTransactions      Transaction[]           @relation("TransactionCreator") // Transactions created by this user
+  notifications            Notification[] // Notifications for this user
+  notificationPreference   NotificationPreference?
+  createdInvoices          Invoice[]               @relation("InvoiceCreator") // Invoices created by this user
+  createdRecurringInvoices RecurringInvoice[]      @relation("RecurringInvoiceCreator") // Recurring invoice templates created by this user
+  createdProjects          Project[]               @relation("ProjectCreator") // Projects created by this user
+  completedProjectTasks    ProjectTask[]           @relation("TaskCompletedBy") // Project tasks completed by this user
+  completedClientTasks     ClientProjectTask[]     @relation("ClientTaskCompletedBy") // Client project tasks completed by this user
+  ticketMessages           TicketMessage[] // Messages sent by this user
+  createdAnnouncements     SystemAnnouncement[]    @relation("AnnouncementCreator") // Announcements created by this user
+
+  // Social Media relations
+  socialPostsCreated  SocialPost[] @relation("SocialPostCreatedBy")
+  socialPostsApproved SocialPost[] @relation("SocialPostApprovedBy")
 
   @@map("users")
 }
@@ -147,13 +151,13 @@ model AccessLog {
 }
 
 model PasswordResetToken {
-  id        Int      @id @default(autoincrement())
+  id        Int       @id @default(autoincrement())
   email     String
-  token     String   @unique
-  expiresAt DateTime @map("expires_at")
-  used      Boolean  @default(false)
+  token     String    @unique
+  expiresAt DateTime  @map("expires_at")
+  used      Boolean   @default(false)
   usedAt    DateTime? @map("used_at")
-  createdAt DateTime @default(now()) @map("created_at")
+  createdAt DateTime  @default(now()) @map("created_at")
 
   @@index([email])
   @@index([token])
@@ -162,13 +166,13 @@ model PasswordResetToken {
 }
 
 model EmailVerificationCode {
-  id        Int      @id @default(autoincrement())
-  email     String
-  code      String   @unique
-  expiresAt DateTime @map("expires_at")
-  verified  Boolean  @default(false)
+  id         Int       @id @default(autoincrement())
+  email      String
+  code       String    @unique
+  expiresAt  DateTime  @map("expires_at")
+  verified   Boolean   @default(false)
   verifiedAt DateTime? @map("verified_at")
-  createdAt DateTime @default(now()) @map("created_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
 
   @@index([email])
   @@index([code])
@@ -213,18 +217,27 @@ model Contact {
   tags              ContactTag[]
   socials           ContactSocial[]
   customFields      ContactCustomField[]
-  events            Event[]              // Events linked to this contact
-  eventParticipants EventParticipant[]   // Events where this contact is a participant
+  events            Event[] // Events linked to this contact
+  eventParticipants EventParticipant[] // Events where this contact is a participant
   tasks             Task[]               @relation("TaskContact") // Tasks linked to this contact (client)
   taskContactLinks  TaskContact[]        @relation("TaskContactJunction") // Tasks linked via junction table
   eventContactLinks EventContact[]       @relation("EventContactJunction") // Events linked via junction table
-  transactions      Transaction[]        // Transactions linked to this contact
-  invoices          Invoice[]            // Invoices for this contact
-  recurringInvoices RecurringInvoice[]   // Recurring invoice templates for this contact
+  transactions      Transaction[] // Transactions linked to this contact
+  invoices          Invoice[] // Invoices for this contact
+  recurringInvoices RecurringInvoice[] // Recurring invoice templates for this contact
   projects          Project[]            @relation("ProjectContact") // Projects for this contact
-  clientAccess      ClientAccess?        // Client access credentials (if client)
-  quotes            Quote[]              // Quotes for this contact
-  tickets           Ticket[]             // Support tickets for this contact
+  clientAccess      ClientAccess? // Client access credentials (if client)
+  quotes            Quote[] // Quotes for this contact
+  tickets           Ticket[] // Support tickets for this contact
+
+  // Social Media relations
+  socialAccounts     SocialAccount[]
+  socialClientConfig SocialClientConfig?
+  socialPosts        SocialPost[]
+  socialMedia        SocialMedia[]
+  socialTemplates    SocialTemplate[]
+  socialReports      SocialReport[]
+  socialClientBrief  SocialClientBrief?
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -350,12 +363,12 @@ model Task {
   isFavorite      Boolean      @default(false) @map("is_favorite")
 
   // Relations
-  contact      Contact?     @relation("TaskContact", fields: [contactId], references: [id], onDelete: SetNull)
-  category     TaskCategory? @relation(fields: [categoryId], references: [id])
-  assignedUser User         @relation("TaskAssigned", fields: [assignedTo], references: [id], onDelete: Cascade)
-  creator      User         @relation("TaskCreator", fields: [createdBy], references: [id], onDelete: Cascade)
-  updater      User?        @relation("TaskUpdater", fields: [updatedBy], references: [id], onDelete: SetNull)
-  archiver     User?        @relation("TaskArchiver", fields: [archivedBy], references: [id], onDelete: SetNull)
+  contact      Contact?         @relation("TaskContact", fields: [contactId], references: [id], onDelete: SetNull)
+  category     TaskCategory?    @relation(fields: [categoryId], references: [id])
+  assignedUser User             @relation("TaskAssigned", fields: [assignedTo], references: [id], onDelete: Cascade)
+  creator      User             @relation("TaskCreator", fields: [createdBy], references: [id], onDelete: Cascade)
+  updater      User?            @relation("TaskUpdater", fields: [updatedBy], references: [id], onDelete: SetNull)
+  archiver     User?            @relation("TaskArchiver", fields: [archivedBy], references: [id], onDelete: SetNull)
   teamMembers  TaskTeamMember[]
   taskContacts TaskContact[]
 
@@ -425,22 +438,22 @@ model TaskContact {
 // ===================================
 
 model Project {
-  id              Int            @id @default(autoincrement())
-  name            String
-  description     String?
-  contactId       Int            @map("contact_id") // FK to Contact (cliente)
-  budget          Float          // Budget totale del progetto
-  estimatedHours  Float?         @map("estimated_hours") // Ore stimate iniziali
-  status          ProjectStatus  @default(ACTIVE)
-  startDate       DateTime       @default(now()) @map("start_date")
-  completedAt     DateTime?      @map("completed_at")
-  createdAt       DateTime       @default(now()) @map("created_at")
-  updatedAt       DateTime       @updatedAt @map("updated_at")
-  createdBy       Int            @map("created_by")
+  id             Int           @id @default(autoincrement())
+  name           String
+  description    String?
+  contactId      Int           @map("contact_id") // FK to Contact (cliente)
+  budget         Float // Budget totale del progetto
+  estimatedHours Float?        @map("estimated_hours") // Ore stimate iniziali
+  status         ProjectStatus @default(ACTIVE)
+  startDate      DateTime      @default(now()) @map("start_date")
+  completedAt    DateTime?     @map("completed_at")
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime      @updatedAt @map("updated_at")
+  createdBy      Int           @map("created_by")
 
   // Relations
-  contact  Contact @relation("ProjectContact", fields: [contactId], references: [id], onDelete: Cascade)
-  creator  User    @relation("ProjectCreator", fields: [createdBy], references: [id], onDelete: Cascade)
+  contact Contact @relation("ProjectContact", fields: [contactId], references: [id], onDelete: Cascade)
+  creator User    @relation("ProjectCreator", fields: [createdBy], references: [id], onDelete: Cascade)
 
   @@index([contactId])
   @@index([status])
@@ -477,10 +490,10 @@ model Event {
   updatedAt       DateTime @updatedAt @map("updated_at")
 
   // Relations
-  category     EventCategory?     @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-  contact      Contact?           @relation(fields: [contactId], references: [id], onDelete: SetNull)
-  assignedUser User?              @relation("AssignedEvents", fields: [assignedTo], references: [id], onDelete: SetNull)
-  createdUser  User               @relation("CreatedEvents", fields: [createdBy], references: [id], onDelete: Cascade)
+  category      EventCategory?     @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  contact       Contact?           @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  assignedUser  User?              @relation("AssignedEvents", fields: [assignedTo], references: [id], onDelete: SetNull)
+  createdUser   User               @relation("CreatedEvents", fields: [createdBy], references: [id], onDelete: Cascade)
   participants  EventParticipant[]
   teamMembers   EventTeamMember[]
   reminders     EventReminder[]
@@ -572,7 +585,7 @@ model Transaction {
   paymentMethodId Int?            @map("payment_method_id")
   contactId       Int?            @map("contact_id")
   description     String?
-  vendor          String?         // Fornitore (per le uscite)
+  vendor          String? // Fornitore (per le uscite)
   invoiceId       Int?            @map("invoice_id")
   createdBy       Int             @map("created_by")
   createdAt       DateTime        @default(now()) @map("created_at")
@@ -598,14 +611,14 @@ enum TransactionType {
 }
 
 model TransactionCategory {
-  id           Int             @id @default(autoincrement())
-  name         String
-  type         TransactionType
-  icon         String?
-  color        String?
-  isActive     Boolean         @default(true) @map("is_active")
-  createdAt    DateTime        @default(now()) @map("created_at")
-  updatedAt    DateTime        @updatedAt @map("updated_at")
+  id        Int             @id @default(autoincrement())
+  name      String
+  type      TransactionType
+  icon      String?
+  color     String?
+  isActive  Boolean         @default(true) @map("is_active")
+  createdAt DateTime        @default(now()) @map("created_at")
+  updatedAt DateTime        @updatedAt @map("updated_at")
 
   // Relations
   transactions Transaction[]
@@ -614,11 +627,11 @@ model TransactionCategory {
 }
 
 model PaymentMethod {
-  id           Int      @id @default(autoincrement())
-  name         String
-  isActive     Boolean  @default(true) @map("is_active")
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
+  id        Int      @id @default(autoincrement())
+  name      String
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   // Relations
   transactions Transaction[]
@@ -631,18 +644,18 @@ model PaymentMethod {
 // ===================================
 
 model PaymentEntity {
-  id            Int       @id @default(autoincrement())
-  name          String    // Nome entità (es: "Davide", "Stefano")
-  beneficiary   String    // Beneficiario IBAN
-  iban          String    // IBAN
-  bankName      String    @map("bank_name") // Nome banca
-  bic           String?   // BIC/SWIFT
-  sdi           String?   // Codice SDI
-  taxId         String?   @map("tax_id") // Codice fiscale/P.IVA entità
-  isDefault     Boolean   @default(false) @map("is_default")
-  isActive      Boolean   @default(true) @map("is_active")
-  createdAt     DateTime  @default(now()) @map("created_at")
-  updatedAt     DateTime  @updatedAt @map("updated_at")
+  id          Int      @id @default(autoincrement())
+  name        String // Nome entità (es: "Davide", "Stefano")
+  beneficiary String // Beneficiario IBAN
+  iban        String // IBAN
+  bankName    String   @map("bank_name") // Nome banca
+  bic         String? // BIC/SWIFT
+  sdi         String? // Codice SDI
+  taxId       String?  @map("tax_id") // Codice fiscale/P.IVA entità
+  isDefault   Boolean  @default(false) @map("is_default")
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
 
   // Relations
   invoices          Invoice[]
@@ -656,73 +669,73 @@ model PaymentEntity {
 // ===================================
 
 model Invoice {
-  id              Int            @id @default(autoincrement())
-  invoiceNumber   String         @unique @map("invoice_number") // Numero fattura (es: #142025, FAT/2025/001)
+  id            Int    @id @default(autoincrement())
+  invoiceNumber String @unique @map("invoice_number") // Numero fattura (es: #142025, FAT/2025/001)
 
   // Client information
-  contactId       Int?           @map("contact_id")
-  clientName      String         @map("client_name")
-  clientAddress   String?        @map("client_address")
-  clientPIva      String?        @map("client_piva") // Partita IVA
-  clientCF        String?        @map("client_cf") // Codice Fiscale
+  contactId     Int?    @map("contact_id")
+  clientName    String  @map("client_name")
+  clientAddress String? @map("client_address")
+  clientPIva    String? @map("client_piva") // Partita IVA
+  clientCF      String? @map("client_cf") // Codice Fiscale
 
   // Invoice details
-  subject         String         @map("subject") // Oggetto
-  description     String?        @db.Text // Descrizione dettagliata (JSON array of services)
+  subject     String  @map("subject") // Oggetto
+  description String? @db.Text // Descrizione dettagliata (JSON array of services)
 
   // Link to quote (optional)
-  quoteId         Int?           @map("quote_id") // FK to Quote if invoice was generated from quote
+  quoteId Int? @map("quote_id") // FK to Quote if invoice was generated from quote
 
   // Amounts (kept for backward compatibility, will be deprecated)
-  quantity        Float          @default(1.00) // Quantità
-  unitPrice       Float          @map("unit_price") // Prezzo unitario
-  subtotal        Float          // Subtotale (quantity * unitPrice)
-  vatPercentage   Float          @default(0) @map("vat_percentage") // Percentuale IVA (0, 4, 10, 22)
-  vatAmount       Float          @map("vat_amount") // Importo IVA
-  total           Float          // Totale finale
+  quantity      Float @default(1.00) // Quantità
+  unitPrice     Float @map("unit_price") // Prezzo unitario
+  subtotal      Float // Subtotale (quantity * unitPrice)
+  vatPercentage Float @default(0) @map("vat_percentage") // Percentuale IVA (0, 4, 10, 22)
+  vatAmount     Float @map("vat_amount") // Importo IVA
+  total         Float // Totale finale
 
   // Dates
-  issueDate       DateTime       @map("issue_date") // Data emissione
-  dueDate         DateTime       @map("due_date") // Data scadenza
-  paymentDays     Int            @default(30) @map("payment_days") // Giorni per il pagamento (15, 30, 60, 90)
+  issueDate   DateTime @map("issue_date") // Data emissione
+  dueDate     DateTime @map("due_date") // Data scadenza
+  paymentDays Int      @default(30) @map("payment_days") // Giorni per il pagamento (15, 30, 60, 90)
 
   // Status
-  status          InvoiceStatus  @default(DRAFT) // bozza, emessa, pagata, stornata
-  paymentDate     DateTime?      @map("payment_date") // Data pagamento effettivo
-  paymentMethod   String?        @map("payment_method") // Metodo di pagamento (Bonifico, PayPal, ecc.)
-  paymentNotes    String?        @map("payment_notes") // Note sul pagamento
+  status        InvoiceStatus @default(DRAFT) // bozza, emessa, pagata, stornata
+  paymentDate   DateTime?     @map("payment_date") // Data pagamento effettivo
+  paymentMethod String?       @map("payment_method") // Metodo di pagamento (Bonifico, PayPal, ecc.)
+  paymentNotes  String?       @map("payment_notes") // Note sul pagamento
 
   // Tax reserve
-  taxReserved     Boolean        @default(false) @map("tax_reserved") // Se le tasse sono state accantonate
-  taxAmount       Float?         @map("tax_amount") // Importo tasse accantonate
+  taxReserved Boolean @default(false) @map("tax_reserved") // Se le tasse sono state accantonate
+  taxAmount   Float?  @map("tax_amount") // Importo tasse accantonate
 
   // Electronic invoice
   electronicInvoiceNumber String? @map("electronic_invoice_number") // Numero fattura elettronica
 
   // Legal notes
-  fiscalNotes     String?        @db.Text @map("fiscal_notes") // Note fiscali personalizzate
+  fiscalNotes String? @map("fiscal_notes") @db.Text // Note fiscali personalizzate
 
   // PDF generation
-  pdfPath         String?        @map("pdf_path") // Path al PDF generato
-  pdfGeneratedAt  DateTime?      @map("pdf_generated_at") // Quando è stato generato il PDF
+  pdfPath        String?   @map("pdf_path") // Path al PDF generato
+  pdfGeneratedAt DateTime? @map("pdf_generated_at") // Quando è stato generato il PDF
 
   // Client visibility
-  visibleToClient Boolean        @default(true) @map("visible_to_client") // Se visibile al cliente nel portale
+  visibleToClient Boolean @default(true) @map("visible_to_client") // Se visibile al cliente nel portale
 
   // Payment entity (chi riceve il pagamento)
-  paymentEntityId Int?           @map("payment_entity_id")
+  paymentEntityId Int? @map("payment_entity_id")
 
   // Metadata
-  createdBy       Int            @map("created_by")
-  createdAt       DateTime       @default(now()) @map("created_at")
-  updatedAt       DateTime       @updatedAt @map("updated_at")
+  createdBy Int      @map("created_by")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   // Relations
-  contact         Contact?       @relation(fields: [contactId], references: [id], onDelete: SetNull)
-  creator         User           @relation("InvoiceCreator", fields: [createdBy], references: [id])
-  transactions    Transaction[]  @relation("InvoiceTransactions")
-  items           InvoiceItem[]  // Invoice line items
-  paymentEntity   PaymentEntity? @relation(fields: [paymentEntityId], references: [id], onDelete: SetNull)
+  contact              Contact?                     @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  creator              User                         @relation("InvoiceCreator", fields: [createdBy], references: [id])
+  transactions         Transaction[]                @relation("InvoiceTransactions")
+  items                InvoiceItem[] // Invoice line items
+  paymentEntity        PaymentEntity?               @relation(fields: [paymentEntityId], references: [id], onDelete: SetNull)
   recurringGenerations RecurringInvoiceGeneration[] // Generations that created this invoice
 
   @@index([invoiceNumber])
@@ -737,20 +750,20 @@ model Invoice {
 }
 
 model InvoiceItem {
-  id            Int      @id @default(autoincrement())
-  invoiceId     Int      @map("invoice_id")
-  description   String   // Descrizione servizio/prodotto
-  quantity      Float    @default(1.00) // Quantità
-  unitPrice     Float    @map("unit_price") // Prezzo unitario
-  vatPercentage Float    @default(22) @map("vat_percentage") // Percentuale IVA (0, 4, 10, 22)
-  amount        Float    // Totale (quantity * unitPrice)
-  order         Int      @default(0) // Ordine di visualizzazione
+  id            Int    @id @default(autoincrement())
+  invoiceId     Int    @map("invoice_id")
+  description   String // Descrizione servizio/prodotto
+  quantity      Float  @default(1.00) // Quantità
+  unitPrice     Float  @map("unit_price") // Prezzo unitario
+  vatPercentage Float  @default(22) @map("vat_percentage") // Percentuale IVA (0, 4, 10, 22)
+  amount        Float // Totale (quantity * unitPrice)
+  order         Int    @default(0) // Ordine di visualizzazione
 
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   // Relations
-  invoice       Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
 
   @@index([invoiceId])
   @@index([invoiceId, order])
@@ -758,9 +771,9 @@ model InvoiceItem {
 }
 
 enum InvoiceStatus {
-  DRAFT     // Bozza - non ancora emessa
-  ISSUED    // Emessa - inviata al cliente
-  PAID      // Pagata - saldato
+  DRAFT // Bozza - non ancora emessa
+  ISSUED // Emessa - inviata al cliente
+  PAID // Pagata - saldato
   CANCELLED // Stornata - annullata
 }
 
@@ -769,48 +782,48 @@ enum InvoiceStatus {
 // ===================================
 
 model RecurringInvoice {
-  id              Int       @id @default(autoincrement())
+  id Int @id @default(autoincrement())
 
   // Client information
-  contactId       Int       @map("contact_id")
-  clientName      String    @map("client_name")
-  clientAddress   String?   @map("client_address")
-  clientPIva      String?   @map("client_piva")
-  clientCF        String?   @map("client_cf")
+  contactId     Int     @map("contact_id")
+  clientName    String  @map("client_name")
+  clientAddress String? @map("client_address")
+  clientPIva    String? @map("client_piva")
+  clientCF      String? @map("client_cf")
 
   // Template details
-  subjectTemplate String    @map("subject_template") // es. "Social Media Management - {mese} {anno}"
-  description     String?   @db.Text // JSON services array, same format as Invoice
+  subjectTemplate String  @map("subject_template") // es. "Social Media Management - {mese} {anno}"
+  description     String? @db.Text // JSON services array, same format as Invoice
 
   // Amounts
-  quantity        Float     @default(1.00)
-  unitPrice       Float     @map("unit_price")
-  subtotal        Float
-  vatPercentage   Float     @default(0) @map("vat_percentage")
-  vatAmount       Float     @map("vat_amount")
-  total           Float
+  quantity      Float @default(1.00)
+  unitPrice     Float @map("unit_price")
+  subtotal      Float
+  vatPercentage Float @default(0) @map("vat_percentage")
+  vatAmount     Float @map("vat_amount")
+  total         Float
 
   // Payment settings
-  paymentEntityId Int       @map("payment_entity_id")
-  paymentDays     Int       @default(30) @map("payment_days")
-  generationDay   Int       @default(10) @map("generation_day") // 9, 10, 11
+  paymentEntityId Int @map("payment_entity_id")
+  paymentDays     Int @default(30) @map("payment_days")
+  generationDay   Int @default(10) @map("generation_day") // 9, 10, 11
 
   // Legal notes
-  fiscalNotes     String?   @db.Text @map("fiscal_notes")
+  fiscalNotes String? @map("fiscal_notes") @db.Text
 
   // Status
-  isActive        Boolean   @default(true) @map("is_active")
+  isActive Boolean @default(true) @map("is_active")
 
   // Metadata
-  createdBy       Int       @map("created_by")
-  createdAt       DateTime  @default(now()) @map("created_at")
-  updatedAt       DateTime  @updatedAt @map("updated_at")
+  createdBy Int      @map("created_by")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   // Relations
-  contact         Contact   @relation(fields: [contactId], references: [id], onDelete: Cascade)
-  paymentEntity   PaymentEntity @relation(fields: [paymentEntityId], references: [id], onDelete: Cascade)
-  creator         User      @relation("RecurringInvoiceCreator", fields: [createdBy], references: [id])
-  generations     RecurringInvoiceGeneration[]
+  contact       Contact                      @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  paymentEntity PaymentEntity                @relation(fields: [paymentEntityId], references: [id], onDelete: Cascade)
+  creator       User                         @relation("RecurringInvoiceCreator", fields: [createdBy], references: [id])
+  generations   RecurringInvoiceGeneration[]
 
   @@index([contactId])
   @@index([paymentEntityId])
@@ -820,16 +833,16 @@ model RecurringInvoice {
 }
 
 model RecurringInvoiceGeneration {
-  id                  Int       @id @default(autoincrement())
-  recurringInvoiceId  Int       @map("recurring_invoice_id")
-  invoiceId           Int       @map("invoice_id")
-  month               Int       // 1-12
-  year                Int
-  generatedAt         DateTime  @default(now()) @map("generated_at")
+  id                 Int      @id @default(autoincrement())
+  recurringInvoiceId Int      @map("recurring_invoice_id")
+  invoiceId          Int      @map("invoice_id")
+  month              Int // 1-12
+  year               Int
+  generatedAt        DateTime @default(now()) @map("generated_at")
 
   // Relations
-  recurringInvoice    RecurringInvoice @relation(fields: [recurringInvoiceId], references: [id], onDelete: Cascade)
-  invoice             Invoice          @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  recurringInvoice RecurringInvoice @relation(fields: [recurringInvoiceId], references: [id], onDelete: Cascade)
+  invoice          Invoice          @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
 
   @@unique([recurringInvoiceId, month, year])
   @@index([recurringInvoiceId])
@@ -891,24 +904,24 @@ model CalendarPreference {
 // ===================================
 
 model Notification {
-  id        Int              @id @default(autoincrement())
-  userId    Int              @map("user_id")
-  type      NotificationType
-  title     String
-  message   String
-  link      String? // URL to navigate when clicking notification
-  isRead    Boolean          @default(false) @map("is_read")
-  readAt    DateTime?        @map("read_at")
+  id      Int              @id @default(autoincrement())
+  userId  Int              @map("user_id")
+  type    NotificationType
+  title   String
+  message String
+  link    String? // URL to navigate when clicking notification
+  isRead  Boolean          @default(false) @map("is_read")
+  readAt  DateTime?        @map("read_at")
 
   // Metadata for different notification types
-  eventId   Int?             @map("event_id")
-  taskId    Int?             @map("task_id")
-  metadata  String?          // JSON string for additional data
+  eventId  Int?    @map("event_id")
+  taskId   Int?    @map("task_id")
+  metadata String? // JSON string for additional data
 
-  createdAt DateTime         @default(now()) @map("created_at")
+  createdAt DateTime @default(now()) @map("created_at")
 
   // Relations
-  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([userId, isRead])
@@ -917,36 +930,36 @@ model Notification {
 }
 
 enum NotificationType {
-  EVENT_REMINDER      // Reminder for upcoming event
-  EVENT_ASSIGNED      // Assigned to an event
-  TASK_ASSIGNED       // Assigned to a task
-  TASK_DUE_SOON       // Task deadline approaching
-  TASK_OVERDUE        // Task is overdue
-  SYSTEM              // System notifications
+  EVENT_REMINDER // Reminder for upcoming event
+  EVENT_ASSIGNED // Assigned to an event
+  TASK_ASSIGNED // Assigned to a task
+  TASK_DUE_SOON // Task deadline approaching
+  TASK_OVERDUE // Task is overdue
+  SYSTEM // System notifications
 }
 
 model EventReminder {
-  id          Int      @id @default(autoincrement())
-  eventId     Int      @map("event_id")
+  id           Int          @id @default(autoincrement())
+  eventId      Int          @map("event_id")
   reminderType ReminderType @map("reminder_type")
 
   // Email reminder settings
-  sendEmail   Boolean  @default(false) @map("send_email")
-  emailSent   Boolean  @default(false) @map("email_sent")
+  sendEmail   Boolean   @default(false) @map("send_email")
+  emailSent   Boolean   @default(false) @map("email_sent")
   emailSentAt DateTime? @map("email_sent_at")
 
   // Browser notification settings
-  sendBrowser Boolean  @default(true) @map("send_browser")
-  browserSent Boolean  @default(false) @map("browser_sent")
+  sendBrowser   Boolean   @default(true) @map("send_browser")
+  browserSent   Boolean   @default(false) @map("browser_sent")
   browserSentAt DateTime? @map("browser_sent_at")
 
   // Time to send reminder (calculated from event start time)
   scheduledAt DateTime @map("scheduled_at")
 
-  createdAt   DateTime @default(now()) @map("created_at")
+  createdAt DateTime @default(now()) @map("created_at")
 
   // Relations
-  event       Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
   @@index([eventId])
   @@index([scheduledAt])
@@ -956,37 +969,37 @@ model EventReminder {
 }
 
 enum ReminderType {
-  MINUTES_15  // 15 minutes before
-  MINUTES_30  // 30 minutes before
-  HOUR_1      // 1 hour before
-  DAY_1       // 1 day before
+  MINUTES_15 // 15 minutes before
+  MINUTES_30 // 30 minutes before
+  HOUR_1 // 1 hour before
+  DAY_1 // 1 day before
 }
 
 model NotificationPreference {
-  id      Int @id @default(autoincrement())
-  userId  Int @unique @map("user_id")
+  id     Int @id @default(autoincrement())
+  userId Int @unique @map("user_id")
 
   // Email notifications
-  emailEnabled          Boolean @default(true) @map("email_enabled")
-  emailEventReminder    Boolean @default(true) @map("email_event_reminder")
-  emailEventAssigned    Boolean @default(true) @map("email_event_assigned")
-  emailTaskAssigned     Boolean @default(true) @map("email_task_assigned")
-  emailTaskDueSoon      Boolean @default(true) @map("email_task_due_soon")
-  emailTaskOverdue      Boolean @default(true) @map("email_task_overdue")
+  emailEnabled       Boolean @default(true) @map("email_enabled")
+  emailEventReminder Boolean @default(true) @map("email_event_reminder")
+  emailEventAssigned Boolean @default(true) @map("email_event_assigned")
+  emailTaskAssigned  Boolean @default(true) @map("email_task_assigned")
+  emailTaskDueSoon   Boolean @default(true) @map("email_task_due_soon")
+  emailTaskOverdue   Boolean @default(true) @map("email_task_overdue")
 
   // Browser notifications
-  browserEnabled        Boolean @default(true) @map("browser_enabled")
-  browserEventReminder  Boolean @default(true) @map("browser_event_reminder")
-  browserEventAssigned  Boolean @default(true) @map("browser_event_assigned")
-  browserTaskAssigned   Boolean @default(true) @map("browser_task_assigned")
-  browserTaskDueSoon    Boolean @default(true) @map("browser_task_due_soon")
-  browserTaskOverdue    Boolean @default(true) @map("browser_task_overdue")
+  browserEnabled       Boolean @default(true) @map("browser_enabled")
+  browserEventReminder Boolean @default(true) @map("browser_event_reminder")
+  browserEventAssigned Boolean @default(true) @map("browser_event_assigned")
+  browserTaskAssigned  Boolean @default(true) @map("browser_task_assigned")
+  browserTaskDueSoon   Boolean @default(true) @map("browser_task_due_soon")
+  browserTaskOverdue   Boolean @default(true) @map("browser_task_overdue")
 
   // Notification center
-  centerEnabled         Boolean @default(true) @map("center_enabled")
+  centerEnabled Boolean @default(true) @map("center_enabled")
 
   // Default reminder settings for new events
-  defaultReminderEnabled Boolean @default(false) @map("default_reminder_enabled")
+  defaultReminderEnabled Boolean       @default(false) @map("default_reminder_enabled")
   defaultReminderType    ReminderType? @map("default_reminder_type")
 
   createdAt DateTime @default(now()) @map("created_at")
@@ -1003,23 +1016,23 @@ model NotificationPreference {
 // ===================================
 
 model ClientAccess {
-  id                 Int       @id @default(autoincrement())
-  contactId          Int       @unique @map("contact_id") // FK to Contact
-  accessType         ClientAccessType @default(QUOTE_ONLY) @map("access_type") // QUOTE_ONLY or FULL_CLIENT
+  id         Int              @id @default(autoincrement())
+  contactId  Int              @unique @map("contact_id") // FK to Contact
+  accessType ClientAccessType @default(QUOTE_ONLY) @map("access_type") // QUOTE_ONLY or FULL_CLIENT
 
   // Authentication
-  username           String    @unique
-  passwordHash       String?   @map("password_hash") // NULL fino ad attivazione
-  temporaryPassword  String?   @map("temporary_password") // Password temporanea per accesso momentaneo
-  activationToken    String?   @unique @map("activation_token")
-  activationExpires  DateTime? @map("activation_expires")
-  emailVerified      Boolean   @default(false) @map("email_verified")
-  isActive           Boolean   @default(true) @map("is_active")
+  username          String    @unique
+  passwordHash      String?   @map("password_hash") // NULL fino ad attivazione
+  temporaryPassword String?   @map("temporary_password") // Password temporanea per accesso momentaneo
+  activationToken   String?   @unique @map("activation_token")
+  activationExpires DateTime? @map("activation_expires")
+  emailVerified     Boolean   @default(false) @map("email_verified")
+  isActive          Boolean   @default(true) @map("is_active")
 
   // Project details (for FULL_CLIENT access)
   projectName        String?   @map("project_name")
-  projectDescription String?   @db.Text @map("project_description")
-  projectObjectives  String?   @db.Text @map("project_objectives")
+  projectDescription String?   @map("project_description") @db.Text
+  projectObjectives  String?   @map("project_objectives") @db.Text
   projectBudget      Float?    @map("project_budget")
   projectStartDate   DateTime? @map("project_start_date")
   projectEndDate     DateTime? @map("project_end_date")
@@ -1027,40 +1040,40 @@ model ClientAccess {
   budgetDisplayType  String?   @default("monthly_fee") @map("budget_display_type") // "monthly_fee" or "project_budget"
 
   // Support hours management
-  supportHoursIncluded Float   @default(0) @map("support_hours_included") // 0 = unlimited
-  supportHoursUsed     Float   @default(0) @map("support_hours_used")
+  supportHoursIncluded Float @default(0) @map("support_hours_included") // 0 = unlimited
+  supportHoursUsed     Float @default(0) @map("support_hours_used")
 
   // Document folders (Google Drive links)
-  driveFolderLink            String?   @map("drive_folder_link")
-  driveFolderLinkTitle       String?   @map("drive_folder_link_title")
-  driveFolderLinkDescription String?   @map("drive_folder_link_description")
-  driveFolderLinkButtonText  String?   @map("drive_folder_link_button_text")
-  documentsFolder            String?   @map("documents_folder")
-  documentsFolderTitle       String?   @map("documents_folder_title")
-  documentsFolderDescription String?   @map("documents_folder_description")
-  documentsFolderButtonText  String?   @map("documents_folder_button_text")
-  assetsFolder               String?   @map("assets_folder")
-  assetsFolderTitle          String?   @map("assets_folder_title")
-  assetsFolderDescription    String?   @map("assets_folder_description")
-  assetsFolderButtonText     String?   @map("assets_folder_button_text")
-  invoiceFolder              String?   @map("invoice_folder")
-  invoiceFolderTitle         String?   @map("invoice_folder_title")
-  invoiceFolderDescription   String?   @map("invoice_folder_description")
-  invoiceFolderButtonText    String?   @map("invoice_folder_button_text")
+  driveFolderLink            String? @map("drive_folder_link")
+  driveFolderLinkTitle       String? @map("drive_folder_link_title")
+  driveFolderLinkDescription String? @map("drive_folder_link_description")
+  driveFolderLinkButtonText  String? @map("drive_folder_link_button_text")
+  documentsFolder            String? @map("documents_folder")
+  documentsFolderTitle       String? @map("documents_folder_title")
+  documentsFolderDescription String? @map("documents_folder_description")
+  documentsFolderButtonText  String? @map("documents_folder_button_text")
+  assetsFolder               String? @map("assets_folder")
+  assetsFolderTitle          String? @map("assets_folder_title")
+  assetsFolderDescription    String? @map("assets_folder_description")
+  assetsFolderButtonText     String? @map("assets_folder_button_text")
+  invoiceFolder              String? @map("invoice_folder")
+  invoiceFolderTitle         String? @map("invoice_folder_title")
+  invoiceFolderDescription   String? @map("invoice_folder_description")
+  invoiceFolderButtonText    String? @map("invoice_folder_button_text")
 
   // Bespoke details (JSON)
-  bespokeDetails     String?   @db.Text @map("bespoke_details") // JSON string
+  bespokeDetails String? @map("bespoke_details") @db.Text // JSON string
 
   // Linked quote for QUOTE_ONLY access
-  linkedQuoteId      Int?      @map("linked_quote_id") // FK to Quote for quote-only access
+  linkedQuoteId Int? @map("linked_quote_id") // FK to Quote for quote-only access
 
-  createdAt          DateTime  @default(now()) @map("created_at")
-  updatedAt          DateTime  @updatedAt @map("updated_at")
-  lastLogin          DateTime? @map("last_login")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  lastLogin DateTime? @map("last_login")
 
   // Relations
-  contact            Contact   @relation(fields: [contactId], references: [id], onDelete: Cascade)
-  linkedQuote        Quote?    @relation("LinkedQuote", fields: [linkedQuoteId], references: [id], onDelete: SetNull)
+  contact            Contact              @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  linkedQuote        Quote?               @relation("LinkedQuote", fields: [linkedQuoteId], references: [id], onDelete: SetNull)
   notifications      ClientNotification[]
   tickets            Ticket[]
   ticketMessages     TicketMessage[]
@@ -1076,55 +1089,55 @@ model ClientAccess {
 }
 
 enum ClientAccessType {
-  QUOTE_ONLY    // Access limitato: visualizza solo preventivo specifico
-  FULL_CLIENT   // Access completo: dashboard, ticket, fatture, documenti
+  QUOTE_ONLY // Access limitato: visualizza solo preventivo specifico
+  FULL_CLIENT // Access completo: dashboard, ticket, fatture, documenti
 }
 
 model Quote {
-  id                   Int         @id @default(autoincrement())
-  quoteNumber          String      @unique @map("quote_number") // Q2026-0042
-  contactId            Int         @map("contact_id") // FK to Contact
-  title                String
-  description          String?     @db.Text
-  objectives           String?     @db.Text // JSON array of project objectives [{title, description}]
+  id          Int     @id @default(autoincrement())
+  quoteNumber String  @unique @map("quote_number") // Q2026-0042
+  contactId   Int     @map("contact_id") // FK to Contact
+  title       String
+  description String? @db.Text
+  objectives  String? @db.Text // JSON array of project objectives [{title, description}]
 
   // Financial details
-  subtotal             Float       // Somma quote_items
-  discountAmount       Float       @default(0) @map("discount_amount") // Sconto base
-  taxRate              Float       @default(22) @map("tax_rate") // IVA %
-  total                Float       // Totale finale con IVA
+  subtotal       Float // Somma quote_items
+  discountAmount Float @default(0) @map("discount_amount") // Sconto base
+  taxRate        Float @default(22) @map("tax_rate") // IVA %
+  total          Float // Totale finale con IVA
 
   // Payment discounts (based on payment option)
-  enablePaymentPlans   Boolean     @default(true) @map("enable_payment_plans") // Abilita opzioni di pagamento rateale
-  oneTimeDiscount      Float       @default(0) @map("one_time_discount") // Sconto % per pagamento unico
-  payment2Discount     Float       @default(0) @map("payment_2_discount") // Sconto % per 2 rate
-  payment3Discount     Float       @default(0) @map("payment_3_discount") // Sconto % per 3 rate
-  payment4Discount     Float       @default(0) @map("payment_4_discount") // Sconto % per 4 rate
+  enablePaymentPlans Boolean @default(true) @map("enable_payment_plans") // Abilita opzioni di pagamento rateale
+  oneTimeDiscount    Float   @default(0) @map("one_time_discount") // Sconto % per pagamento unico
+  payment2Discount   Float   @default(0) @map("payment_2_discount") // Sconto % per 2 rate
+  payment3Discount   Float   @default(0) @map("payment_3_discount") // Sconto % per 3 rate
+  payment4Discount   Float   @default(0) @map("payment_4_discount") // Sconto % per 4 rate
 
   // Quote status
-  status               QuoteStatus @default(DRAFT)
-  validUntil           DateTime    @map("valid_until") // Scadenza validità
-  acceptedDate         DateTime?   @map("accepted_date")
-  rejectedDate         DateTime?   @map("rejected_date")
-  rejectionReason      String?     @map("rejection_reason") @db.Text // Motivo del rifiuto
+  status          QuoteStatus @default(DRAFT)
+  validUntil      DateTime    @map("valid_until") // Scadenza validità
+  acceptedDate    DateTime?   @map("accepted_date")
+  rejectedDate    DateTime?   @map("rejected_date")
+  rejectionReason String?     @map("rejection_reason") @db.Text // Motivo del rifiuto
 
   // Project details
-  projectDurationDays  Int?        @map("project_duration_days") // Durata stimata del progetto in giorni
+  projectDurationDays Int? @map("project_duration_days") // Durata stimata del progetto in giorni
 
   // Client selections (filled when client accepts quote)
-  selectedPackageId    Int?        @map("selected_package_id") // FK to QuotePackage
-  selectedPaymentOption String?    @map("selected_payment_option") // one_time, payment_2, payment_3, payment_4
+  selectedPackageId     Int?    @map("selected_package_id") // FK to QuotePackage
+  selectedPaymentOption String? @map("selected_payment_option") // one_time, payment_2, payment_3, payment_4
 
-  createdBy            Int         @map("created_by")
-  createdAt            DateTime    @default(now()) @map("created_at")
-  updatedAt            DateTime    @updatedAt @map("updated_at")
+  createdBy Int      @map("created_by")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   // Relations
-  contact              Contact     @relation(fields: [contactId], references: [id], onDelete: Cascade)
-  items                QuoteItem[]
-  packages             QuotePackage[]
-  linkedClientAccess   ClientAccess[] @relation("LinkedQuote") // Client access records linked to this quote
-  projectTasks         ProjectTask[] // Task di avanzamento progetto
+  contact            Contact        @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  items              QuoteItem[]
+  packages           QuotePackage[]
+  linkedClientAccess ClientAccess[] @relation("LinkedQuote") // Client access records linked to this quote
+  projectTasks       ProjectTask[] // Task di avanzamento progetto
 
   @@index([contactId])
   @@index([quoteNumber])
@@ -1134,31 +1147,31 @@ model Quote {
 }
 
 enum QuoteStatus {
-  DRAFT      // Bozza
-  SENT       // Inviato al cliente
-  VIEWED     // Visualizzato dal cliente
-  ACCEPTED   // Accettato
-  REJECTED   // Rifiutato
-  EXPIRED    // Scaduto
+  DRAFT // Bozza
+  SENT // Inviato al cliente
+  VIEWED // Visualizzato dal cliente
+  ACCEPTED // Accettato
+  REJECTED // Rifiutato
+  EXPIRED // Scaduto
 }
 
 model QuoteItem {
-  id          Int      @id @default(autoincrement())
-  quoteId     Int      @map("quote_id")
-  packageId   Int?     @map("package_id") // FK to QuotePackage (if part of package)
-  itemName    String   @map("item_name")
-  description String?  @db.Text
-  quantity    Float    @default(1)
-  unitPrice   Float    @map("unit_price")
-  total       Float    // quantity * unitPrice
-  order       Int      @default(0)
+  id          Int     @id @default(autoincrement())
+  quoteId     Int     @map("quote_id")
+  packageId   Int?    @map("package_id") // FK to QuotePackage (if part of package)
+  itemName    String  @map("item_name")
+  description String? @db.Text
+  quantity    Float   @default(1)
+  unitPrice   Float   @map("unit_price")
+  total       Float // quantity * unitPrice
+  order       Int     @default(0)
 
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   // Relations
-  quote       Quote    @relation(fields: [quoteId], references: [id], onDelete: Cascade)
-  package     QuotePackage? @relation(fields: [packageId], references: [id], onDelete: SetNull)
+  quote   Quote         @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  package QuotePackage? @relation(fields: [packageId], references: [id], onDelete: SetNull)
 
   @@index([quoteId])
   @@index([packageId])
@@ -1167,21 +1180,21 @@ model QuoteItem {
 }
 
 model QuotePackage {
-  id          Int         @id @default(autoincrement())
-  quoteId     Int         @map("quote_id")
-  name        String      // "Pacchetto Base", "Pacchetto Pro", "Pacchetto Premium"
-  description String?     @db.Text
-  features    String?     @db.Text // JSON array of package features ["Feature 1", "Feature 2"]
-  price       Float       // Prezzo totale del pacchetto
-  isRecommended Boolean   @default(false) @map("is_recommended")
-  order       Int         @default(0)
+  id            Int     @id @default(autoincrement())
+  quoteId       Int     @map("quote_id")
+  name          String // "Pacchetto Base", "Pacchetto Pro", "Pacchetto Premium"
+  description   String? @db.Text
+  features      String? @db.Text // JSON array of package features ["Feature 1", "Feature 2"]
+  price         Float // Prezzo totale del pacchetto
+  isRecommended Boolean @default(false) @map("is_recommended")
+  order         Int     @default(0)
 
-  createdAt   DateTime    @default(now()) @map("created_at")
-  updatedAt   DateTime    @updatedAt @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   // Relations
-  quote       Quote       @relation(fields: [quoteId], references: [id], onDelete: Cascade)
-  items       QuoteItem[] // Items that belong to this package
+  quote Quote       @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  items QuoteItem[] // Items that belong to this package
 
   @@index([quoteId])
   @@index([quoteId, order])
@@ -1189,21 +1202,21 @@ model QuotePackage {
 }
 
 model ProjectTask {
-  id             Int       @id @default(autoincrement())
-  quoteId        Int       @map("quote_id")
-  title          String    // Titolo del task (preso dalle features)
-  description    String?   @db.Text // Descrizione opzionale
-  isCompleted    Boolean   @default(false) @map("is_completed")
-  completedAt    DateTime? @map("completed_at")
-  completedBy    Int?      @map("completed_by") // User che ha completato il task
-  order          Int       @default(0) // Ordine di visualizzazione
+  id          Int       @id @default(autoincrement())
+  quoteId     Int       @map("quote_id")
+  title       String // Titolo del task (preso dalle features)
+  description String?   @db.Text // Descrizione opzionale
+  isCompleted Boolean   @default(false) @map("is_completed")
+  completedAt DateTime? @map("completed_at")
+  completedBy Int?      @map("completed_by") // User che ha completato il task
+  order       Int       @default(0) // Ordine di visualizzazione
 
-  createdAt      DateTime  @default(now()) @map("created_at")
-  updatedAt      DateTime  @updatedAt @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   // Relations
-  quote          Quote     @relation(fields: [quoteId], references: [id], onDelete: Cascade)
-  completedByUser User?   @relation("TaskCompletedBy", fields: [completedBy], references: [id], onDelete: SetNull)
+  quote           Quote @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  completedByUser User? @relation("TaskCompletedBy", fields: [completedBy], references: [id], onDelete: SetNull)
 
   @@index([quoteId])
   @@index([quoteId, order])
@@ -1213,17 +1226,17 @@ model ProjectTask {
 
 // Task di progetto per clienti senza preventivo
 model ClientProjectTask {
-  id              Int       @id @default(autoincrement())
-  clientAccessId  Int       @map("client_access_id")
-  title           String
-  description     String?   @db.Text
-  isCompleted     Boolean   @default(false) @map("is_completed")
-  completedAt     DateTime? @map("completed_at")
-  completedBy     Int?      @map("completed_by")
-  order           Int       @default(0)
+  id             Int       @id @default(autoincrement())
+  clientAccessId Int       @map("client_access_id")
+  title          String
+  description    String?   @db.Text
+  isCompleted    Boolean   @default(false) @map("is_completed")
+  completedAt    DateTime? @map("completed_at")
+  completedBy    Int?      @map("completed_by")
+  order          Int       @default(0)
 
-  createdAt       DateTime  @default(now()) @map("created_at")
-  updatedAt       DateTime  @updatedAt @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   // Relations
   clientAccess    ClientAccess @relation(fields: [clientAccessId], references: [id], onDelete: Cascade)
@@ -1240,21 +1253,21 @@ model ClientProjectTask {
 // ===================================
 
 model ClientNotification {
-  id              Int      @id @default(autoincrement())
-  clientAccessId  Int      @map("client_access_id")
-  type            ClientNotificationType
-  title           String
-  message         String   @db.Text
-  link            String?  // URL to navigate when clicking
-  relatedId       Int?     @map("related_id") // ID of related resource (quote, ticket, invoice)
-  relatedType     String?  @map("related_type") // Type of related resource (quote, ticket, invoice)
-  isRead          Boolean  @default(false) @map("is_read")
-  readAt          DateTime? @map("read_at")
+  id             Int                    @id @default(autoincrement())
+  clientAccessId Int                    @map("client_access_id")
+  type           ClientNotificationType
+  title          String
+  message        String                 @db.Text
+  link           String? // URL to navigate when clicking
+  relatedId      Int?                   @map("related_id") // ID of related resource (quote, ticket, invoice)
+  relatedType    String?                @map("related_type") // Type of related resource (quote, ticket, invoice)
+  isRead         Boolean                @default(false) @map("is_read")
+  readAt         DateTime?              @map("read_at")
 
-  createdAt       DateTime @default(now()) @map("created_at")
+  createdAt DateTime @default(now()) @map("created_at")
 
   // Relations
-  clientAccess    ClientAccess @relation(fields: [clientAccessId], references: [id], onDelete: Cascade)
+  clientAccess ClientAccess @relation(fields: [clientAccessId], references: [id], onDelete: Cascade)
 
   @@index([clientAccessId])
   @@index([clientAccessId, isRead])
@@ -1263,14 +1276,14 @@ model ClientNotification {
 }
 
 enum ClientNotificationType {
-  QUOTE_NEW         // Nuovo preventivo ricevuto
-  QUOTE_ACCEPTED    // Preventivo accettato confermato
-  TICKET_REPLY      // Risposta admin a ticket
-  TICKET_CLOSED     // Ticket chiuso
-  INVOICE_NEW       // Nuova fattura disponibile
-  TASK_ASSIGNED     // Task assegnato al cliente
-  EVENT_SCHEDULED   // Nuovo appuntamento
-  SYSTEM            // Notifiche sistema
+  QUOTE_NEW // Nuovo preventivo ricevuto
+  QUOTE_ACCEPTED // Preventivo accettato confermato
+  TICKET_REPLY // Risposta admin a ticket
+  TICKET_CLOSED // Ticket chiuso
+  INVOICE_NEW // Nuova fattura disponibile
+  TASK_ASSIGNED // Task assegnato al cliente
+  EVENT_SCHEDULED // Nuovo appuntamento
+  SYSTEM // Notifiche sistema
 }
 
 // ===================================
@@ -1278,37 +1291,37 @@ enum ClientNotificationType {
 // ===================================
 
 model Ticket {
-  id                 Int          @id @default(autoincrement())
-  ticketNumber       String       @unique @map("ticket_number") // T2026-0042
-  clientAccessId     Int          @map("client_access_id")
-  contactId          Int          @map("contact_id")
+  id             Int    @id @default(autoincrement())
+  ticketNumber   String @unique @map("ticket_number") // T2026-0042
+  clientAccessId Int    @map("client_access_id")
+  contactId      Int    @map("contact_id")
 
   // Ticket details
-  supportType        SupportType  @map("support_type")
-  subject            String
-  description        String       @db.Text
-  priority           TicketPriority @default(NORMAL)
-  status             TicketStatus @default(OPEN)
+  supportType SupportType    @map("support_type")
+  subject     String
+  description String         @db.Text
+  priority    TicketPriority @default(NORMAL)
+  status      TicketStatus   @default(OPEN)
 
   // Assignment
-  assignedTo         Int?         @map("assigned_to") // FK to User (admin)
+  assignedTo Int? @map("assigned_to") // FK to User (admin)
 
   // Time tracking
-  timeSpentMinutes   Int          @default(0) @map("time_spent_minutes")
+  timeSpentMinutes Int @default(0) @map("time_spent_minutes")
 
   // Closure
-  closingNotes       String?      @db.Text @map("closing_notes")
-  closedAt           DateTime?    @map("closed_at")
+  closingNotes String?   @map("closing_notes") @db.Text
+  closedAt     DateTime? @map("closed_at")
 
-  createdAt          DateTime     @default(now()) @map("created_at")
-  updatedAt          DateTime     @updatedAt @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   // Relations
-  clientAccess       ClientAccess @relation(fields: [clientAccessId], references: [id], onDelete: Cascade)
-  contact            Contact      @relation(fields: [contactId], references: [id], onDelete: Cascade)
-  messages           TicketMessage[]
-  activityLogs       TicketActivityLog[]
-  attachments        TicketAttachment[]
+  clientAccess ClientAccess        @relation(fields: [clientAccessId], references: [id], onDelete: Cascade)
+  contact      Contact             @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  messages     TicketMessage[]
+  activityLogs TicketActivityLog[]
+  attachments  TicketAttachment[]
 
   @@index([clientAccessId])
   @@index([contactId])
@@ -1321,44 +1334,44 @@ model Ticket {
 }
 
 enum SupportType {
-  TECHNICAL      // Supporto tecnico
-  DESIGN         // Modifica design
-  CONTENT        // Gestione contenuti
-  BILLING        // Fatturazione
-  OTHER          // Altro
+  TECHNICAL // Supporto tecnico
+  DESIGN // Modifica design
+  CONTENT // Gestione contenuti
+  BILLING // Fatturazione
+  OTHER // Altro
 }
 
 enum TicketPriority {
-  LOW       // Bassa
-  NORMAL    // Normale
-  HIGH      // Alta
-  URGENT    // Urgente
+  LOW // Bassa
+  NORMAL // Normale
+  HIGH // Alta
+  URGENT // Urgente
 }
 
 enum TicketStatus {
-  OPEN              // Aperto
-  IN_PROGRESS       // In lavorazione
-  WAITING_CLIENT    // In attesa cliente
-  RESOLVED          // Risolto
-  CLOSED            // Chiuso
+  OPEN // Aperto
+  IN_PROGRESS // In lavorazione
+  WAITING_CLIENT // In attesa cliente
+  RESOLVED // Risolto
+  CLOSED // Chiuso
 }
 
 model TicketMessage {
-  id              Int      @id @default(autoincrement())
-  ticketId        Int      @map("ticket_id")
-  userId          Int?     @map("user_id") // NULL if from client
-  clientAccessId  Int?     @map("client_access_id") // NULL if from admin
-  message         String   @db.Text
-  isInternal      Boolean  @default(false) @map("is_internal") // Note interne (solo admin)
-  clientReadAt    DateTime? @map("client_read_at")
+  id             Int       @id @default(autoincrement())
+  ticketId       Int       @map("ticket_id")
+  userId         Int?      @map("user_id") // NULL if from client
+  clientAccessId Int?      @map("client_access_id") // NULL if from admin
+  message        String    @db.Text
+  isInternal     Boolean   @default(false) @map("is_internal") // Note interne (solo admin)
+  clientReadAt   DateTime? @map("client_read_at")
 
-  createdAt       DateTime @default(now()) @map("created_at")
+  createdAt DateTime @default(now()) @map("created_at")
 
   // Relations
-  ticket          Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
-  user            User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
-  clientAccess    ClientAccess? @relation(fields: [clientAccessId], references: [id], onDelete: Cascade)
-  attachments     TicketAttachment[]
+  ticket       Ticket             @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  user         User?              @relation(fields: [userId], references: [id], onDelete: SetNull)
+  clientAccess ClientAccess?      @relation(fields: [clientAccessId], references: [id], onDelete: Cascade)
+  attachments  TicketAttachment[]
 
   @@index([ticketId])
   @@index([userId])
@@ -1368,19 +1381,19 @@ model TicketMessage {
 }
 
 model TicketActivityLog {
-  id         Int      @id @default(autoincrement())
-  ticketId   Int      @map("ticket_id")
-  userId     Int?     @map("user_id") // Admin user
-  clientAccessId Int? @map("client_access_id") // Client user
-  action     String   // "ticket_created", "status_changed", "assigned", "message_added", "time_logged", "closed"
-  oldValue   String?  @map("old_value")
-  newValue   String?  @map("new_value")
-  details    String?  @db.Text  
+  id             Int     @id @default(autoincrement())
+  ticketId       Int     @map("ticket_id")
+  userId         Int?    @map("user_id") // Admin user
+  clientAccessId Int?    @map("client_access_id") // Client user
+  action         String // "ticket_created", "status_changed", "assigned", "message_added", "time_logged", "closed"
+  oldValue       String? @map("old_value")
+  newValue       String? @map("new_value")
+  details        String? @db.Text
 
-  createdAt  DateTime @default(now()) @map("created_at")
+  createdAt DateTime @default(now()) @map("created_at")
 
   // Relations
-  ticket     Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  ticket Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
 
   @@index([ticketId])
   @@index([userId])
@@ -1390,26 +1403,26 @@ model TicketActivityLog {
 }
 
 model TicketAttachment {
-  id               Int       @id @default(autoincrement())
-  ticketId         Int       @map("ticket_id")
-  ticketMessageId  Int?      @map("ticket_message_id") // NULL for ticket-level attachments
+  id              Int  @id @default(autoincrement())
+  ticketId        Int  @map("ticket_id")
+  ticketMessageId Int? @map("ticket_message_id") // NULL for ticket-level attachments
 
   // File metadata
-  fileName         String    @map("file_name") // Sanitized filename stored on disk
-  originalFileName String    @map("original_file_name") // Original filename from user
-  fileSize         Int       @map("file_size") // Size in bytes
-  mimeType         String    @map("mime_type") // image/jpeg, image/png, application/pdf
-  storagePath      String    @map("storage_path") // Relative path: tickets/{ticketId}/{timestamp}-{filename}
+  fileName         String @map("file_name") // Sanitized filename stored on disk
+  originalFileName String @map("original_file_name") // Original filename from user
+  fileSize         Int    @map("file_size") // Size in bytes
+  mimeType         String @map("mime_type") // image/jpeg, image/png, application/pdf
+  storagePath      String @map("storage_path") // Relative path: tickets/{ticketId}/{timestamp}-{filename}
 
   // Visibility & ownership
-  isInternal       Boolean   @default(false) @map("is_internal") // Admin-only visibility
-  uploadedBy       String    @map("uploaded_by") // "admin" or "client"
-  uploadedById     Int?      @map("uploaded_by_id") // userId (if admin) or clientAccessId (if client)
-  uploadedAt       DateTime  @default(now()) @map("uploaded_at")
+  isInternal   Boolean  @default(false) @map("is_internal") // Admin-only visibility
+  uploadedBy   String   @map("uploaded_by") // "admin" or "client"
+  uploadedById Int?     @map("uploaded_by_id") // userId (if admin) or clientAccessId (if client)
+  uploadedAt   DateTime @default(now()) @map("uploaded_at")
 
   // Relations
-  ticket           Ticket    @relation(fields: [ticketId], references: [id], onDelete: Cascade)
-  ticketMessage    TicketMessage? @relation(fields: [ticketMessageId], references: [id], onDelete: Cascade)
+  ticket        Ticket         @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  ticketMessage TicketMessage? @relation(fields: [ticketMessageId], references: [id], onDelete: Cascade)
 
   @@index([ticketId])
   @@index([ticketMessageId])
@@ -1418,17 +1431,17 @@ model TicketAttachment {
 }
 
 model ClientActivityLog {
-  id             Int      @id @default(autoincrement())
-  clientAccessId Int      @map("client_access_id")
-  action         String   // "login", "password_changed", "quote_viewed", "quote_accepted", etc.
-  details        String?  @db.Text
-  ipAddress      String?  @map("ip_address")
-  userAgent      String?  @map("user_agent")
+  id             Int     @id @default(autoincrement())
+  clientAccessId Int     @map("client_access_id")
+  action         String // "login", "password_changed", "quote_viewed", "quote_accepted", etc.
+  details        String? @db.Text
+  ipAddress      String? @map("ip_address")
+  userAgent      String? @map("user_agent")
 
-  createdAt      DateTime @default(now()) @map("created_at")
+  createdAt DateTime @default(now()) @map("created_at")
 
   // Relations
-  clientAccess   ClientAccess @relation(fields: [clientAccessId], references: [id], onDelete: Cascade)
+  clientAccess ClientAccess @relation(fields: [clientAccessId], references: [id], onDelete: Cascade)
 
   @@index([clientAccessId])
   @@index([createdAt])
@@ -1440,15 +1453,15 @@ model ClientActivityLog {
 // ===================================
 
 model DailyTodo {
-  id          Int      @id @default(autoincrement())
-  userId      Int      @map("user_id")
+  id          Int       @id @default(autoincrement())
+  userId      Int       @map("user_id")
   text        String
-  completed   Boolean  @default(false)
+  completed   Boolean   @default(false)
   completedAt DateTime? @map("completed_at")
-  order       Int      @default(0)
-  date        DateTime @default(now()) // Date this todo belongs to
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  order       Int       @default(0)
+  date        DateTime  @default(now()) // Date this todo belongs to
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
 
   @@index([userId])
   @@index([userId, date])
@@ -1457,15 +1470,15 @@ model DailyTodo {
 }
 
 model WeeklyTodo {
-  id          Int      @id @default(autoincrement())
-  userId      Int      @map("user_id")
+  id          Int       @id @default(autoincrement())
+  userId      Int       @map("user_id")
   text        String
-  completed   Boolean  @default(false)
+  completed   Boolean   @default(false)
   completedAt DateTime? @map("completed_at")
-  order       Int      @default(0)
-  weekStart   DateTime @map("week_start") // Monday of the week this todo belongs to
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  order       Int       @default(0)
+  weekStart   DateTime  @map("week_start") // Monday of the week this todo belongs to
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
 
   @@index([userId])
   @@index([userId, weekStart])
@@ -1474,15 +1487,15 @@ model WeeklyTodo {
 }
 
 model TaskPhase {
-  id          Int      @id @default(autoincrement())
-  taskId      Int      @map("task_id")
-  userId      Int      @map("user_id")
+  id          Int       @id @default(autoincrement())
+  taskId      Int       @map("task_id")
+  userId      Int       @map("user_id")
   text        String
-  completed   Boolean  @default(false)
+  completed   Boolean   @default(false)
   completedAt DateTime? @map("completed_at")
-  order       Int      @default(0)
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  order       Int       @default(0)
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
 
   @@index([taskId])
   @@index([userId])
@@ -1495,28 +1508,28 @@ model TaskPhase {
 // ===================================
 
 model SystemAnnouncement {
-  id          Int       @id @default(autoincrement())
-  title       String
-  message     String    @db.Text
-  type        AnnouncementType @default(INFO)
-  priority    Int       @default(0) // Higher = more important
+  id       Int              @id @default(autoincrement())
+  title    String
+  message  String           @db.Text
+  type     AnnouncementType @default(INFO)
+  priority Int              @default(0) // Higher = more important
 
   // Target audience
-  targetRoles String?   @map("target_roles") // JSON array: ["ADMIN", "DEVELOPER"] or null for all
+  targetRoles String? @map("target_roles") // JSON array: ["ADMIN", "DEVELOPER"] or null for all
 
   // Scheduling
-  startsAt    DateTime  @map("starts_at")
-  endsAt      DateTime? @map("ends_at") // null = no expiration
+  startsAt DateTime  @map("starts_at")
+  endsAt   DateTime? @map("ends_at") // null = no expiration
 
   // Status
-  isActive    Boolean   @default(true) @map("is_active")
-  createdById Int       @map("created_by_id")
+  isActive    Boolean @default(true) @map("is_active")
+  createdById Int     @map("created_by_id")
 
   // Relations
-  createdBy   User      @relation("AnnouncementCreator", fields: [createdById], references: [id])
+  createdBy User @relation("AnnouncementCreator", fields: [createdById], references: [id])
 
-  createdAt   DateTime  @default(now()) @map("created_at")
-  updatedAt   DateTime  @updatedAt @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   @@index([isActive, startsAt, endsAt])
   @@index([createdById])
@@ -1524,8 +1537,376 @@ model SystemAnnouncement {
 }
 
 enum AnnouncementType {
-  INFO        // Blue - informational
-  WARNING     // Yellow - attention needed
+  INFO // Blue - informational
+  WARNING // Yellow - attention needed
   MAINTENANCE // Orange - scheduled maintenance
-  CRITICAL    // Red - urgent/breaking
+  CRITICAL // Red - urgent/breaking
+}
+
+// ===================================
+// SOCIAL MEDIA MANAGEMENT
+// ===================================
+
+model SocialAccount {
+  id             Int            @id @default(autoincrement())
+  contactId      Int            @map("contact_id")
+  platform       SocialPlatform
+  platformId     String         @map("platform_id")
+  platformName   String         @map("platform_name")
+  accessToken    String?        @map("access_token") @db.Text
+  refreshToken   String?        @map("refresh_token") @db.Text
+  tokenExpiresAt DateTime?      @map("token_expires_at")
+  scope          String?        @db.Text
+  profilePicUrl  String?        @map("profile_pic_url")
+  isActive       Boolean        @default(true) @map("is_active")
+  lastSyncAt     DateTime?      @map("last_sync_at")
+  metadata       Json?
+  createdAt      DateTime       @default(now()) @map("created_at")
+  updatedAt      DateTime       @updatedAt @map("updated_at")
+
+  contact     Contact                @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  targets     SocialPostTarget[]
+  analytics   SocialAnalyticsDaily[]
+  publishLogs PublishLog[]
+  postMetrics SocialPostMetrics[]
+
+  @@unique([platform, platformId])
+  @@index([contactId])
+  @@map("social_accounts")
+}
+
+enum SocialPlatform {
+  INSTAGRAM
+  FACEBOOK
+  LINKEDIN
+  TIKTOK
+}
+
+model SocialClientConfig {
+  id              Int      @id @default(autoincrement())
+  contactId       Int      @unique @map("contact_id")
+  requireApproval Boolean  @default(false) @map("require_approval")
+  approvalMode    String   @default("internal") @map("approval_mode") // "internal" | "client"
+  defaultTimezone String   @default("Europe/Rome") @map("default_timezone")
+  cedColumns      Json?    @map("ced_columns") // saved column config per client
+  folder          String?  @map("folder")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  contact Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  @@map("social_client_configs")
+}
+
+model SocialPost {
+  id              Int              @id @default(autoincrement())
+  contactId       Int              @map("contact_id")
+  content         String           @db.Text
+  platformContent Json?            @map("platform_content")
+  postType        SocialPostType   @default(POST) @map("post_type")
+  status          SocialPostStatus @default(DRAFT)
+  stage           SocialPostStage  @default(PRODUCTION) @map("stage")
+  ideaCategory    String?          @map("idea_category")   // JSON array string: ["Educativo","Promozionale"]
+  ideaPhase       String?          @map("idea_phase")       // "Fase 1"
+  ideaStatus      String?          @map("idea_status")      // "Idea","Da fare","Programmato","Pubblicato","Archiviato"
+  ideaScript      String?          @map("idea_script")      @db.Text // Script suggerito
+  ideaCaption     String?          @map("idea_caption")     @db.Text // Didascalia
+  ideaObiettivo   String?          @map("idea_obiettivo")   // Obiettivo
+  ideaCreativita  String?          @map("idea_creativita")  @db.Text // Creatività
+  ideaNotes       String?          @map("idea_notes")       @db.Text // Note
+  promotedToId    Int?             @map("promoted_to_id")   // link to production post created from this idea
+  scheduledAt     DateTime?        @map("scheduled_at")
+  publishedAt     DateTime?        @map("published_at")
+  createdById     Int              @map("created_by_id")
+  approvedById    Int?             @map("approved_by_id")
+  approvedAt      DateTime?        @map("approved_at")
+  templateId      Int?             @map("template_id")
+  metadata        Json?            // { uniquifyMedia?: boolean, ... }
+  mediaUrls       Json?            @map("media_urls") // ["https://r2.../file1.jpg", ...]
+  coverImageUrl   String?          @map("cover_image_url") // for reels
+  shareToFeed     Boolean          @default(true) @map("share_to_feed") // reels: also share to feed
+  mediaTranscript String?          @map("media_transcript") @db.Text // Whisper transcript of the reel/video
+  mediaAiAnalysis Json?            @map("media_ai_analysis") // { actors, themes, trend, summary, hasSpeech }
+  createdAt       DateTime         @default(now()) @map("created_at")
+  updatedAt       DateTime         @updatedAt @map("updated_at")
+
+  contact     Contact             @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  createdBy   User                @relation("SocialPostCreatedBy", fields: [createdById], references: [id])
+  approvedBy  User?               @relation("SocialPostApprovedBy", fields: [approvedById], references: [id])
+  template    SocialTemplate?     @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  targets     SocialPostTarget[]
+  media       SocialPostMedia[]
+  publishLogs PublishLog[]
+  hashtags    SocialPostHashtag[]
+  postMetrics SocialPostMetrics[]
+
+  @@index([contactId, status])
+  @@index([contactId, stage])
+  @@index([scheduledAt])
+  @@index([createdById])
+  @@map("social_posts")
+}
+
+enum SocialPostStage {
+  IDEA
+  PRODUCTION
+}
+
+enum SocialPostType {
+  POST
+  STORY
+  REEL
+  CAROUSEL
+}
+
+enum SocialPostStatus {
+  DRAFT
+  PENDING_APPROVAL
+  APPROVED
+  SCHEDULED
+  PUBLISHING
+  PUBLISHED
+  FAILED
+  ARCHIVED
+}
+
+model SocialPostTarget {
+  id              Int              @id @default(autoincrement())
+  postId          Int              @map("post_id")
+  socialAccountId Int              @map("social_account_id")
+  platformPostId  String?          @map("platform_post_id")
+  status          SocialPostStatus @default(SCHEDULED)
+  errorMessage    String?          @map("error_message") @db.Text
+  publishedAt     DateTime?        @map("published_at")
+
+  post          SocialPost    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  socialAccount SocialAccount @relation(fields: [socialAccountId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, socialAccountId])
+  @@map("social_post_targets")
+}
+
+model SocialMedia {
+  id           Int      @id @default(autoincrement())
+  contactId    Int      @map("contact_id")
+  filename     String
+  originalName String   @map("original_name")
+  mimeType     String   @map("mime_type")
+  size         Int
+  r2Key        String   @map("r2_key")
+  r2Url        String   @map("r2_url")
+  width        Int?
+  height       Int?
+  duration     Int?
+  folder       String?
+  tags         Json?
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  contact   Contact           @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  postMedia SocialPostMedia[]
+
+  @@index([contactId, folder])
+  @@map("social_media")
+}
+
+model SocialPostMedia {
+  id       Int @id @default(autoincrement())
+  postId   Int @map("post_id")
+  mediaId  Int @map("media_id")
+  position Int @default(0)
+
+  post  SocialPost  @relation(fields: [postId], references: [id], onDelete: Cascade)
+  media SocialMedia @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, mediaId])
+  @@map("social_post_media")
+}
+
+model SocialTemplate {
+  id        Int            @id @default(autoincrement())
+  contactId Int?           @map("contact_id")
+  name      String
+  content   String         @db.Text
+  postType  SocialPostType @default(POST) @map("post_type")
+  platforms Json?
+  createdAt DateTime       @default(now()) @map("created_at")
+  updatedAt DateTime       @updatedAt @map("updated_at")
+
+  contact Contact?     @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  posts   SocialPost[]
+
+  @@index([contactId])
+  @@map("social_templates")
+}
+
+model SocialPostHashtag {
+  id      Int    @id @default(autoincrement())
+  postId  Int    @map("post_id")
+  hashtag String
+
+  post SocialPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([hashtag])
+  @@index([postId])
+  @@map("social_post_hashtags")
+}
+
+model SocialAnalyticsDaily {
+  id              Int      @id @default(autoincrement())
+  socialAccountId Int      @map("social_account_id")
+  date            DateTime @db.Date
+  followers       Int?
+  followersGrowth Int?     @map("followers_growth")
+  reach           Int?
+  impressions     Int?
+  engagement      Int?
+  likes           Int?
+  comments        Int?
+  shares          Int?
+  saves           Int?
+  videoViews      Int?     @map("video_views")
+  linkClicks      Int?     @map("link_clicks")
+  profileViews    Int?     @map("profile_views")
+  rawData         Json?    @map("raw_data")
+
+  socialAccount SocialAccount @relation(fields: [socialAccountId], references: [id], onDelete: Cascade)
+
+  @@unique([socialAccountId, date])
+  @@index([socialAccountId, date])
+  @@map("social_analytics_daily")
+}
+
+model PublishLog {
+  id              Int      @id @default(autoincrement())
+  postId          Int      @map("post_id")
+  socialAccountId Int      @map("social_account_id")
+  action          String
+  message         String?  @db.Text
+  responseData    Json?    @map("response_data")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  post          SocialPost    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  socialAccount SocialAccount @relation(fields: [socialAccountId], references: [id], onDelete: Cascade)
+
+  @@index([postId])
+  @@index([createdAt])
+  @@map("publish_logs")
+}
+
+model SocialPostMetrics {
+  id              Int      @id @default(autoincrement())
+  postId          Int      @map("post_id")
+  socialAccountId Int      @map("social_account_id")
+  checkpoint      String // "24h", "48h", "7d"
+  likes           Int?
+  comments        Int?
+  shares          Int?
+  saves           Int?
+  reach           Int?
+  impressions     Int?
+  videoViews      Int?     @map("video_views")
+  engagement      Float?
+  rawData         Json?    @map("raw_data")
+  collectedAt     DateTime @default(now()) @map("collected_at")
+
+  post          SocialPost    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  socialAccount SocialAccount @relation(fields: [socialAccountId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, socialAccountId, checkpoint])
+  @@index([postId])
+  @@map("social_post_metrics")
+}
+
+model SocialClientBrief {
+  id             Int       @id @default(autoincrement())
+  contactId      Int       @unique @map("contact_id")
+  tone           String?   @db.Text
+  audience       String?   @db.Text
+  goals          String?   @db.Text
+  notes          String?   @db.Text // TipTap HTML
+  aiInstructions String?   @map("ai_instructions") @db.Text // fixed directives the AI must always follow (target, communication rules, do/don't)
+  aiData         Json?     @map("ai_data") // AI-collected knowledge: { actors, themes, trends, bestTimes, hashtags, summary, suggestions }
+  aiUpdatedAt    DateTime? @map("ai_updated_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  contact Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  @@map("social_client_briefs")
+}
+
+// Feedback/rating of AI outputs, used to improve future generations.
+model SocialAiFeedback {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  contactId Int?     @map("contact_id")
+  kind      String // "ideas" | "caption" | "hashtags" | "brief" | "insights" | "suggestions" | "transcription" | "review"
+  rating    Int // 1 = liked, -1 = disliked
+  content   String?  @db.Text // the generated text the user is rating
+  note      String?  @db.Text // optional textual feedback (e.g. "tono troppo formale, più caldo")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([contactId, kind])
+  @@index([userId])
+  @@map("social_ai_feedbacks")
+}
+
+// AI provider settings (singleton, id=1): which provider to use and its API key/model.
+model SocialAiSettings {
+  id              Int      @id @default(1)
+  provider        String   @default("claude") // "deepseek" | "claude"
+  deepseekApiKey  String?  @map("deepseek_api_key") @db.Text
+  deepseekBaseUrl String?  @map("deepseek_base_url")
+  deepseekModel   String?  @map("deepseek_model")
+  claudeApiKey    String?  @map("claude_api_key") @db.Text
+  claudeModel     String?  @map("claude_model")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  @@map("social_ai_settings")
+}
+
+// Context events (local events, seasons, holidays) the AI uses to ground content.
+// contactId NULL = global context (all clients); otherwise scoped to one client.
+model SocialContextEvent {
+  id          Int       @id @default(autoincrement())
+  contactId   Int?      @map("contact_id")
+  title       String
+  description String?   @db.Text
+  category    String    @default("contesto") // "contesto" | "stagionale" | "evento_locale" | "festività" | ...
+  startDate   DateTime  @map("start_date")
+  endDate     DateTime? @map("end_date")
+  isActive    Boolean   @default(true) @map("is_active")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  @@index([contactId])
+  @@index([startDate, endDate])
+  @@map("social_context_events")
+}
+
+model SocialReport {
+  id         Int             @id @default(autoincrement())
+  contactId  Int             @map("contact_id")
+  name       String
+  frequency  ReportFrequency @default(MONTHLY)
+  recipients Json
+  lastSentAt DateTime?       @map("last_sent_at")
+  nextSendAt DateTime?       @map("next_send_at")
+  config     Json?
+  isActive   Boolean         @default(true) @map("is_active")
+  createdAt  DateTime        @default(now()) @map("created_at")
+  updatedAt  DateTime        @updatedAt @map("updated_at")
+
+  contact Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  @@index([nextSendAt])
+  @@map("social_reports")
+}
+
+enum ReportFrequency {
+  WEEKLY
+  BIWEEKLY
+  MONTHLY
 }

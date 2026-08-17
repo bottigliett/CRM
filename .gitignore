@@ -95,3 +95,10 @@ storybook-static
 # Deployment scripts (contain server-specific paths)
 *.env.production
 MIO-CRM-ATTUALE/
+
+# Social module runtime data (never commit)
+backend/uploads/
+backend/.browser-profiles/
+db_dump.sql
+graphify-out/
+SOCIAL_TODO.md

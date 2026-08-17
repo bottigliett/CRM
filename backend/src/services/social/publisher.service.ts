@@ -1,0 +1,271 @@
+import prisma from '../../config/database';
+import { SocialPlatform } from '@prisma/client';
+import * as meta from './meta.service';
+import * as linkedin from './linkedin.service';
+import * as tiktok from './tiktok.service';
+import { getSignedR2Url, downloadFromR2, uploadToR2 } from './r2.service';
+import { uniquifyVideo } from './video-uniquifier.service';
+import { uploadToTikTok } from './browser/tiktok-browser.service';
+import { uploadToInstagram } from './browser/instagram-browser.service';
+import fs from 'fs/promises';
+import os from 'os';
+import path from 'path';
+
+/**
+ * Publish a post to all its target accounts.
+ * Called by the BullMQ worker when scheduledAt <= now.
+ */
+export async function publishPost(postId: number): Promise<void> {
+  const post = await prisma.socialPost.findUnique({
+    where: { id: postId },
+    include: {
+      targets: { include: { socialAccount: true } },
+    },
+  });
+
+  if (!post) throw new Error(`Post ${postId} not found`);
+
+  // Guard: a post without target accounts can never publish — mark FAILED instead of "published"
+  if (!post.targets.length) {
+    await prisma.socialPost.update({ where: { id: postId }, data: { status: 'FAILED' } });
+    throw new Error(`Post ${postId} has no target accounts`);
+  }
+
+  // Use mediaUrls from post (new inline upload path) or fall back to empty
+  let mediaUrls: string[] = (post.mediaUrls as string[] | null) || [];
+
+  // Video uniquification: re-encode video with randomized fingerprint before publishing
+  const postMeta = (post.metadata as any) || {};
+  if (postMeta.uniquifyMedia && mediaUrls.length > 0) {
+    mediaUrls = await uniquifyMediaUrls(mediaUrls, post.contactId);
+  }
+
+  // Get platform-specific content overrides
+  const platformContent = (post.platformContent as Record<string, string> | null) || {};
+
+  let allSuccess = true;
+
+  for (const target of post.targets) {
+    const account = target.socialAccount;
+    const content = platformContent[account.platform.toLowerCase()] || post.content;
+
+    // Per-platform media override: different video/cover per social (e.g. IG vs FB reel)
+    const platformMediaOverride = (postMeta.platformMedia as any)?.[account.platform];
+    const targetMediaUrls = platformMediaOverride?.mediaUrls?.length ? platformMediaOverride.mediaUrls : mediaUrls;
+
+    try {
+      await prisma.socialPostTarget.update({
+        where: { id: target.id },
+        data: { status: 'PUBLISHING' },
+      });
+
+      const accountMeta = (account.metadata as any) || {};
+      const browserOnly = accountMeta.browserOnly === true;
+      const browserFallback = accountMeta.browserFallback === true;
+      let platformPostId: string | undefined;
+      let published = false;
+
+      // --- API publish (skip if browserOnly or no token) ---
+      if (!browserOnly && account.accessToken) {
+        try {
+          switch (account.platform) {
+            case SocialPlatform.FACEBOOK: {
+              const result = await meta.publishToFacebook(
+                account.accessToken,
+                account.platformId,
+                content,
+                targetMediaUrls.length ? targetMediaUrls : undefined
+              );
+              platformPostId = result.id;
+              break;
+            }
+            case SocialPlatform.INSTAGRAM: {
+              const igAccountId = accountMeta.instagramAccountId || account.platformId;
+              const result = await meta.publishToInstagram(
+                account.accessToken,
+                igAccountId,
+                content,
+                targetMediaUrls,
+                post.postType
+              );
+              platformPostId = result.id;
+              break;
+            }
+            case SocialPlatform.LINKEDIN: {
+              const isOrg = (account.metadata as any)?.isOrganization === true;
+              const authorUrn = isOrg
+                ? `urn:li:organization:${account.platformId}`
+                : `urn:li:person:${account.platformId}`;
+              const result = await linkedin.publishToLinkedIn(
+                account.accessToken,
+                authorUrn,
+                content,
+                targetMediaUrls.length ? targetMediaUrls : undefined
+              );
+              platformPostId = result.id;
+              break;
+            }
+            case SocialPlatform.TIKTOK: {
+              if (!targetMediaUrls.length) throw new Error('TikTok requires a video');
+              const videoBuffer = await downloadFromR2(targetMediaUrls[0]);
+              const result = await tiktok.publishToTikTok(
+                account.accessToken,
+                videoBuffer,
+                content
+              );
+              platformPostId = result.id;
+              break;
+            }
+            default:
+              throw new Error(`Unsupported platform: ${account.platform}`);
+          }
+          published = true;
+        } catch (apiErr: any) {
+          if (!browserFallback) throw apiErr;
+          console.log(`[publisher] API failed for ${account.platform}, falling back to browser: ${apiErr.message}`);
+        }
+      }
+
+      // --- Browser fallback (or browserOnly, or no token) ---
+      if (!published && (browserOnly || browserFallback || !account.accessToken)) {
+        if (!targetMediaUrls.length) throw new Error('Browser publish requires at least one media file');
+
+        // Download ALL media files to temp files (carousel = multiple images)
+        const tmpFiles: string[] = [];
+        for (const url of targetMediaUrls) {
+          const ext = path.extname(url).split('?')[0] || '.png';
+          const tmpFile = path.join(os.tmpdir(), `browser-pub-${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`);
+          const buffer = await downloadFromR2(url);
+          await fs.writeFile(tmpFile, buffer);
+          tmpFiles.push(tmpFile);
+        }
+
+        try {
+          let result: { ok: boolean; error?: string };
+          switch (account.platform) {
+            case SocialPlatform.TIKTOK:
+              result = await uploadToTikTok(account.id, tmpFiles[0], content);
+              break;
+            case SocialPlatform.INSTAGRAM:
+              result = await uploadToInstagram(account.id, tmpFiles, content);
+              break;
+            default:
+              throw new Error(`Browser publish not supported for ${account.platform}`);
+          }
+          if (!result.ok) throw new Error(result.error || 'Browser publish failed');
+          platformPostId = `browser-${Date.now()}`;
+          published = true;
+        } finally {
+          for (const f of tmpFiles) await fs.unlink(f).catch(() => {});
+        }
+      }
+
+      if (!published) throw new Error('No publish method succeeded');
+
+      await prisma.socialPostTarget.update({
+        where: { id: target.id },
+        data: { status: 'PUBLISHED', platformPostId, publishedAt: new Date() },
+      });
+
+      await prisma.publishLog.create({
+        data: {
+          postId,
+          socialAccountId: account.id,
+          action: 'SUCCESS',
+          message: `Published as ${platformPostId}`,
+        },
+      });
+    } catch (err: any) {
+      allSuccess = false;
+      await prisma.socialPostTarget.update({
+        where: { id: target.id },
+        data: { status: 'FAILED', errorMessage: err.message },
+      });
+      await prisma.publishLog.create({
+        data: {
+          postId,
+          socialAccountId: account.id,
+          action: 'FAIL',
+          message: err.message,
+        },
+      });
+    }
+  }
+
+  // Update post status
+  await prisma.socialPost.update({
+    where: { id: postId },
+    data: {
+      status: allSuccess ? 'PUBLISHED' : 'FAILED',
+      publishedAt: allSuccess ? new Date() : undefined,
+    },
+  });
+
+  // Update linked idea status to "Pubblicato"
+  if (allSuccess) {
+    try {
+      const linkedIdea = await prisma.socialPost.findFirst({
+        where: { promotedToId: postId, stage: 'IDEA' },
+      });
+      if (linkedIdea) {
+        await prisma.socialPost.update({
+          where: { id: linkedIdea.id },
+          data: { ideaStatus: 'Pubblicato' },
+        });
+      }
+    } catch (_) { /* best-effort */ }
+  }
+
+  // Enqueue metrics collection at 24h, 48h, 7d — only for API-published posts
+  if (allSuccess) {
+    try {
+      const { postMetricsQueue } = await import('../../queues');
+      const delays = [
+        { checkpoint: '24h', delay: 24 * 3600_000 },
+        { checkpoint: '48h', delay: 48 * 3600_000 },
+        { checkpoint: '7d', delay: 7 * 24 * 3600_000 },
+      ];
+      for (const { checkpoint, delay } of delays) {
+        await postMetricsQueue.add('collect', { postId, checkpoint }, {
+          delay,
+          jobId: `metrics-${postId}-${checkpoint}`,
+        });
+      }
+    } catch (err: any) {
+      console.error(`[publisher] Failed to enqueue metrics for post ${postId}:`, err.message);
+    }
+  }
+}
+
+// --- Video uniquification helper ---
+
+const VIDEO_EXTS = new Set(['.mp4', '.mov', '.webm', '.avi', '.mkv']);
+
+async function uniquifyMediaUrls(urls: string[], contactId: number): Promise<string[]> {
+  const result: string[] = [];
+  for (const url of urls) {
+    const ext = path.extname(url).split('?')[0].toLowerCase();
+    if (!VIDEO_EXTS.has(ext)) {
+      result.push(url);
+      continue;
+    }
+    try {
+      const tmpIn = path.join(os.tmpdir(), `uniq-in-${Date.now()}${ext}`);
+      const tmpOut = path.join(os.tmpdir(), `uniq-out-${Date.now()}${ext}`);
+      const buffer = await downloadFromR2(url);
+      await fs.writeFile(tmpIn, buffer);
+      await uniquifyVideo(tmpIn, tmpOut);
+      const outBuffer = await fs.readFile(tmpOut);
+      const { url: newUrl } = await uploadToR2(outBuffer, contactId, `uniquified${ext}`, 'video/mp4', 'uniquified');
+      result.push(newUrl);
+      // Cleanup temp files
+      await fs.unlink(tmpIn).catch(() => {});
+      await fs.unlink(tmpOut).catch(() => {});
+      console.log(`[publisher] Uniquified video: ${url} -> ${newUrl}`);
+    } catch (err: any) {
+      console.error(`[publisher] Uniquification failed for ${url}, using original:`, err.message);
+      result.push(url);
+    }
+  }
+  return result;
+}

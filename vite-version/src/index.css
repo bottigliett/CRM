@@ -172,3 +172,37 @@ html {
 .animate-logo-scroll:hover {
   animation-play-state: paused;
 }
+
+/* === AI Mismo — animated gradient === */
+@keyframes ai-shimmer {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+.ai-gradient {
+  background: linear-gradient(120deg, #7c3aed, #d946ef, #6366f1, #7c3aed);
+  background-size: 300% 300%;
+  animation: ai-shimmer 5s ease infinite;
+}
+.ai-gradient-text {
+  background: linear-gradient(120deg, #7c3aed, #d946ef, #6366f1);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.ai-glow {
+  box-shadow: 0 0 0 1px rgba(217, 70, 239, 0.25), 0 8px 24px -8px rgba(217, 70, 239, 0.5);
+}
+.ai-glow:hover {
+  box-shadow: 0 0 0 1px rgba(217, 70, 239, 0.4), 0 12px 32px -8px rgba(217, 70, 239, 0.65);
+}
+
+/* AI Mismo — animated gradient border (outline) */
+.ai-border {
+  border: 2px solid transparent;
+  background:
+    linear-gradient(var(--background), var(--background)) padding-box,
+    linear-gradient(120deg, #7c3aed, #d946ef, #6366f1, #7c3aed) border-box;
+  background-size: 100% 100%, 300% 300%;
+  animation: ai-shimmer 5s ease infinite;
+}

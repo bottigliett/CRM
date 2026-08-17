@@ -34,6 +34,25 @@ const ProjectDetail = lazy(() => import('@/app/projects/[id]/page'))
 // On Duty page
 const OnDuty = lazy(() => import('@/app/on-duty/page'))
 
+// Social Media pages
+const SocialDashboard = lazy(() => import('@/app/social/page'))
+const SocialClientHub = lazy(() => import('@/app/social/[contactId]/page'))
+const SocialPostDetail = lazy(() => import('@/app/social/[contactId]/posts/[postId]/page'))
+const SocialCompose = lazy(() => import('@/app/social/[contactId]/compose/page'))
+const SocialPlan = lazy(() => import('@/app/social/[contactId]/plan/page'))
+
+// Social Media general pages (cross-client)
+const SocialGeneralCalendar = lazy(() => import('@/app/social/calendar/page'))
+const SocialGeneralPosts = lazy(() => import('@/app/social/posts/page'))
+const SocialGeneralAnalytics = lazy(() => import('@/app/social/analytics/page'))
+const SocialGeneralReports = lazy(() => import('@/app/social/reports/page'))
+const SocialAuthAdmin = lazy(() => import('@/app/social/auth/page'))
+const SocialAiSettings = lazy(() => import('@/app/social/settings/page'))
+const SocialNotionImport = lazy(() => import('@/app/social/notion-import/page'))
+
+// Client portal
+const ClientSocialPortal = lazy(() => import('@/app/client/social/page'))
+
 // Auth pages
 const SignIn = lazy(() => import('@/app/auth/sign-in/page'))
 const SignIn2 = lazy(() => import('@/app/auth/sign-in-2/page'))
@@ -177,6 +196,56 @@ export const routes: RouteConfig[] = [
     element: <ProtectedRoute><ModuleProtectedRoute moduleName="on_duty"><OnDuty /></ModuleProtectedRoute></ProtectedRoute>
   },
 
+  // Social Media Routes
+  {
+    path: "/social",
+    element: <ProtectedRoute><ModuleProtectedRoute moduleName="social_media"><SocialDashboard /></ModuleProtectedRoute></ProtectedRoute>
+  },
+  {
+    path: "/social/calendar",
+    element: <ProtectedRoute><ModuleProtectedRoute moduleName="social_media"><SocialGeneralCalendar /></ModuleProtectedRoute></ProtectedRoute>
+  },
+  {
+    path: "/social/posts",
+    element: <ProtectedRoute><ModuleProtectedRoute moduleName="social_media"><SocialGeneralPosts /></ModuleProtectedRoute></ProtectedRoute>
+  },
+  {
+    path: "/social/analytics",
+    element: <ProtectedRoute><ModuleProtectedRoute moduleName="social_media"><SocialGeneralAnalytics /></ModuleProtectedRoute></ProtectedRoute>
+  },
+  {
+    path: "/social/reports",
+    element: <ProtectedRoute><ModuleProtectedRoute moduleName="social_media"><SocialGeneralReports /></ModuleProtectedRoute></ProtectedRoute>
+  },
+  {
+    path: "/social/auth",
+    element: <ProtectedRoute><ModuleProtectedRoute moduleName="social_media"><SocialAuthAdmin /></ModuleProtectedRoute></ProtectedRoute>
+  },
+  {
+    path: "/social/settings",
+    element: <ProtectedRoute><ModuleProtectedRoute moduleName="social_media"><SocialAiSettings /></ModuleProtectedRoute></ProtectedRoute>
+  },
+  {
+    path: "/social/notion-import",
+    element: <ProtectedRoute><ModuleProtectedRoute moduleName="social_media"><SocialNotionImport /></ModuleProtectedRoute></ProtectedRoute>
+  },
+  {
+    path: "/social/:contactId",
+    element: <ProtectedRoute><ModuleProtectedRoute moduleName="social_media"><SocialClientHub /></ModuleProtectedRoute></ProtectedRoute>
+  },
+  {
+    path: "/social/:contactId/compose",
+    element: <ProtectedRoute><ModuleProtectedRoute moduleName="social_media"><SocialCompose /></ModuleProtectedRoute></ProtectedRoute>
+  },
+  {
+    path: "/social/:contactId/plan",
+    element: <ProtectedRoute><ModuleProtectedRoute moduleName="social_media"><SocialPlan /></ModuleProtectedRoute></ProtectedRoute>
+  },
+  {
+    path: "/social/:contactId/posts/:postId",
+    element: <ProtectedRoute><ModuleProtectedRoute moduleName="social_media"><SocialPostDetail /></ModuleProtectedRoute></ProtectedRoute>
+  },
+
   // Amministrazione (Users page remains SUPER_ADMIN only - no module permission)
   {
     path: "/users",
@@ -239,6 +308,10 @@ export const routes: RouteConfig[] = [
   {
     path: "/client/login",
     element: <ClientLogin />
+  },
+  {
+    path: "/client/social",
+    element: <ClientSocialPortal />
   },
 
   // Client Routes (Protected)
