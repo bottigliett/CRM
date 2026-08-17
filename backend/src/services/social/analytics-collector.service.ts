@@ -243,8 +243,29 @@ export async function collectRecentPostMetrics(): Promise<{ success: number; fai
         },
       });
       success++;
-    } catch (err) {
-      console.error(`[post-metrics-batch] Failed for target ${target.id}:`, err);
+    } catch (err: any) {
+      const msg = String(err?.message || '');
+      // Detect posts removed/archived directly on the platform (Meta returns a
+      // "not found"-style error) and reflect it in Mismo instead of keeping PUBLISHED.
+      const isRemoved = /does not exist|not exist|invalid media|media id|object with id|unsupported get request|alias.*not exist/i.test(msg);
+      if (isRemoved && account.platform === SocialPlatform.INSTAGRAM) {
+        await prisma.socialPostTarget.update({
+          where: { id: target.id },
+          data: { status: 'ARCHIVED', errorMessage: 'Rimosso su Instagram' },
+        });
+        const remaining = await prisma.socialPostTarget.count({
+          where: { postId: target.postId, status: { not: 'ARCHIVED' } },
+        });
+        if (remaining === 0) {
+          await prisma.socialPost.update({
+            where: { id: target.postId },
+            data: { status: 'ARCHIVED' },
+          });
+        }
+        console.log(`[post-metrics-batch] Post ${target.postId} marcato ARCHIVED (rimosso su Instagram)`);
+      } else {
+        console.error(`[post-metrics-batch] Failed for target ${target.id}:`, err);
+      }
       failed++;
     }
   }
