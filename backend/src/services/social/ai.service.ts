@@ -350,7 +350,7 @@ function knowledgeHint(aiData: any): string {
   const lines: string[] = [];
   if (aiData.tone) lines.push(`- Tono di voce emerso dai contenuti: ${aiData.tone}`);
   if (aiData.summary) lines.push(`- Riepilogo dei contenuti esistenti: ${aiData.summary}`);
-  if (Array.isArray(aiData.themes) && aiData.themes.length) lines.push(`- Temi/argomenti ricorrenti: ${aiData.themes.join(', ')}`);
+  if (Array.isArray(aiData.themes) && aiData.themes.length) lines.push(`- Temi GIÀ TRATTATI nei post esistenti (NON generare altri contenuti su questi argomenti): ${aiData.themes.join(', ')}`);
   if (Array.isArray(aiData.actors) && aiData.actors.length) lines.push(`- Persone/protagonisti citati: ${aiData.actors.join(', ')}`);
   if (Array.isArray(aiData.trends) && aiData.trends.length) lines.push(`- Tendenze di contenuto: ${aiData.trends.join(', ')}`);
   if (Array.isArray(aiData.bestTimes) && aiData.bestTimes.length) lines.push(`- Orari di pubblicazione migliori (dai dati reali): ${aiData.bestTimes.map((b: any) => `${b.hour}:00`).join(', ')}`);
@@ -390,11 +390,14 @@ export async function generateContentIdeas(contactId: number, count = 5, answers
   const system = 'Sei un social media manager senior per un\'agenzia immobiliare. Rispondi SOLO con JSON valido.';
 
   // Helper: is a candidate too similar to existing content or already-chosen ideas?
-  // Stricter than before: catch near-duplicates (rewordings) too, not just exact matches.
-  const isDup = (candidate: string, chosen: IdeaSuggestion[]) =>
-    existingTexts.some(t => textSimilarity(candidate, t) >= 0.40)
-    || existingCaptions.some(t => textSimilarity(candidate, t) >= 0.55)
-    || chosen.some(c => textSimilarity(candidate, c.content) >= 0.5);
+  // Checks BOTH the title and the caption (the actual "content"), so a new title
+  // with a caption that recycles an existing theme is also rejected.
+  const isDup = (title: string, caption: string, chosen: IdeaSuggestion[]) =>
+    existingTexts.some(t => textSimilarity(title, t) >= 0.40)
+    || existingCaptions.some(t => textSimilarity(title, t) >= 0.55)
+    || (caption && existingCaptions.some(t => textSimilarity(caption, t) >= 0.45))
+    || (caption && existingTexts.some(t => textSimilarity(caption, t) >= 0.55))
+    || chosen.some(c => textSimilarity(title, c.content) >= 0.5);
 
   const chosen: IdeaSuggestion[] = [];
   const avoidList = new Set<string>(existingTexts.slice(0, 150));
@@ -414,7 +417,7 @@ ${answers ? `- Indicazioni specifiche fornite dall'utente (risposte alle tue dom
 - Contenuti ESISTENTI da NON ripetere (titoli simili a questi sono vietati): ${[...avoidList].slice(0, 150).join(' | ') || 'nessuno'}
 ${feedbackHint(feedback.liked, feedback.disliked)}
 
-IMPORTANTE: genera SOLO argomenti NUOVI e DIVERSI da quelli elencati e dai temi già trattati nella conoscenza. Non riformulare titoli esistenti e non ripetere lo stesso concetto con parole diverse: parti da un angolo nuovo, mantenendo tono e stile del cliente.
+ANTIDUPLICATI (obbligatorio): NON proporre un argomento che sia già nell'elenco "Temi GIÀ TRATTATI" o nei "Contenuti ESISTENTI", e non riformularli con parole diverse. Scegli un ANGOLO NUOVO, non ancora coperto, ma SEMPRE pertinente al settore del cliente. Mantieni tono e stile, cambia argomento.
 
 Rispondi con JSON:
 {"ideas":[{"content":"titolo idea","postType":"POST|REEL|CAROUSEL|STORY","caption":"caption completa con emoji","hashtags":["#a","#b"]}]}`;
@@ -431,7 +434,8 @@ Rispondi con JSON:
     for (const idea of parsed.ideas || []) {
       const title = (idea?.content || idea?.title || '').trim();
       if (!title) continue;
-      if (isDup(title, chosen)) {
+      const caption = (idea?.caption || '').trim();
+      if (isDup(title, caption, chosen)) {
         avoidList.add(title); // tell the AI to avoid it next round
         continue;
       }
@@ -526,7 +530,7 @@ ${instructions ? `- INDICAZIONI FISSE dell'utente (segui SEMPRE queste regole):\
 ${answers ? `- Indicazioni specifiche fornite dall'utente: ${answers}` : ''}
 - Contenuti ESISTENTI da NON ripetere (vietati): ${[...avoidList].slice(0, 150).join(' | ') || 'nessuno'}
 
-IMPORTANTE: genera SOLO argomenti NUOVI e DIVERSI da quelli elencati e dai temi già trattati nella conoscenza. Non riformulare titoli esistenti e non ripetere lo stesso concetto con parole diverse: parti da un angolo nuovo, mantenendo tono e stile del cliente.
+ANTIDUPLICATI (obbligatorio): NON proporre un argomento che sia già nell'elenco "Temi GIÀ TRATTATI" o nei "Contenuti ESISTENTI", e non riformularli con parole diverse. Scegli un ANGOLO NUOVO, non ancora coperto, ma SEMPRE pertinente al settore del cliente. Mantieni tono e stile, cambia argomento.
 
 Rispondi con JSON:
 {"items":[{"date":"2026-08-20","content":"titolo","caption":"didascalia","hashtags":["#a"],"postType":"POST|REEL|CAROUSEL|STORY"${isCalendar ? '' : ',"note":"concept e location'}]}`;
@@ -543,7 +547,9 @@ Rispondi con JSON:
     for (const it of parsed.items || []) {
       const title = (it?.content || it?.title || '').trim();
       if (!title) continue;
+      const caption = (it?.caption || '').trim();
       if (existingTexts.some(t => textSimilarity(title, t) >= 0.40)) { avoidList.add(title); continue; }
+      if (caption && existingTexts.some(t => textSimilarity(caption, t) >= 0.55)) { avoidList.add(title); continue; }
       if ([...seen].some(s => textSimilarity(title, s) >= 0.5)) { avoidList.add(title); continue; }
       seen.add(title);
       avoidList.add(title);

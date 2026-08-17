@@ -728,9 +728,10 @@ function IdeaFormDialog({ open, onOpenChange, data, setData, onSubmit, creating,
   const [aiHashtagsLoading, setAiHashtagsLoading] = useState(false)
   const [checkingSubmit, setCheckingSubmit] = useState(false)
 
-  // Live duplicate check (debounced) while typing title / caption / script
+  // Live duplicate check (debounced) while typing — compares the TITLE only
+  // (mixing caption/script into the blob caused false positives against titles).
   useEffect(() => {
-    const text = `${data.content || ""} ${data.ideaCaption || ""} ${data.ideaScript || ""}`.trim()
+    const text = (data.content || "").trim()
     if (text.length < 3) { setDuplicateWarning(null); return }
     const t = setTimeout(async () => {
       try {
@@ -739,7 +740,7 @@ function IdeaFormDialog({ open, onOpenChange, data, setData, onSubmit, creating,
       } catch { /* keep previous warning on transient error */ }
     }, 500)
     return () => clearTimeout(t)
-  }, [data.content, data.ideaCaption, data.ideaScript, cid])
+  }, [data.content, cid])
 
   const handleAiHashtags = async () => {
     const base = data.ideaCaption?.replace(/#[\w\u00C0-\u024F]+/g, "").trim() || data.content
@@ -758,7 +759,7 @@ function IdeaFormDialog({ open, onOpenChange, data, setData, onSubmit, creating,
   // Always re-check fresh on submit so a duplicate is caught even if the user
   // clicked "Crea Idea" before the debounced live check had finished.
   const handleSubmitWithCheck = async () => {
-    const text = `${data.content || ""} ${data.ideaCaption || ""} ${data.ideaScript || ""}`.trim()
+    const text = (data.content || "").trim()
     if (text.length < 3) { onSubmit(); return }
     setCheckingSubmit(true)
     try {
