@@ -103,7 +103,7 @@ export const getDashboard = async (req: Request, res: Response) => {
       _count: { id: true },
     });
 
-    const accountContactIds = accountsByContact.map(a => a.contactId);
+    const accountContactIds = accountsByContact.map(a => a.contactId).filter((id): id is number => id !== null);
 
     // Get contacts with SocialClientConfig but no accounts (registered via registerSocialClient)
     const configOnly = await prisma.socialClientConfig.findMany({

@@ -8,7 +8,7 @@ import { SocialPlatform } from '@prisma/client';
 
 // In-memory state store for OAuth CSRF protection
 // ponytail: in-memory map, move to Redis if multi-instance
-const oauthStates = new Map<string, { contactId: number; platform: SocialPlatform; expiresAt: number }>();
+const oauthStates = new Map<string, { contactId: number | null; platform: SocialPlatform; expiresAt: number }>();
 
 // Cleanup expired states every 10 minutes
 setInterval(() => {
@@ -25,20 +25,20 @@ setInterval(() => {
 export const startOAuth = async (req: Request, res: Response) => {
   try {
     const platform = req.params.platform?.toUpperCase() as SocialPlatform;
-    const contactId = parseInt(req.query.contactId as string);
-
-    if (!contactId || isNaN(contactId)) {
-      return res.status(400).json({ success: false, message: 'contactId richiesto' });
-    }
+    // Optional contactId: when absent the connection is GLOBAL (accounts go to the
+    // "unassigned" pool and can later be assigned to clients one by one).
+    const rawContactId = req.query.contactId ? parseInt(req.query.contactId as string) : null;
+    const contactId = rawContactId && !isNaN(rawContactId) ? rawContactId : null;
 
     if (!Object.values(SocialPlatform).includes(platform)) {
       return res.status(400).json({ success: false, message: 'Piattaforma non supportata' });
     }
 
-    // Verify contact exists
-    const contact = await prisma.contact.findUnique({ where: { id: contactId } });
-    if (!contact) {
-      return res.status(404).json({ success: false, message: 'Contatto non trovato' });
+    if (contactId) {
+      const contact = await prisma.contact.findUnique({ where: { id: contactId } });
+      if (!contact) {
+        return res.status(404).json({ success: false, message: 'Contatto non trovato' });
+      }
     }
 
     const state = crypto.randomBytes(16).toString('hex');
@@ -94,6 +94,7 @@ export const handleOAuthCallback = async (req: Request, res: Response) => {
     oauthStates.delete(state as string);
 
     const { contactId } = stateData;
+    const accountsRedirectUrl = contactId ? `/social/${contactId}/accounts` : '/social/accounts';
 
     // Helper: upsert a single social account
     const upsertAccount = async (data: {
@@ -138,7 +139,7 @@ export const handleOAuthCallback = async (req: Request, res: Response) => {
       const tokens = await meta.exchangeMetaCode(code as string, platform);
       const pages = await meta.getMetaPages(tokens.accessToken);
       if (!pages.length) {
-        return res.redirect(`${frontendUrl}/social/${contactId}/accounts?error=no_pages`);
+        return res.redirect(`${frontendUrl}${accountsRedirectUrl}?error=no_pages`);
       }
 
       let connected = 0;
@@ -164,7 +165,7 @@ export const handleOAuthCallback = async (req: Request, res: Response) => {
           connected++;
         }
       }
-      return res.redirect(`${frontendUrl}/social/${contactId}/accounts?success=true&platform=${platform.toLowerCase()}&count=${connected}`);
+      return res.redirect(`${frontendUrl}${accountsRedirectUrl}?success=true&platform=${platform.toLowerCase()}&count=${connected}`);
     }
 
     // LinkedIn: import the user's managed organization pages (like Meta imports pages).
@@ -189,7 +190,7 @@ export const handleOAuthCallback = async (req: Request, res: Response) => {
           });
           connected++;
         }
-        return res.redirect(`${frontendUrl}/social/${contactId}/accounts?success=true&platform=linkedin&count=${connected}`);
+        return res.redirect(`${frontendUrl}${accountsRedirectUrl}?success=true&platform=linkedin&count=${connected}`);
       }
 
       // Fallback: personal profile
@@ -204,7 +205,7 @@ export const handleOAuthCallback = async (req: Request, res: Response) => {
         profilePicUrl: profile.profilePicUrl,
         metadata: { isOrganization: false },
       });
-      return res.redirect(`${frontendUrl}/social/${contactId}/accounts?success=true&platform=linkedin&count=1`);
+      return res.redirect(`${frontendUrl}${accountsRedirectUrl}?success=true&platform=linkedin&count=1`);
     }
 
     // TikTok: single account
@@ -220,7 +221,7 @@ export const handleOAuthCallback = async (req: Request, res: Response) => {
         expiresIn: tokens.expiresIn,
         profilePicUrl: profile.profilePicUrl,
       });
-      return res.redirect(`${frontendUrl}/social/${contactId}/accounts?success=true&platform=tiktok`);
+      return res.redirect(`${frontendUrl}${accountsRedirectUrl}?success=true&platform=tiktok`);
     }
 
     return res.redirect(`${frontendUrl}/social?error=unsupported_platform`);

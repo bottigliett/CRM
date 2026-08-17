@@ -64,10 +64,11 @@ export const getAnalyticsOverview = async (req: Request, res: Response) => {
       const p = byPlatformMap[acc.platform];
       p.followers += e.followers; p.growth += e.growth; p.reach += e.reach; p.engagement += e.engagement; p.impressions += e.impressions; p.accountCount += 1;
 
-      if (!byClientMap[acc.contactId]) {
-        byClientMap[acc.contactId] = { contactId: acc.contactId, name: acc.contact?.name || `#${acc.contactId}`, followers: 0, growth: 0, reach: 0, engagement: 0, impressions: 0, accounts: [] };
+      const clientKey = acc.contactId ?? 0;
+      if (!byClientMap[clientKey]) {
+        byClientMap[clientKey] = { contactId: acc.contactId, name: acc.contact?.name || (acc.contactId ? `#${acc.contactId}` : 'Non assegnato'), followers: 0, growth: 0, reach: 0, engagement: 0, impressions: 0, accounts: [] };
       }
-      const c = byClientMap[acc.contactId];
+      const c = byClientMap[clientKey];
       c.followers += e.followers; c.growth += e.growth; c.reach += e.reach; c.engagement += e.engagement; c.impressions += e.impressions;
       c.accounts.push({ id: acc.id, platform: acc.platform, platformName: acc.platformName });
     }

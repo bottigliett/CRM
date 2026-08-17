@@ -49,6 +49,7 @@ const SocialGeneralReports = lazy(() => import('@/app/social/reports/page'))
 const SocialAuthAdmin = lazy(() => import('@/app/social/auth/page'))
 const SocialAiSettings = lazy(() => import('@/app/social/settings/page'))
 const SocialNotionImport = lazy(() => import('@/app/social/notion-import/page'))
+const SocialAccounts = lazy(() => import('@/app/social/accounts/page'))
 
 // Client portal
 const ClientSocialPortal = lazy(() => import('@/app/client/social/page'))
@@ -228,6 +229,10 @@ export const routes: RouteConfig[] = [
   {
     path: "/social/notion-import",
     element: <ProtectedRoute><ModuleProtectedRoute moduleName="social_media"><SocialNotionImport /></ModuleProtectedRoute></ProtectedRoute>
+  },
+  {
+    path: "/social/accounts",
+    element: <ProtectedRoute><ModuleProtectedRoute moduleName="social_media"><SocialAccounts /></ModuleProtectedRoute></ProtectedRoute>
   },
   {
     path: "/social/:contactId",

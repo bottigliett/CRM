@@ -221,7 +221,7 @@ const tokenRefreshWorker = new Worker('social-token-refresh', async () => {
           type: 'SYSTEM',
           title: 'Token social in scadenza',
           message: `Il token ${account.platform} per ${account.platformName} non è stato rinnovato: ${err.message}`,
-          link: `/social/${account.contactId}/accounts`,
+          link: account.contactId ? `/social/${account.contactId}/accounts` : '/social/accounts',
         },
       });
     }
@@ -346,7 +346,7 @@ sessionHealthWorker.on('failed', (job, err) => {
 });
 
 async function createSessionAlert(
-  account: { id: number; platform: string; platformName: string; contactId: number; contact?: { name: string } | null },
+  account: { id: number; platform: string; platformName: string; contactId: number | null; contact?: { name: string } | null },
   type: string,
   message: string
 ) {
@@ -357,8 +357,8 @@ async function createSessionAlert(
       userId: 1,
       type: 'SYSTEM',
       title: `Sessione Social: ${account.platformName}`,
-      message: `${message} — Cliente: ${account.contact?.name || account.contactId}`,
-      link: `/social/${account.contactId}?tab=accounts`,
+      message: `${message} — Cliente: ${account.contact?.name || account.contactId || 'Non assegnato'}`,
+      link: account.contactId ? `/social/${account.contactId}?tab=accounts` : '/social/accounts',
     },
   });
 }

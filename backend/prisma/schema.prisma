@@ -1549,7 +1549,7 @@ enum AnnouncementType {
 
 model SocialAccount {
   id             Int            @id @default(autoincrement())
-  contactId      Int            @map("contact_id")
+  contactId      Int?           @map("contact_id")
   platform       SocialPlatform
   platformId     String         @map("platform_id")
   platformName   String         @map("platform_name")
@@ -1564,7 +1564,7 @@ model SocialAccount {
   createdAt      DateTime       @default(now()) @map("created_at")
   updatedAt      DateTime       @updatedAt @map("updated_at")
 
-  contact     Contact                @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  contact     Contact?               @relation(fields: [contactId], references: [id], onDelete: SetNull)
   targets     SocialPostTarget[]
   analytics   SocialAnalyticsDaily[]
   publishLogs PublishLog[]

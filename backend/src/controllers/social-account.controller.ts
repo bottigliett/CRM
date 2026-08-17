@@ -145,8 +145,9 @@ export const updateAccount = async (req: Request, res: Response) => {
 export const moveAccount = async (req: Request, res: Response) => {
   try {
     const id = parseInt(req.params.id);
-    const contactId = parseInt(req.body.contactId);
-    if (!id || isNaN(contactId)) return res.status(400).json({ success: false, message: 'id e contactId richiesti' });
+    // contactId can be null to unassign the account back to the global pool
+    const contactId = req.body.contactId ? parseInt(req.body.contactId) : null;
+    if (!id) return res.status(400).json({ success: false, message: 'id richiesto' });
 
     const account = await prisma.socialAccount.update({ where: { id }, data: { contactId } });
     return res.json({ success: true, data: account });

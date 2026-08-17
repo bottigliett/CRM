@@ -139,6 +139,7 @@ const allNavGroups: NavGroup[] = [
         moduleName: "social_media",
         items: [
           { title: "Dashboard", url: "/social" },
+          { title: "Account", url: "/social/accounts" },
           { title: "Calendario", url: "/social/calendar" },
           { title: "Post", url: "/social/posts" },
           { title: "Analytics", url: "/social/analytics" },

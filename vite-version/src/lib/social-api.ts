@@ -42,8 +42,8 @@ export const socialAPI = {
   getAccounts: (contactId?: number) =>
     request(`/social/accounts${contactId ? `?contactId=${contactId}` : ''}`),
 
-  startOAuth: (platform: string, contactId: number) =>
-    request(`/social/auth/${platform}?contactId=${contactId}`),
+  startOAuth: (platform: string, contactId?: number) =>
+    request(`/social/auth/${platform}${contactId ? `?contactId=${contactId}` : ''}`),
 
   disconnectAccount: (id: number) =>
     request(`/social/accounts/${id}`, { method: 'DELETE' }),
@@ -51,7 +51,7 @@ export const socialAPI = {
   updateAccountMetadata: (id: number, metadata: Record<string, any>) =>
     request(`/social/accounts/${id}`, { method: 'PATCH', body: JSON.stringify({ metadata }) }),
 
-  moveAccount: (id: number, contactId: number) =>
+  moveAccount: (id: number, contactId: number | null) =>
     request(`/social/accounts/${id}/move`, { method: 'POST', body: JSON.stringify({ contactId }) }),
 
   refreshToken: (id: number) =>
