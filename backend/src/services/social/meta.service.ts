@@ -22,8 +22,8 @@ async function fetchAuthed(url: string, token: string, init?: RequestInit): Prom
 
 export function getMetaAuthUrl(platform: 'INSTAGRAM' | 'FACEBOOK', state: string): string {
   const scopes = platform === 'INSTAGRAM'
-    ? 'instagram_basic,instagram_content_publish,pages_show_list,pages_read_engagement'
-    : 'pages_show_list,pages_read_engagement,pages_manage_posts,pages_read_user_content,read_insights';
+    ? 'instagram_basic,instagram_content_publish,pages_show_list,pages_read_engagement,business_management'
+    : 'pages_show_list,pages_read_engagement,pages_manage_posts,pages_read_user_content,read_insights,business_management';
 
   const redirectUri = `${REDIRECT_BASE()}/${platform.toLowerCase()}/callback`;
 
@@ -56,15 +56,40 @@ export async function getMetaPages(accessToken: string): Promise<Array<{
   accessToken: string;
   instagramAccountId?: string;
 }>> {
-  const data = await fetchAuthed(`${GRAPH_API_BASE}/me/accounts?fields=id,name,access_token,instagram_business_account`, accessToken);
+  const data = await fetchAuthed(`${GRAPH_API_BASE}/me/accounts?fields=id,name,access_token,instagram_business_account&limit=200`, accessToken);
   if (data.error) throw new Error(data.error.message);
 
-  return (data.data || []).map((page: any) => ({
-    id: page.id,
-    name: page.name,
-    accessToken: page.access_token,
-    instagramAccountId: page.instagram_business_account?.id,
-  }));
+  const pages = new Map<string, { id: string; name: string; accessToken: string; instagramAccountId?: string }>();
+  const addPage = (page: any) => {
+    if (!page?.id) return;
+    if (!pages.has(page.id)) {
+      pages.set(page.id, {
+        id: page.id,
+        name: page.name || page.id,
+        accessToken: page.access_token,
+        instagramAccountId: page.instagram_business_account?.id,
+      });
+    }
+  };
+
+  (data.data || []).forEach(addPage);
+
+  // Business Manager: fetch pages owned/client by the businesses the user manages.
+  // /me/accounts only returns pages where the user is a DIRECT admin; pages managed
+  // through a Business Manager are exposed via /me/businesses.
+  try {
+    const businesses = await fetchAuthed(`${GRAPH_API_BASE}/me/businesses?fields=id,name&limit=200`, accessToken);
+    for (const b of businesses.data || []) {
+      for (const rel of ['owned_pages', 'client_pages']) {
+        try {
+          const bp = await fetchAuthed(`${GRAPH_API_BASE}/${b.id}/${rel}?fields=id,name,access_token,instagram_business_account&limit=200`, accessToken);
+          (bp.data || []).forEach(addPage);
+        } catch { /* best effort per relation */ }
+      }
+    }
+  } catch { /* business_management may not be granted; keep direct pages */ }
+
+  return [...pages.values()];
 }
 
 /** Fetch username + profile picture for an Instagram business account. */
