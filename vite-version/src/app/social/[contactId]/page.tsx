@@ -192,6 +192,10 @@ export default function SocialClientHub() {
   const cedView = (searchParams.get("view") || "calendar") as "table" | "calendar"
   const focusPostId = searchParams.get("focus") ? parseInt(searchParams.get("focus")!) : null
   const focusMonth = searchParams.get("month") || null
+  // CED split by status: "Da fare"/"Idea" restano in Idee; "Programmato"/"Pubblicato"
+  // vanno nel calendario "Pubblicazione" (pronti per uscire).
+  const draftIdeas = useMemo(() => ideas.filter(i => !["Programmato", "Pubblicato"].includes(i.ideaStatus)), [ideas])
+  const readyIdeas = useMemo(() => ideas.filter(i => ["Programmato", "Pubblicato"].includes(i.ideaStatus)), [ideas])
   // Transient highlight: lasts a few seconds, then clears itself and the URL params
   const [highlightPostId, setHighlightPostId] = useState<number | null>(focusPostId)
   useEffect(() => {
@@ -287,7 +291,7 @@ export default function SocialClientHub() {
                   className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${cedSubTab === "programmazione" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
                   onClick={() => setCedSubTab("programmazione")}
                 >
-                  Programmazione
+                  Pubblicazione
                 </button>
               </div>
               <div className="flex gap-1">
@@ -301,14 +305,24 @@ export default function SocialClientHub() {
             </div>
             {cedSubTab === "idee" ? (
               cedView === "calendar" ? (
-                <CedIdeeCalendar ideas={ideas} cid={cid} onRefresh={fetchData} accounts={accounts} focusPostId={highlightPostId} focusMonth={focusMonth} />
+                <CedIdeeCalendar ideas={draftIdeas} cid={cid} onRefresh={fetchData} accounts={accounts} focusPostId={highlightPostId} focusMonth={focusMonth} />
               ) : (
-                <CedIdeeTable ideas={ideas} cid={cid} onRefresh={fetchData} accounts={accounts} />
+                <CedIdeeTable ideas={draftIdeas} cid={cid} onRefresh={fetchData} accounts={accounts} />
               )
-            ) : cedView === "table" ? (
-              <CedTable posts={posts} cid={cid} navigate={navigate} onRefresh={fetchData} accounts={accounts} />
             ) : (
-              <CedCalendar posts={posts} cid={cid} navigate={navigate} onRefresh={fetchData} accounts={accounts} focusPostId={highlightPostId} focusMonth={focusMonth} />
+              <div className="space-y-6">
+                {cedView === "table" ? (
+                  <CedTable posts={posts} cid={cid} navigate={navigate} onRefresh={fetchData} accounts={accounts} />
+                ) : (
+                  <CedCalendar posts={posts} cid={cid} navigate={navigate} onRefresh={fetchData} accounts={accounts} focusPostId={highlightPostId} focusMonth={focusMonth} />
+                )}
+                <div>
+                  <h3 className="text-sm font-semibold mb-2">Idee pronte (Programmate / Pubblicate)</h3>
+                  {cedView === "calendar"
+                    ? <CedIdeeCalendar ideas={readyIdeas} cid={cid} onRefresh={fetchData} accounts={accounts} />
+                    : <CedIdeeTable ideas={readyIdeas} cid={cid} onRefresh={fetchData} accounts={accounts} />}
+                </div>
+              </div>
             )}
           </TabsContent>
 
