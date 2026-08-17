@@ -22,7 +22,7 @@ async function fetchAuthed(url: string, token: string, init?: RequestInit): Prom
 
 export function getMetaAuthUrl(platform: 'INSTAGRAM' | 'FACEBOOK', state: string): string {
   const scopes = platform === 'INSTAGRAM'
-    ? 'instagram_basic,instagram_content_publish,pages_show_list,pages_read_engagement,business_management'
+    ? 'instagram_basic,instagram_content_publish,instagram_manage_insights,pages_show_list,pages_read_engagement,business_management'
     : 'pages_show_list,pages_read_engagement,pages_manage_posts,pages_read_user_content,read_insights,business_management';
 
   const redirectUri = `${REDIRECT_BASE()}/${platform.toLowerCase()}/callback`;
