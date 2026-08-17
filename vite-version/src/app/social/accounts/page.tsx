@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/select"
 import { Plus, RefreshCw, Unplug, Link2 } from "lucide-react"
 import { socialAPI } from "@/lib/social-api"
+import { contactsAPI } from "@/lib/contacts-api"
 import { toast } from "sonner"
 
 const PLATFORM_BADGE: Record<string, string> = {
@@ -36,7 +37,7 @@ export default function SocialAccountsPage() {
     setLoading(true)
     Promise.all([
       socialAPI.getAccounts(),
-      socialAPI.getDashboard().then(r => r.data.clients || []),
+      contactsAPI.getContacts({ type: 'CLIENT', limit: 500 }).then(r => r.data.contacts || []),
     ])
       .then(([accRes, clientsList]) => {
         setAccounts(accRes.data || [])
