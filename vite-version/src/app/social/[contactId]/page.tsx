@@ -728,6 +728,19 @@ function IdeaFormDialog({ open, onOpenChange, data, setData, onSubmit, creating,
   const [aiHashtagsLoading, setAiHashtagsLoading] = useState(false)
   const [checkingSubmit, setCheckingSubmit] = useState(false)
 
+  // Unsaved-changes guard: capture the initial values when the dialog opens,
+  // and confirm before closing if the user modified something.
+  const [initialData, setInitialData] = useState<IdeaFormData>(data)
+  const [confirmClose, setConfirmClose] = useState(false)
+  useEffect(() => {
+    if (open) setInitialData(data)
+  }, [open])
+  const isDirty = useMemo(() => JSON.stringify(data) !== JSON.stringify(initialData), [data, initialData])
+  const requestClose = (next: boolean) => {
+    if (next || !isDirty) { onOpenChange(next); return }
+    setConfirmClose(true)
+  }
+
   // Live duplicate check (debounced) while typing — compares the TITLE only
   // (mixing caption/script into the blob caused false positives against titles).
   useEffect(() => {
@@ -794,7 +807,7 @@ function IdeaFormDialog({ open, onOpenChange, data, setData, onSubmit, creating,
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={requestClose}>
       <DialogContent className="sm:max-w-[800px] w-full max-h-[96vh] overflow-y-auto p-0">
         {/* Title — large, auto-growing, no scrollbar */}
         <div className="px-16 pt-12 pb-4 relative">
@@ -945,7 +958,7 @@ function IdeaFormDialog({ open, onOpenChange, data, setData, onSubmit, creating,
 
         {/* Footer */}
         <div className="px-16 py-4 border-t flex justify-end gap-2">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Annulla</Button>
+          <Button variant="outline" onClick={() => requestClose(false)}>Annulla</Button>
           {isEdit && canSchedule && onSchedule && (
             <Button variant="secondary" onClick={() => { onSubmit(); setTimeout(onSchedule, 100) }}>
               <Send className="h-4 w-4 mr-1" /> Programma
@@ -1007,6 +1020,20 @@ function IdeaFormDialog({ open, onOpenChange, data, setData, onSubmit, creating,
           ideaCaption: rewritten.caption || p.ideaCaption,
         }))}
       />
+
+      {/* Confirm close without saving */}
+      <Dialog open={confirmClose} onOpenChange={setConfirmClose}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Chiudere senza salvare?</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">Hai modifiche non salvate. Se chiudi ora, le perderai.</p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmClose(false)}>Continua a modificare</Button>
+            <Button variant="destructive" onClick={() => { setConfirmClose(false); onOpenChange(false) }}>Chiudi senza salvare</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   )
 }
@@ -1753,6 +1780,31 @@ function PostFormDialog({ open, onOpenChange, post, accounts, cid, onDone, initi
     }
   }, [open, post, initialScheduledAt])
 
+  // Unsaved-changes guard: confirm before closing if the user modified the form
+  const [confirmClose, setConfirmClose] = useState(false)
+  const isDirty = useMemo(() => {
+    if (isEdit && post) {
+      return content !== (post.content || "")
+        || hashtags !== (post.hashtags?.map((h: any) => h.hashtag).join(" ") || "")
+        || scheduledAt !== (post.scheduledAt ? format(new Date(post.scheduledAt), "yyyy-MM-dd'T'HH:mm") : "")
+        || scheduleEnabled !== !!post.scheduledAt
+        || shareToFeed !== (post.shareToFeed ?? true)
+        || JSON.stringify([...selectedAccounts].sort()) !== JSON.stringify([...(post.targets?.map((t: any) => t.socialAccountId) || [])].sort())
+        || files.length > 0
+        || coverFile !== null
+        || JSON.stringify(platformContent) !== JSON.stringify(post.platformContent || {})
+    }
+    return content.trim() !== "" || hashtags.trim() !== "" || selectedAccounts.length > 0
+      || scheduleEnabled || files.length > 0 || coverFile !== null
+      || (initialScheduledAt ? scheduledAt !== initialScheduledAt : false)
+      || Object.keys(platformContent).length > 0
+  }, [isEdit, post, content, hashtags, scheduledAt, scheduleEnabled, shareToFeed, selectedAccounts, files, coverFile, platformContent, initialScheduledAt])
+
+  const requestClose = (next: boolean) => {
+    if (next || !isDirty) { onOpenChange(next); return }
+    setConfirmClose(true)
+  }
+
   const isReel = isEdit ? post?.postType === "REEL" : (files.length > 0 && files[0].type.startsWith("video/"))
   const postType = isReel ? "REEL" : "POST"
 
@@ -1897,7 +1949,7 @@ function PostFormDialog({ open, onOpenChange, post, accounts, cid, onDone, initi
     accounts.find(a => a.platform === platform && selectedAccounts.includes(a.id))
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={requestClose}>
       <DialogContent className="sm:max-w-[800px] w-full max-h-[96vh] overflow-y-auto p-0">
         <DialogHeader className="px-6 pt-6 pb-2">
           <DialogTitle>{isEdit ? (isEditable ? "Modifica Post" : "Dettaglio Post") : "Nuovo Post"}</DialogTitle>
@@ -2212,6 +2264,20 @@ function PostFormDialog({ open, onOpenChange, post, accounts, cid, onDone, initi
           )}
         </div>
       </DialogContent>
+
+      {/* Confirm close without saving */}
+      <Dialog open={confirmClose} onOpenChange={setConfirmClose}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Chiudere senza salvare?</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">Hai modifiche non salvate. Se chiudi ora, le perderai.</p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmClose(false)}>Continua a modificare</Button>
+            <Button variant="destructive" onClick={() => { setConfirmClose(false); onOpenChange(false) }}>Chiudi senza salvare</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   )
 }
