@@ -7,6 +7,8 @@ const TIKTOK_API = 'https://open.tiktokapis.com/v2';
 const CLIENT_KEY = () => process.env.TIKTOK_CLIENT_KEY || '';
 const CLIENT_SECRET = () => process.env.TIKTOK_CLIENT_SECRET || '';
 const REDIRECT_BASE = () => process.env.SOCIAL_OAUTH_REDIRECT_BASE || '';
+// Sandbox requires SELF_ONLY; set TIKTOK_PRIVACY_LEVEL=PUBLIC_TO_EVERYONE in production.
+const TIKTOK_PRIVACY_LEVEL = () => process.env.TIKTOK_PRIVACY_LEVEL || 'SELF_ONLY';
 
 async function fetchJson(url: string, init?: RequestInit): Promise<any> {
   const res = await fetch(url, init);
@@ -25,7 +27,8 @@ function isTikTokError(data: any): boolean {
 // === OAuth ===
 
 export function getTikTokAuthUrl(state: string): string {
-  const scopes = 'user.info.basic,video.upload';
+  // video.publish = Direct Post (auto-publish); video.upload = upload as draft.
+  const scopes = 'user.info.basic,video.upload,video.publish';
   const redirectUri = `${REDIRECT_BASE()}/tiktok/callback`;
   return `${TIKTOK_AUTH}/?client_key=${CLIENT_KEY()}&response_type=code&scope=${scopes}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}`;
 }
@@ -110,27 +113,32 @@ const TIKTOK_CHUNK_SIZE = 10 * 1024 * 1024; // 10 MB per chunk (for videos > 64M
 const TIKTOK_MAX_SINGLE_CHUNK = 64 * 1024 * 1024; // 64 MB: upload as a single chunk
 
 /**
- * Upload a video to TikTok as a DRAFT (video.upload scope, FILE_UPLOAD source).
- * Flow: init → upload chunks → (optional) status check.
- * The creator reviews and publishes the draft manually from the TikTok app.
+ * Publish a video to TikTok via DIRECT POST (video.publish scope).
+ * Flow: init → upload bytes to the signed upload_url → status polling.
+ * The video is posted straight to the creator's profile (no manual step).
+ * privacy_level is SELF_ONLY in sandbox, PUBLIC_TO_EVERYONE in production.
  */
 export async function publishToTikTok(accessToken: string, videoBuffer: Buffer, caption: string): Promise<{ id: string }> {
   const size = videoBuffer.length;
   const chunkSize = size <= TIKTOK_MAX_SINGLE_CHUNK ? size : TIKTOK_CHUNK_SIZE;
   const chunkCount = size <= TIKTOK_MAX_SINGLE_CHUNK ? 1 : Math.ceil(size / TIKTOK_CHUNK_SIZE);
 
-  // 1) Init the upload. "Upload as draft" (video.upload scope) uses
-  //    /post/publish/inbox/video/init/ — NOT /video/init/, which is Direct Post
-  //    (video.publish scope). post_info only carries the title: privacy/duet/
-  //    comment/stitch are chosen by the creator in the TikTok app.
-  const init = await fetchJson(`${TIKTOK_API}/post/publish/inbox/video/init/`, {
+  // 1) Init the upload. Direct Post uses /post/publish/video/init/ (video.publish
+  //    scope); "upload as draft" would use /post/publish/inbox/video/init/.
+  const init = await fetchJson(`${TIKTOK_API}/post/publish/video/init/`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${accessToken}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      post_info: { title: caption.slice(0, 150) },
+      post_info: {
+        title: caption.slice(0, 150),
+        privacy_level: TIKTOK_PRIVACY_LEVEL(),
+        disable_duet: false,
+        disable_comment: false,
+        disable_stitch: false,
+      },
       source_info: {
         source: 'FILE_UPLOAD',
         video_size: size,
