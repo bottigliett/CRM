@@ -106,7 +106,8 @@ export async function getTikTokProfile(accessToken: string): Promise<{ id: strin
 
 // === Publishing ===
 
-const TIKTOK_CHUNK_SIZE = 10 * 1024 * 1024; // 10 MB per chunk (API max)
+const TIKTOK_CHUNK_SIZE = 10 * 1024 * 1024; // 10 MB per chunk (for videos > 64MB)
+const TIKTOK_MAX_SINGLE_CHUNK = 64 * 1024 * 1024; // 64 MB: upload as a single chunk
 
 /**
  * Upload a video to TikTok as a DRAFT (video.upload scope, FILE_UPLOAD source).
@@ -115,8 +116,8 @@ const TIKTOK_CHUNK_SIZE = 10 * 1024 * 1024; // 10 MB per chunk (API max)
  */
 export async function publishToTikTok(accessToken: string, videoBuffer: Buffer, caption: string): Promise<{ id: string }> {
   const size = videoBuffer.length;
-  const chunkSize = size <= TIKTOK_CHUNK_SIZE ? size : TIKTOK_CHUNK_SIZE;
-  const chunkCount = size <= TIKTOK_CHUNK_SIZE ? 1 : Math.ceil(size / TIKTOK_CHUNK_SIZE);
+  const chunkSize = size <= TIKTOK_MAX_SINGLE_CHUNK ? size : TIKTOK_CHUNK_SIZE;
+  const chunkCount = size <= TIKTOK_MAX_SINGLE_CHUNK ? 1 : Math.ceil(size / TIKTOK_CHUNK_SIZE);
 
   // 1) Init the upload. "Upload as draft" (video.upload scope) uses
   //    /post/publish/inbox/video/init/ — NOT /video/init/, which is Direct Post
