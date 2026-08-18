@@ -192,9 +192,25 @@ export default function SocialClientHub() {
   const cedView = (searchParams.get("view") || "calendar") as "table" | "calendar"
   const focusPostId = searchParams.get("focus") ? parseInt(searchParams.get("focus")!) : null
   const focusMonth = searchParams.get("month") || null
-  // CED: "Idee" mostra TUTTI i post (storico completo); "Pubblicazione" mostra solo
-  // quelli Programmato/Pubblicato (pronti per uscire).
-  const readyIdeas = useMemo(() => ideas.filter(i => ["Programmato", "Pubblicato"].includes(i.ideaStatus)), [ideas])
+  // CED: "Idee" mostra TUTTI i post (storico completo); "Pubblicazione" mostra le
+  // idee Programmato/Pubblicato + i post di produzione (programmati/pubblicati via API).
+  const readyIdeas = useMemo(() => {
+    const ideaItems = ideas.filter(i => ["Programmato", "Pubblicato"].includes(i.ideaStatus))
+    const productionItems = posts
+      .filter(p => p.status === "SCHEDULED" || p.status === "PUBLISHED")
+      .map(p => ({
+        ...p,
+        ideaStatus: p.status === "PUBLISHED" ? "Pubblicato" : "Programmato",
+        scheduledAt: p.scheduledAt || p.publishedAt,
+      }))
+    return [...productionItems, ...ideaItems]
+  }, [ideas, posts])
+
+  // Optimistic move: update the local ideas list without a full page refresh (fluid drag&drop)
+  const moveIdeaLocal = (id: number, scheduledAt: string) => {
+    setIdeas(prev => prev.map(i => i.id === id ? { ...i, scheduledAt } : i))
+    setPosts(prev => prev.map(p => p.id === id ? { ...p, scheduledAt } : p))
+  }
   // Transient highlight: lasts a few seconds, then clears itself and the URL params
   const [highlightPostId, setHighlightPostId] = useState<number | null>(focusPostId)
   useEffect(() => {
@@ -304,27 +320,14 @@ export default function SocialClientHub() {
             </div>
             {cedSubTab === "idee" ? (
               cedView === "calendar" ? (
-                <CedIdeeCalendar ideas={ideas} cid={cid} onRefresh={fetchData} accounts={accounts} focusPostId={highlightPostId} focusMonth={focusMonth} />
+                <CedIdeeCalendar ideas={ideas} cid={cid} onRefresh={fetchData} accounts={accounts} focusPostId={highlightPostId} focusMonth={focusMonth} onMoveIdea={moveIdeaLocal} />
               ) : (
                 <CedIdeeTable ideas={ideas} cid={cid} onRefresh={fetchData} accounts={accounts} />
               )
             ) : (
-              <div className="space-y-6">
-                {/* Main calendar: ready ideas (Programmato/Pubblicato) */}
-                {cedView === "calendar"
-                  ? <CedIdeeCalendar ideas={readyIdeas} cid={cid} onRefresh={fetchData} accounts={accounts} focusPostId={highlightPostId} focusMonth={focusMonth} mode="pubblicazione" />
-                  : <CedIdeeTable ideas={readyIdeas} cid={cid} onRefresh={fetchData} accounts={accounts} />}
-
-                {/* Production posts (actually scheduled/published via API) */}
-                {posts.length > 0 && (
-                  <div className="pt-4 border-t">
-                    <h3 className="text-sm font-semibold mb-2">Post pubblicati via API (produzione)</h3>
-                    {cedView === "table"
-                      ? <CedTable posts={posts} cid={cid} navigate={navigate} onRefresh={fetchData} accounts={accounts} />
-                      : <CedCalendar posts={posts} cid={cid} navigate={navigate} onRefresh={fetchData} accounts={accounts} />}
-                  </div>
-                )}
-              </div>
+              cedView === "calendar"
+                ? <CedIdeeCalendar ideas={readyIdeas} cid={cid} onRefresh={fetchData} accounts={accounts} focusPostId={highlightPostId} focusMonth={focusMonth} mode="pubblicazione" onMoveIdea={moveIdeaLocal} />
+                : <CedIdeeTable ideas={readyIdeas} cid={cid} onRefresh={fetchData} accounts={accounts} />
             )}
           </TabsContent>
 
@@ -1433,7 +1436,7 @@ function CedIdeeTable({ ideas, cid, onRefresh, accounts }: { ideas: any[]; cid: 
 
 // === CED Idee — Calendar View ===
 
-function CedIdeeCalendar({ ideas, cid, onRefresh, accounts, focusPostId, focusMonth, mode = "idee" }: { ideas: any[]; cid: number; onRefresh: () => void; accounts: any[]; focusPostId?: number | null; focusMonth?: string | null; mode?: "idee" | "pubblicazione" }) {
+function CedIdeeCalendar({ ideas, cid, onRefresh, accounts, focusPostId, focusMonth, mode = "idee", onMoveIdea }: { ideas: any[]; cid: number; onRefresh: () => void; accounts: any[]; focusPostId?: number | null; focusMonth?: string | null; mode?: "idee" | "pubblicazione"; onMoveIdea?: (id: number, scheduledAt: string) => void }) {
   const navigate = useNavigate()
   const [currentMonth, setCurrentMonth] = useState(new Date())
   const [draggingId, setDraggingId] = useState<number | null>(null)
@@ -1506,13 +1509,17 @@ function CedIdeeCalendar({ ideas, cid, onRefresh, accounts, focusPostId, focusMo
     if (draggingId == null) return
     const id = draggingId
     setDraggingId(null)
+    const old = ideas.find(i => i.id === id)
+    const time = old?.scheduledAt ? format(new Date(old.scheduledAt), "HH:mm:ss") : "12:00:00"
+    const newDate = `${format(day, "yyyy-MM-dd")}T${time}`
+    // Optimistic update first (no page refresh / no scroll jump)
+    if (onMoveIdea) onMoveIdea(id, newDate)
     try {
-      const old = ideas.find(i => i.id === id)
-      const time = old?.scheduledAt ? format(new Date(old.scheduledAt), "HH:mm:ss") : "12:00:00"
-      await socialAPI.updatePost(id, { scheduledAt: `${format(day, "yyyy-MM-dd")}T${time}` })
-      toast.success("Post spostato")
+      await socialAPI.updatePost(id, { scheduledAt: newDate })
+    } catch (err: any) {
+      toast.error(err.message)
       onRefresh()
-    } catch (err: any) { toast.error(err.message) }
+    }
   }
 
   const weekDays = ["Lun", "Mar", "Mer", "Gio", "Ven", "Sab", "Dom"]
