@@ -312,7 +312,7 @@ export default function SocialClientHub() {
               <div className="space-y-6">
                 {/* Main calendar: ready ideas (Programmato/Pubblicato) */}
                 {cedView === "calendar"
-                  ? <CedIdeeCalendar ideas={readyIdeas} cid={cid} onRefresh={fetchData} accounts={accounts} focusPostId={highlightPostId} focusMonth={focusMonth} />
+                  ? <CedIdeeCalendar ideas={readyIdeas} cid={cid} onRefresh={fetchData} accounts={accounts} focusPostId={highlightPostId} focusMonth={focusMonth} mode="pubblicazione" />
                   : <CedIdeeTable ideas={readyIdeas} cid={cid} onRefresh={fetchData} accounts={accounts} />}
 
                 {/* Production posts (actually scheduled/published via API) */}
@@ -927,7 +927,15 @@ function IdeaFormDialog({ open, onOpenChange, data, setData, onSubmit, creating,
           </PropRow>
 
           <PropRow icon={<CheckCircle2 className="h-4 w-4" />} label="Status">
-            <NotionSelect mode="single" value={data.ideaStatus ? [data.ideaStatus] : []} onChange={v => setData(p => ({ ...p, ideaStatus: v[0] || "" }))}
+            <NotionSelect mode="single" value={data.ideaStatus ? [data.ideaStatus] : []} onChange={v => {
+              const s = v[0] || ""
+              if ((s === "Programmato" || s === "Pubblicato") && canSchedule && onSchedule) {
+                toast.info("Per programmare devi caricare la grafica: ti porto alla pagina di pubblicazione")
+                onSchedule()
+                return
+              }
+              setData(p => ({ ...p, ideaStatus: s }))
+            }}
               storageKey={`social-${cid}-status`} defaults={STATUS_DEFAULTS} fieldLabel="status" />
           </PropRow>
 
@@ -1229,7 +1237,14 @@ function CedIdeeTable({ ideas, cid, onRefresh, accounts }: { ideas: any[]; cid: 
               return (
                 <TableRow key={idea.id} className="cursor-pointer hover:bg-muted/50" onClick={() => setEditIdea({ id: idea.id, data: ideaToForm(idea) })}>
                   <TableCell onClick={e => e.stopPropagation()}>
-                    <Select value={idea.ideaStatus || "Idea"} onValueChange={v => actions.handleInlineStatus(idea.id, v)}>
+                    <Select value={idea.ideaStatus || "Idea"} onValueChange={v => {
+                      if (v === "Programmato" || v === "Pubblicato") {
+                        toast.info("Per programmare devi caricare la grafica: ti porto alla pagina di pubblicazione")
+                        navigate(`/social/${cid}/compose?idea=${idea.id}`)
+                        return
+                      }
+                      actions.handleInlineStatus(idea.id, v)
+                    }}>
                       <SelectTrigger className="h-7 border-0 p-0 shadow-none focus:ring-0">
                         <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${IDEA_STATUS_COLORS[idea.ideaStatus || "Idea"] || ""}`}>
                           {idea.ideaStatus || "Idea"}
@@ -1418,9 +1433,10 @@ function CedIdeeTable({ ideas, cid, onRefresh, accounts }: { ideas: any[]; cid: 
 
 // === CED Idee — Calendar View ===
 
-function CedIdeeCalendar({ ideas, cid, onRefresh, accounts, focusPostId, focusMonth }: { ideas: any[]; cid: number; onRefresh: () => void; accounts: any[]; focusPostId?: number | null; focusMonth?: string | null }) {
+function CedIdeeCalendar({ ideas, cid, onRefresh, accounts, focusPostId, focusMonth, mode = "idee" }: { ideas: any[]; cid: number; onRefresh: () => void; accounts: any[]; focusPostId?: number | null; focusMonth?: string | null; mode?: "idee" | "pubblicazione" }) {
   const navigate = useNavigate()
   const [currentMonth, setCurrentMonth] = useState(new Date())
+  const [draggingId, setDraggingId] = useState<number | null>(null)
 
   // Jump to the requested month when navigating from a duplicate alert
   useEffect(() => {
@@ -1485,6 +1501,20 @@ function CedIdeeCalendar({ ideas, cid, onRefresh, accounts, focusPostId, focusMo
     setEditIdea({ id: idea.id, data: ideaToForm(idea) })
   }
 
+  // Drag & drop: move a post to another day (keeps the same time)
+  const handleDropOnDay = async (day: Date) => {
+    if (draggingId == null) return
+    const id = draggingId
+    setDraggingId(null)
+    try {
+      const old = ideas.find(i => i.id === id)
+      const time = old?.scheduledAt ? format(new Date(old.scheduledAt), "HH:mm:ss") : "12:00:00"
+      await socialAPI.updatePost(id, { scheduledAt: `${format(day, "yyyy-MM-dd")}T${time}` })
+      toast.success("Post spostato")
+      onRefresh()
+    } catch (err: any) { toast.error(err.message) }
+  }
+
   const weekDays = ["Lun", "Mar", "Mer", "Gio", "Ven", "Sab", "Dom"]
 
   return (
@@ -1511,9 +1541,15 @@ function CedIdeeCalendar({ ideas, cid, onRefresh, accounts, focusPostId, focusMo
                 {IDEA_STATUSES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
               </SelectContent>
             </Select>
-            <Button size="sm" onClick={() => { setNewIdea(emptyIdea()); setShowCreate(true) }}>
-              <Lightbulb className="h-4 w-4 mr-1" /> Nuova Idea
-            </Button>
+            {mode === "pubblicazione" ? (
+              <Button size="sm" onClick={() => navigate(`/social/${cid}/compose`)}>
+                <Plus className="h-4 w-4 mr-1" /> Nuovo Post
+              </Button>
+            ) : (
+              <Button size="sm" onClick={() => { setNewIdea(emptyIdea()); setShowCreate(true) }}>
+                <Lightbulb className="h-4 w-4 mr-1" /> Nuova Idea
+              </Button>
+            )}
           </div>
         </div>
 
@@ -1530,8 +1566,10 @@ function CedIdeeCalendar({ ideas, cid, onRefresh, accounts, focusPostId, focusMo
               const today = isToday(day)
               return (
                 <div key={i}
-                  className={`min-h-[140px] p-1.5 border-b border-r cursor-pointer transition-colors ${!inMonth ? "bg-muted/20" : "bg-card"} ${today ? "bg-primary/5 ring-1 ring-inset ring-primary/20" : ""} hover:bg-muted/40`}
+                  className={`min-h-[140px] p-1.5 border-b border-r cursor-pointer transition-colors ${!inMonth ? "bg-muted/20" : "bg-card"} ${today ? "bg-primary/5 ring-1 ring-inset ring-primary/20" : ""} hover:bg-muted/40 ${draggingId ? "hover:ring-2 hover:ring-primary/40" : ""}`}
                   onClick={() => openCreateForDate(day)}
+                  onDragOver={e => { e.preventDefault() }}
+                  onDrop={e => { e.preventDefault(); handleDropOnDay(day) }}
                 >
                   <div className="flex justify-end mb-1">
                     <span className={`text-xs font-medium w-6 h-6 flex items-center justify-center rounded-full ${today ? "bg-primary text-primary-foreground" : inMonth ? "text-foreground" : "text-muted-foreground/40"}`}>
@@ -1547,6 +1585,9 @@ function CedIdeeCalendar({ ideas, cid, onRefresh, accounts, focusPostId, focusMo
                       return (
                         <div key={idea.id}
                           ref={isFocused ? el => { if (el) setTimeout(() => el.scrollIntoView({ block: "center", behavior: "smooth" }), 250) } : undefined}
+                          draggable
+                          onDragStart={e => { e.stopPropagation(); setDraggingId(idea.id); e.dataTransfer.effectAllowed = "move" }}
+                          onDragEnd={() => setDraggingId(null)}
                           className={`rounded-md p-1.5 cursor-pointer hover:brightness-95 transition-all border ${isFocused ? "border-primary ring-2 ring-primary bg-primary/10 animate-in zoom-in-95 duration-500" : "border-border/40"}`}
                           onClick={e => { e.stopPropagation(); openEdit(idea) }}
                           onContextMenu={e => { e.preventDefault(); e.stopPropagation(); setContextMenu({ idea, x: e.clientX, y: e.clientY }) }}
