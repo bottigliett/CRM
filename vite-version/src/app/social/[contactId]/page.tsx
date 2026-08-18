@@ -1497,6 +1497,12 @@ function CedIdeeCalendar({ ideas, cid, onRefresh, accounts, focusPostId, focusMo
     )
 
   const openCreateForDate = (day: Date) => {
+    // In Pubblicazione, clicking an empty day creates a POST (compose page);
+    // in Idee it creates an IDEA (Notion-style dialog).
+    if (mode === "pubblicazione") {
+      navigate(`/social/${cid}/compose?at=${encodeURIComponent(format(day, "yyyy-MM-dd'T'12:00"))}`)
+      return
+    }
     setNewIdea(emptyIdea(format(day, "yyyy-MM-dd") + "T12:00:00"))
     setShowCreate(true)
   }
