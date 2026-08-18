@@ -163,12 +163,14 @@ export const aiCheckDuplicate = async (req: Request, res: Response) => {
   try {
     const contactId = parseInt(req.body.contactId);
     const content = req.body.content;
+    const excludeId = req.body.excludeId ? parseInt(req.body.excludeId) : null;
     if (!content?.trim()) return res.status(400).json({ success: false, message: 'content richiesto' });
 
     // Fetch ALL posts (same client + other clients) — no truncation, so older
     // duplicates are found too (previously capped at 500 most-recent).
+    // excludeId lets the editor skip the post itself when checking an existing idea.
     const existing = await prisma.socialPost.findMany({
-      where: { content: { not: '' } },
+      where: { content: { not: '' }, ...(excludeId ? { id: { not: excludeId } } : {}) },
       select: {
         id: true, content: true, contactId: true, stage: true,
         scheduledAt: true, publishedAt: true,

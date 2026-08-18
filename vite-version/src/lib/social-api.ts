@@ -316,8 +316,8 @@ export const socialAPI = {
   aiSuggestHashtags: (content: string, contactId?: number) =>
     request('/social/ai/suggest-hashtags', { method: 'POST', body: JSON.stringify({ content, contactId }) }),
 
-  aiCheckDuplicate: (contactId: number, content: string) =>
-    request('/social/ai/check-duplicate', { method: 'POST', body: JSON.stringify({ contactId, content }) }),
+  aiCheckDuplicate: (contactId: number, content: string, excludeId?: number) =>
+    request('/social/ai/check-duplicate', { method: 'POST', body: JSON.stringify({ contactId, content, excludeId }) }),
 
   aiGenerateBrief: (contactId: number) =>
     request('/social/ai/generate-brief', { method: 'POST', body: JSON.stringify({ contactId }) }),

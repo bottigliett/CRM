@@ -701,10 +701,10 @@ function PlatformMultiSelect({ values, onChange }: { values: string[]; onChange:
   )
 }
 
-function IdeaFormDialog({ open, onOpenChange, data, setData, onSubmit, creating, isEdit, cid, onDuplicate, onSchedule, canSchedule }: {
+function IdeaFormDialog({ open, onOpenChange, data, setData, onSubmit, creating, isEdit, cid, onDuplicate, onSchedule, canSchedule, editId }: {
   open: boolean; onOpenChange: (v: boolean) => void; data: IdeaFormData; setData: (fn: (p: IdeaFormData) => IdeaFormData) => void
   onSubmit: () => void; creating: boolean; isEdit?: boolean; cid: number; onDuplicate?: () => void
-  onSchedule?: () => void; canSchedule?: boolean
+  onSchedule?: () => void; canSchedule?: boolean; editId?: number
 }) {
   const navigate = useNavigate()
 
@@ -776,12 +776,12 @@ function IdeaFormDialog({ open, onOpenChange, data, setData, onSubmit, creating,
     if (text.length < 3) { setDuplicateWarning(null); return }
     const t = setTimeout(async () => {
       try {
-        const res = await socialAPI.aiCheckDuplicate(cid, text)
+        const res = await socialAPI.aiCheckDuplicate(cid, text, editId)
         setDuplicateWarning(res.data)
       } catch { /* keep previous warning on transient error */ }
     }, 500)
     return () => clearTimeout(t)
-  }, [data.content, cid])
+  }, [data.content, cid, editId])
 
   const handleAiHashtags = async () => {
     const base = data.ideaCaption?.replace(/#[\w\u00C0-\u024F]+/g, "").trim() || data.content
@@ -804,7 +804,7 @@ function IdeaFormDialog({ open, onOpenChange, data, setData, onSubmit, creating,
     if (text.length < 3) { onSubmit(); return }
     setCheckingSubmit(true)
     try {
-      const res = await socialAPI.aiCheckDuplicate(cid, text)
+      const res = await socialAPI.aiCheckDuplicate(cid, text, editId)
       setDuplicateWarning(res.data)
       if (res.data.sameClient?.similar || res.data.otherClient?.similar) {
         setConfirmDialog(true)
@@ -1405,7 +1405,7 @@ function CedIdeeTable({ ideas, cid, onRefresh, accounts }: { ideas: any[]; cid: 
           <IdeaFormDialog open={true} onOpenChange={v => { if (!v) setEditIdea(null) }}
             data={editIdea.data} setData={fn => setEditIdea(prev => prev ? { ...prev, data: fn(prev.data) } : null)}
             onSubmit={() => actions.handleUpdate(editIdea.id, editIdea.data, () => setEditIdea(null))}
-            creating={actions.creating} isEdit cid={cid}
+            creating={actions.creating} isEdit cid={cid} editId={editIdea.id}
             onDuplicate={() => { actions.handleDuplicate(editIdea.id); setEditIdea(null) }}
             canSchedule={!!canSched}
             onSchedule={() => { setEditIdea(null); navigate(`/social/${cid}/compose?idea=${rawIdea.id}`) }} />
@@ -1451,6 +1451,7 @@ function CedIdeeCalendar({ ideas, cid, onRefresh, accounts, focusPostId, focusMo
   const [showCreate, setShowCreate] = useState(false)
   const [newIdea, setNewIdea] = useState<IdeaFormData>(emptyIdea())
   const [editIdea, setEditIdea] = useState<{ id: number; data: IdeaFormData } | null>(null)
+  const [editPost, setEditPost] = useState<any | null>(null)
   const [contextMenu, setContextMenu] = useState<{ idea: any; x: number; y: number } | null>(null)
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [transferIdea, setTransferIdea] = useState<any>(null)
@@ -1501,6 +1502,9 @@ function CedIdeeCalendar({ ideas, cid, onRefresh, accounts, focusPostId, focusMo
   }
 
   const openEdit = (idea: any) => {
+    // Production posts (SCHEDULED/PUBLISHED) open the post preview popup,
+    // ideas open the Notion-style idea editor.
+    if (idea.stage === "PRODUCTION") { setEditPost(idea); return }
     setEditIdea({ id: idea.id, data: ideaToForm(idea) })
   }
 
@@ -1585,58 +1589,103 @@ function CedIdeeCalendar({ ideas, cid, onRefresh, accounts, focusPostId, focusMo
                   </div>
                   <div className="space-y-1">
                     {dayIdeas.map((idea: any) => {
-                      const platforms = parsePlatforms(idea.platformContent)
-                      const categories = parseCategories(idea.ideaCategory)
+                      const isProduction = idea.stage === "PRODUCTION"
+                      const platforms = isProduction
+                        ? (idea.targets?.map((t: any) => t.socialAccount?.platform).filter(Boolean) || [])
+                        : parsePlatforms(idea.platformContent)
+                      const categories = isProduction ? [] : parseCategories(idea.ideaCategory)
                       const status = idea.ideaStatus || "Idea"
                       const isFocused = idea.id === focusPostId
+                      const thumb = idea.coverImageUrl || (idea.mediaUrls as string[] | null)?.[0]
                       return (
                         <div key={idea.id}
                           ref={isFocused ? el => { if (el) setTimeout(() => el.scrollIntoView({ block: "center", behavior: "smooth" }), 250) } : undefined}
                           draggable
                           onDragStart={e => { e.stopPropagation(); setDraggingId(idea.id); e.dataTransfer.effectAllowed = "move" }}
                           onDragEnd={() => setDraggingId(null)}
-                          className={`rounded-md p-1.5 cursor-pointer hover:brightness-95 transition-all border ${isFocused ? "border-primary ring-2 ring-primary bg-primary/10 animate-in zoom-in-95 duration-500" : "border-border/40"}`}
+                          className={`rounded-md overflow-hidden cursor-pointer hover:brightness-95 transition-all border ${isFocused ? "border-primary ring-2 ring-primary bg-primary/10 animate-in zoom-in-95 duration-500" : "border-border/40"} ${!isProduction ? "p-1.5" : ""}`}
                           onClick={e => { e.stopPropagation(); openEdit(idea) }}
                           onContextMenu={e => { e.preventDefault(); e.stopPropagation(); setContextMenu({ idea, x: e.clientX, y: e.clientY }) }}
                         >
-                          {/* Title with icon */}
-                          <div className="flex items-start gap-1 mb-1">
-                            <Copy className="h-3 w-3 text-muted-foreground mt-0.5 shrink-0" />
-                            <span className="font-semibold text-[11px] leading-tight line-clamp-2">{idea.content}</span>
-                          </div>
-                          {/* Type */}
-                          <div className="mb-1">
-                            <span className="text-[10px] text-muted-foreground">{IDEA_TYPES_EMOJI[idea.postType] || idea.postType}</span>
-                          </div>
-                          {/* Categories */}
-                          {categories.length > 0 && (
-                            <div className="flex flex-wrap gap-0.5 mb-1">
-                              {categories.slice(0, 2).map((c: string) => (
-                                <span key={c} className={`px-1.5 py-0 rounded text-[9px] font-medium ${IDEA_CATEGORY_COLORS[c] || "bg-muted text-muted-foreground"}`}>{c}</span>
-                              ))}
-                            </div>
-                          )}
-                          {/* Platforms */}
-                          {platforms.length > 0 && (
-                            <div className="flex flex-wrap gap-0.5 mb-1">
-                              {platforms.map((pl: string, j: number) => (
-                                <span key={j} className={`px-1.5 py-0 rounded text-[9px] font-medium ${PLATFORM_BADGE[pl] || "bg-muted text-muted-foreground"}`}>
-                                  {PLATFORM_LABELS[pl] || pl}
+                          {isProduction ? (
+                            <>
+                              {thumb ? (
+                                <div className="relative">
+                                  <img src={thumb} alt="" className="w-full h-16 object-cover" />
+                                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                                  <div className="absolute bottom-0 left-0 right-0 p-1">
+                                    <span className="font-semibold text-[10px] leading-tight line-clamp-1 text-white drop-shadow-sm">{idea.content?.slice(0, 40)}</span>
+                                  </div>
+                                  {idea.postType === "REEL" || idea.postType === "VIDEO" ? (
+                                    <div className="absolute top-0.5 right-0.5"><Film className="h-3 w-3 text-white drop-shadow" /></div>
+                                  ) : null}
+                                </div>
+                              ) : (
+                                <div className="p-1.5 bg-muted/30">
+                                  <div className="flex items-start gap-1 mb-0.5">
+                                    <ImageIcon className="h-3 w-3 text-muted-foreground/40 mt-0.5 shrink-0" />
+                                    <span className="font-semibold text-[11px] leading-tight line-clamp-2">{idea.content?.slice(0, 50)}</span>
+                                  </div>
+                                </div>
+                              )}
+                              <div className="px-1.5 py-1 flex items-center gap-1">
+                                {platforms.length > 0 && (
+                                  <div className="flex gap-0.5">
+                                    {platforms.map((pl: string, j: number) => (
+                                      <span key={j} className={`px-1 py-0 rounded text-[8px] font-medium ${PLATFORM_BADGE[pl] || "bg-muted text-muted-foreground"}`}>
+                                        {PLATFORM_LABELS[pl] || pl}
+                                      </span>
+                                    ))}
+                                  </div>
+                                )}
+                                <span className="ml-auto flex items-center gap-0.5">
+                                  <span className={`w-1.5 h-1.5 rounded-full ${idea.status === "PUBLISHED" ? "bg-green-500" : "bg-blue-500"}`} />
+                                  {idea.scheduledAt && <span className="text-[9px] text-muted-foreground">{format(new Date(idea.scheduledAt), "HH:mm")}</span>}
                                 </span>
-                              ))}
-                            </div>
+                              </div>
+                            </>
+                          ) : (
+                            <>
+                              {/* Title with icon */}
+                              <div className="flex items-start gap-1 mb-1">
+                                <Copy className="h-3 w-3 text-muted-foreground mt-0.5 shrink-0" />
+                                <span className="font-semibold text-[11px] leading-tight line-clamp-2">{idea.content}</span>
+                              </div>
+                              {/* Type */}
+                              <div className="mb-1">
+                                <span className="text-[10px] text-muted-foreground">{IDEA_TYPES_EMOJI[idea.postType] || idea.postType}</span>
+                              </div>
+                              {/* Categories */}
+                              {categories.length > 0 && (
+                                <div className="flex flex-wrap gap-0.5 mb-1">
+                                  {categories.slice(0, 2).map((c: string) => (
+                                    <span key={c} className={`px-1.5 py-0 rounded text-[9px] font-medium ${IDEA_CATEGORY_COLORS[c] || "bg-muted text-muted-foreground"}`}>{c}</span>
+                                  ))}
+                                </div>
+                              )}
+                              {/* Platforms */}
+                              {platforms.length > 0 && (
+                                <div className="flex flex-wrap gap-0.5 mb-1">
+                                  {platforms.map((pl: string, j: number) => (
+                                    <span key={j} className={`px-1.5 py-0 rounded text-[9px] font-medium ${PLATFORM_BADGE[pl] || "bg-muted text-muted-foreground"}`}>
+                                      {PLATFORM_LABELS[pl] || pl}
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+                              {/* Status + content indicators */}
+                              <div className="flex items-center gap-1 justify-between">
+                                <div className="flex items-center gap-1">
+                                  <span className={`w-1.5 h-1.5 rounded-full ${IDEA_STATUS_DOT[status] || "bg-gray-400"}`} />
+                                  <span className={`text-[9px] font-medium ${IDEA_STATUS_TEXT[status] || "text-muted-foreground"}`}>{status}</span>
+                                </div>
+                                <div className="flex gap-0.5">
+                                  {idea.ideaScript && <span title="Ha script"><BarChart3 className="h-2.5 w-2.5 text-muted-foreground" /></span>}
+                                  {idea.ideaCaption && <span title="Ha didascalia"><Megaphone className="h-2.5 w-2.5 text-muted-foreground" /></span>}
+                                </div>
+                              </div>
+                            </>
                           )}
-                          {/* Status + content indicators */}
-                          <div className="flex items-center gap-1 justify-between">
-                            <div className="flex items-center gap-1">
-                              <span className={`w-1.5 h-1.5 rounded-full ${IDEA_STATUS_DOT[status] || "bg-gray-400"}`} />
-                              <span className={`text-[9px] font-medium ${IDEA_STATUS_TEXT[status] || "text-muted-foreground"}`}>{status}</span>
-                            </div>
-                            <div className="flex gap-0.5">
-                              {idea.ideaScript && <span title="Ha script"><BarChart3 className="h-2.5 w-2.5 text-muted-foreground" /></span>}
-                              {idea.ideaCaption && <span title="Ha didascalia"><Megaphone className="h-2.5 w-2.5 text-muted-foreground" /></span>}
-                            </div>
-                          </div>
                         </div>
                       )
                     })}
@@ -1675,7 +1724,7 @@ function CedIdeeCalendar({ ideas, cid, onRefresh, accounts, focusPostId, focusMo
       <IdeaFormDialog open={showCreate} onOpenChange={setShowCreate} data={newIdea} setData={setNewIdea}
         onSubmit={() => actions.handleCreate(newIdea, () => { setShowCreate(false); setNewIdea(emptyIdea()) })} creating={actions.creating} cid={cid} />
 
-      {/* Edit dialog */}
+      {/* Edit dialog (ideas) */}
       {editIdea && (() => {
         const rawIdea = ideas.find(i => i.id === editIdea.id)
         const canSched = rawIdea && !rawIdea.promotedToId && (!rawIdea.ideaStatus || rawIdea.ideaStatus === "Idea" || rawIdea.ideaStatus === "Da fare")
@@ -1683,12 +1732,22 @@ function CedIdeeCalendar({ ideas, cid, onRefresh, accounts, focusPostId, focusMo
           <IdeaFormDialog open={true} onOpenChange={v => { if (!v) setEditIdea(null) }}
             data={editIdea.data} setData={fn => setEditIdea(prev => prev ? { ...prev, data: fn(prev.data) } : null)}
             onSubmit={() => actions.handleUpdate(editIdea.id, editIdea.data, () => setEditIdea(null))}
-            creating={actions.creating} isEdit cid={cid}
+            creating={actions.creating} isEdit cid={cid} editId={editIdea.id}
             onDuplicate={() => { actions.handleDuplicate(editIdea.id); setEditIdea(null) }}
             canSchedule={!!canSched}
             onSchedule={() => { setEditIdea(null); navigate(`/social/${cid}/compose?idea=${rawIdea.id}`) }} />
         )
       })()}
+
+      {/* Post preview popup (production posts in Pubblicazione calendar) */}
+      <PostFormDialog
+        open={!!editPost}
+        onOpenChange={v => { if (!v) setEditPost(null) }}
+        post={editPost}
+        accounts={accounts}
+        cid={cid}
+        onDone={onRefresh}
+      />
 
       {/* Transfer idea to another client's calendar */}
       <Dialog open={!!transferIdea} onOpenChange={open => { if (!open) setTransferIdea(null) }}>
@@ -1892,9 +1951,29 @@ function PostFormDialog({ open, onOpenChange, post, accounts, cid, onDone, initi
       setShareToFeed(post.shareToFeed ?? true)
       setFiles([])
       setCoverFile(null)
-      // Fetch metrics for published posts
+      // Fetch metrics for published posts. The endpoint returns one row per
+      // account/checkpoint; aggregate the latest checkpoint per account so the
+      // preview shows real totals (instead of "—").
       if (post.status === "PUBLISHED") {
-        socialAPI.getPostMetrics(post.id).then(r => setMetrics(r.data)).catch(() => {})
+        socialAPI.getPostMetrics(post.id).then(r => {
+          const list = Array.isArray(r.data) ? r.data : []
+          const latestByAccount = new Map<number, any>()
+          for (const m of list) {
+            const prev = latestByAccount.get(m.socialAccountId)
+            if (!prev || new Date(m.collectedAt) >= new Date(prev.collectedAt)) latestByAccount.set(m.socialAccountId, m)
+          }
+          const rows = [...latestByAccount.values()]
+          const sum = (k: string) => rows.reduce((s, m) => s + (Number(m[k]) || 0), 0)
+          const hasData = rows.length > 0
+          setMetrics({
+            likes: hasData ? sum("likes") : null,
+            comments: hasData ? sum("comments") : null,
+            shares: hasData ? sum("shares") : null,
+            saves: hasData ? sum("saves") : null,
+            reach: hasData ? sum("reach") : null,
+            impressions: hasData ? sum("impressions") : null,
+          })
+        }).catch(() => {})
       } else {
         setMetrics(null)
       }
@@ -2290,7 +2369,13 @@ function PostFormDialog({ open, onOpenChange, post, accounts, cid, onDone, initi
                 const acc = getPreviewAccount(p)
                 const previewText = getPreviewText(p)
                 const hashtagStr = hashtags.split(/[\s,]+/).filter(h => h.length > 0).map(h => h.startsWith("#") ? h : `#${h}`).join(" ")
-                const previewFiles = filePreviews.filter(fp => !fp.isPdf).map(fp => ({ url: fp.url, isVideo: fp.isVideo }))
+                // Existing media fallback: when editing a post, `files` is empty, so
+                // show the already-uploaded media instead of the "Anteprima media" placeholder.
+                const existingUrls = (post?.mediaUrls as string[] | null) || (post?.coverImageUrl ? [post.coverImageUrl] : [])
+                const existingPreview = existingUrls.map((url: string) => ({ url, isVideo: !url.match(/\.(jpg|jpeg|png|gif|webp)$/i) }))
+                const previewFiles = filePreviews.length > 0
+                  ? filePreviews.filter(fp => !fp.isPdf).map(fp => ({ url: fp.url, isVideo: fp.isVideo }))
+                  : existingPreview
                 return (
                   <div className="flex justify-center rounded-xl bg-muted/40 p-4">
                     <PlatformPreview
