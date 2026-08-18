@@ -13,6 +13,15 @@ async function fetchJson(url: string, init?: RequestInit): Promise<any> {
   return res.json() as Promise<any>;
 }
 
+/**
+ * TikTok Open API always returns an `error` object in its JSON response, even on
+ * success (where `error.code === "ok"`). Only treat it as a real error when the
+ * code is present and different from "ok".
+ */
+function isTikTokError(data: any): boolean {
+  return !!(data?.error && data.error.code && data.error.code !== 'ok');
+}
+
 // === OAuth ===
 
 export function getTikTokAuthUrl(state: string): string {
@@ -78,7 +87,7 @@ export async function getTikTokProfile(accessToken: string): Promise<{ id: strin
   const data = await fetchJson(`${TIKTOK_API}/user/info/?fields=open_id,display_name,avatar_url`, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
-  if (data.error) {
+  if (isTikTokError(data)) {
     console.error('[tiktok] getTikTokProfile error:', JSON.stringify(data));
     const msg = data.error.message || data.error.description || data.error.code || JSON.stringify(data.error);
     throw new Error(msg || 'Failed to get TikTok profile');
@@ -132,7 +141,7 @@ export async function publishToTikTok(accessToken: string, videoBuffer: Buffer, 
       },
     }),
   });
-  if (init.error?.code) throw new Error(init.error.message || 'TikTok init failed');
+  if (isTikTokError(init)) throw new Error(init.error.message || 'TikTok init failed');
   const publishId = init.data?.publish_id;
   if (!publishId) throw new Error('TikTok init missing publish_id');
 
@@ -152,7 +161,7 @@ export async function publishToTikTok(accessToken: string, videoBuffer: Buffer, 
       body: new Uint8Array(chunk),
     });
     const upJson: any = await up.json().catch(() => ({}));
-    if (!up.ok || upJson.error?.code) {
+    if (!up.ok || isTikTokError(upJson)) {
       throw new Error(upJson.error?.message || `TikTok chunk upload failed (${up.status})`);
     }
   }
@@ -165,7 +174,7 @@ export async function publishToTikTok(accessToken: string, videoBuffer: Buffer, 
       headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ publish_id: publishId }),
     });
-    if (st.error?.code) throw new Error(st.error.message || 'TikTok status fetch failed');
+    if (isTikTokError(st)) throw new Error(st.error.message || 'TikTok status fetch failed');
     const status = st.data?.status;
     if (status === 'SEND_TO_USER_DRAFT' || status === 'PUBLISH_COMPLETE') {
       return { id: publishId };
@@ -192,7 +201,7 @@ export async function getTikTokVideoStats(accessToken: string, videoId: string):
     },
     body: JSON.stringify({ filters: { video_ids: [videoId] } }),
   });
-  if (data.error?.code) throw new Error(data.error.message || 'TikTok video stats failed');
+  if (isTikTokError(data)) throw new Error(data.error.message || 'TikTok video stats failed');
   const v = data.data?.videos?.[0];
   if (!v) return {};
   return {
@@ -212,6 +221,6 @@ export async function getTikTokVideoList(accessToken: string): Promise<any[]> {
     },
     body: JSON.stringify({ max_count: 20 }),
   });
-  if (data.error?.code) throw new Error(data.error.message || 'TikTok video list failed');
+  if (isTikTokError(data)) throw new Error(data.error.message || 'TikTok video list failed');
   return data.data?.videos || [];
 }
