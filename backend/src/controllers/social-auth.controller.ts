@@ -94,7 +94,9 @@ export const handleOAuthCallback = async (req: Request, res: Response) => {
     oauthStates.delete(state as string);
 
     const { contactId } = stateData;
-    const accountsRedirectUrl = contactId ? `/social/${contactId}/accounts` : '/social/accounts';
+    // Client-specific connections land back on that client's "Account" tab
+    // (route is /social/:contactId with ?tab=accounts); global connections use /social/accounts.
+    const accountsRedirectUrl = contactId ? `/social/${contactId}?tab=accounts` : '/social/accounts';
 
     // Helper: upsert a single social account
     const upsertAccount = async (data: {
