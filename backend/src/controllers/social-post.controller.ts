@@ -594,6 +594,18 @@ export const duplicatePost = async (req: AuthRequest, res: Response) => {
         content: original.content,
         platformContent: original.platformContent || undefined,
         postType: original.postType,
+        // Keep the same stage/date and all idea fields, so the duplicate stays in
+        // the same place (Idee vs Pubblicazione) with the same scheduling day.
+        stage: original.stage,
+        scheduledAt: original.scheduledAt,
+        ideaCategory: original.ideaCategory,
+        ideaPhase: original.ideaPhase,
+        ideaStatus: original.ideaStatus,
+        ideaScript: original.ideaScript,
+        ideaCaption: original.ideaCaption,
+        ideaObiettivo: original.ideaObiettivo,
+        ideaCreativita: original.ideaCreativita,
+        ideaNotes: original.ideaNotes,
         createdById: req.user!.userId,
         templateId: original.templateId,
         mediaUrls: original.mediaUrls || undefined,

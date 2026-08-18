@@ -192,9 +192,8 @@ export default function SocialClientHub() {
   const cedView = (searchParams.get("view") || "calendar") as "table" | "calendar"
   const focusPostId = searchParams.get("focus") ? parseInt(searchParams.get("focus")!) : null
   const focusMonth = searchParams.get("month") || null
-  // CED split by status: "Da fare"/"Idea" restano in Idee; "Programmato"/"Pubblicato"
-  // vanno nel calendario "Pubblicazione" (pronti per uscire).
-  const draftIdeas = useMemo(() => ideas.filter(i => !["Programmato", "Pubblicato"].includes(i.ideaStatus)), [ideas])
+  // CED: "Idee" mostra TUTTI i post (storico completo); "Pubblicazione" mostra solo
+  // quelli Programmato/Pubblicato (pronti per uscire).
   const readyIdeas = useMemo(() => ideas.filter(i => ["Programmato", "Pubblicato"].includes(i.ideaStatus)), [ideas])
   // Transient highlight: lasts a few seconds, then clears itself and the URL params
   const [highlightPostId, setHighlightPostId] = useState<number | null>(focusPostId)
@@ -305,9 +304,9 @@ export default function SocialClientHub() {
             </div>
             {cedSubTab === "idee" ? (
               cedView === "calendar" ? (
-                <CedIdeeCalendar ideas={draftIdeas} cid={cid} onRefresh={fetchData} accounts={accounts} focusPostId={highlightPostId} focusMonth={focusMonth} />
+                <CedIdeeCalendar ideas={ideas} cid={cid} onRefresh={fetchData} accounts={accounts} focusPostId={highlightPostId} focusMonth={focusMonth} />
               ) : (
-                <CedIdeeTable ideas={draftIdeas} cid={cid} onRefresh={fetchData} accounts={accounts} />
+                <CedIdeeTable ideas={ideas} cid={cid} onRefresh={fetchData} accounts={accounts} />
               )
             ) : (
               <div className="space-y-6">
@@ -1432,7 +1431,30 @@ function CedIdeeCalendar({ ideas, cid, onRefresh, accounts, focusPostId, focusMo
   const [editIdea, setEditIdea] = useState<{ id: number; data: IdeaFormData } | null>(null)
   const [contextMenu, setContextMenu] = useState<{ idea: any; x: number; y: number } | null>(null)
   const [statusFilter, setStatusFilter] = useState<string>("all")
+  const [transferIdea, setTransferIdea] = useState<any>(null)
+  const [allClients, setAllClients] = useState<any[]>([])
+  const [loadingClients, setLoadingClients] = useState(false)
   const actions = useIdeaActions(cid, onRefresh)
+
+  const openTransfer = async (idea: any) => {
+    setTransferIdea(idea)
+    if (allClients.length) return
+    setLoadingClients(true)
+    try {
+      const res = await contactsAPI.getContacts({ type: 'CLIENT', limit: 500 })
+      setAllClients((res.data.contacts || []).filter((c: any) => c.id !== cid))
+    } catch {} finally { setLoadingClients(false) }
+  }
+
+  const handleTransferIdea = async (ideaId: number, targetContactId: number) => {
+    try {
+      await socialAPI.duplicatePost(ideaId, targetContactId)
+      await socialAPI.deletePost(ideaId)
+      toast.success("Post spostato nell'altro calendario")
+      setTransferIdea(null)
+      onRefresh()
+    } catch (err: any) { toast.error(err.message) }
+  }
 
   const calendarDays = useMemo(() => {
     const monthStart = startOfMonth(currentMonth)
@@ -1588,6 +1610,9 @@ function CedIdeeCalendar({ ideas, cid, onRefresh, accounts, focusPostId, focusMo
             <button className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent" onClick={() => { actions.handleDuplicate(contextMenu.idea.id); setContextMenu(null) }}>
               <Copy className="h-4 w-4" /> Duplica
             </button>
+            <button className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent" onClick={() => { openTransfer(contextMenu.idea); setContextMenu(null) }}>
+              <ArrowRightLeft className="h-4 w-4" /> Sposta in altro calendario
+            </button>
             <button className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm text-destructive hover:bg-accent" onClick={() => { actions.handleDelete(contextMenu.idea.id); setContextMenu(null) }}>
               <Trash2 className="h-4 w-4" /> Elimina
             </button>
@@ -1613,6 +1638,28 @@ function CedIdeeCalendar({ ideas, cid, onRefresh, accounts, focusPostId, focusMo
             onSchedule={() => { setEditIdea(null); navigate(`/social/${cid}/compose?idea=${rawIdea.id}`) }} />
         )
       })()}
+
+      {/* Transfer idea to another client's calendar */}
+      <Dialog open={!!transferIdea} onOpenChange={open => { if (!open) setTransferIdea(null) }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Sposta in altro calendario</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-1 py-2 max-h-64 overflow-y-auto">
+            {loadingClients ? (
+              <p className="text-sm text-muted-foreground text-center py-4">Caricamento clienti…</p>
+            ) : allClients.filter(c => c.id !== cid).length > 0 ? (
+              allClients.filter(c => c.id !== cid).map((c: any) => (
+                <button key={c.id} className="w-full text-left px-3 py-2 rounded-md hover:bg-muted text-sm" onClick={() => handleTransferIdea(transferIdea.id, c.id)}>
+                  {c.name}
+                </button>
+              ))
+            ) : (
+              <p className="text-sm text-muted-foreground text-center py-4">Nessun altro cliente disponibile</p>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   )
 }
