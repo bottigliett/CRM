@@ -310,17 +310,20 @@ export default function SocialClientHub() {
               )
             ) : (
               <div className="space-y-6">
-                {cedView === "table" ? (
-                  <CedTable posts={posts} cid={cid} navigate={navigate} onRefresh={fetchData} accounts={accounts} />
-                ) : (
-                  <CedCalendar posts={posts} cid={cid} navigate={navigate} onRefresh={fetchData} accounts={accounts} focusPostId={highlightPostId} focusMonth={focusMonth} />
+                {/* Main calendar: ready ideas (Programmato/Pubblicato) */}
+                {cedView === "calendar"
+                  ? <CedIdeeCalendar ideas={readyIdeas} cid={cid} onRefresh={fetchData} accounts={accounts} focusPostId={highlightPostId} focusMonth={focusMonth} />
+                  : <CedIdeeTable ideas={readyIdeas} cid={cid} onRefresh={fetchData} accounts={accounts} />}
+
+                {/* Production posts (actually scheduled/published via API) */}
+                {posts.length > 0 && (
+                  <div className="pt-4 border-t">
+                    <h3 className="text-sm font-semibold mb-2">Post pubblicati via API (produzione)</h3>
+                    {cedView === "table"
+                      ? <CedTable posts={posts} cid={cid} navigate={navigate} onRefresh={fetchData} accounts={accounts} />
+                      : <CedCalendar posts={posts} cid={cid} navigate={navigate} onRefresh={fetchData} accounts={accounts} />}
+                  </div>
                 )}
-                <div>
-                  <h3 className="text-sm font-semibold mb-2">Idee pronte (Programmate / Pubblicate)</h3>
-                  {cedView === "calendar"
-                    ? <CedIdeeCalendar ideas={readyIdeas} cid={cid} onRefresh={fetchData} accounts={accounts} />
-                    : <CedIdeeTable ideas={readyIdeas} cid={cid} onRefresh={fetchData} accounts={accounts} />}
-                </div>
               </div>
             )}
           </TabsContent>
