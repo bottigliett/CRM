@@ -39,7 +39,10 @@ export async function exchangeTikTokCode(code: string): Promise<{
       redirect_uri: redirectUri,
     }),
   });
-  if (data.error) throw new Error(data.error_description || data.error);
+  if (data.error) {
+    console.error('[tiktok] exchangeTikTokCode error:', JSON.stringify(data));
+    throw new Error(data.error_description || data.error || 'TikTok token exchange failed');
+  }
   return {
     accessToken: data.access_token,
     refreshToken: data.refresh_token,
@@ -75,12 +78,20 @@ export async function getTikTokProfile(accessToken: string): Promise<{ id: strin
   const data = await fetchJson(`${TIKTOK_API}/user/info/?fields=open_id,display_name,avatar_url`, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
-  if (data.error?.code) throw new Error(data.error.message || 'Failed to get TikTok profile');
+  if (data.error) {
+    console.error('[tiktok] getTikTokProfile error:', JSON.stringify(data));
+    const msg = data.error.message || data.error.description || data.error.code || JSON.stringify(data.error);
+    throw new Error(msg || 'Failed to get TikTok profile');
+  }
   const user = data.data?.user;
+  if (!user?.open_id) {
+    console.error('[tiktok] getTikTokProfile: unexpected response', JSON.stringify(data));
+    throw new Error('TikTok profile response missing user info');
+  }
   return {
-    id: user?.open_id || '',
-    name: user?.display_name || '',
-    profilePicUrl: user?.avatar_url,
+    id: user.open_id,
+    name: user.display_name || '',
+    profilePicUrl: user.avatar_url,
   };
 }
 
