@@ -1,4 +1,4 @@
-import rateLimit from 'express-rate-limit';
+import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import { Request, Response } from 'express';
 
 /**
@@ -13,13 +13,13 @@ import { Request, Response } from 'express';
 function keyForUserOrIp(req: Request): string {
   const userId = (req as any).user?.userId;
   if (userId) return `u:${userId}`;
-  return `ip:${req.ip || req.socket.remoteAddress || 'unknown'}`;
+  return `ip:${ipKeyGenerator(req.ip || req.socket.remoteAddress || 'unknown')}`;
 }
 
 /** Key on IP + email/username for login endpoints (blocks credential stuffing per identity). */
 function keyForLogin(req: Request): string {
   const identity = req.body?.email || req.body?.username || 'anon';
-  return `login:${req.ip}:${String(identity).toLowerCase()}`;
+  return `login:${ipKeyGenerator(req.ip || req.socket.remoteAddress || 'unknown')}:${String(identity).toLowerCase()}`;
 }
 
 const defaultMessage = { success: false, message: 'Troppe richieste. Riprova più tardi.' };

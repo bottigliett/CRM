@@ -246,10 +246,19 @@ export async function getInstagramInsights(accessToken: string, igAccountId: str
 }
 
 export async function getFacebookPageInsights(pageAccessToken: string, pageId: string, since: number, until: number): Promise<any> {
-  const metrics = 'page_impressions,page_engaged_users,page_fans,page_views_total,page_post_engagements';
+  // v21: page_impressions/page_engaged_users/page_fans are no longer valid metrics.
+  // page_post_engagements (engagement) and page_views_total (profile views) still work;
+  // followers come from the `fan_count` field, fetched separately.
+  const metrics = 'page_post_engagements,page_views_total';
   const data = await fetchAuthed(`${GRAPH_API_BASE}/${pageId}/insights?metric=${metrics}&period=day&since=${since}&until=${until}`, pageAccessToken);
   if (data.error) throw new Error(data.error.message);
   return data.data;
+}
+
+export async function getFacebookFollowerCount(pageAccessToken: string, pageId: string): Promise<number | null> {
+  const data = await fetchAuthed(`${GRAPH_API_BASE}/${pageId}?fields=fan_count`, pageAccessToken);
+  if (data.error) throw new Error(data.error.message);
+  return data.fan_count ?? null;
 }
 
 // === Post-level Insights ===
@@ -276,22 +285,24 @@ export async function getInstagramMediaInsights(accessToken: string, mediaId: st
 }
 
 export async function getFacebookPostInsights(accessToken: string, postId: string): Promise<{
-  impressions?: number; reach?: number; likes?: number; comments?: number; shares?: number;
+  impressions?: number; reach?: number; likes?: number; comments?: number; shares?: number; videoViews?: number;
 }> {
-  const metrics = 'post_impressions,post_impressions_unique,post_reactions_like_total,post_activity_by_action_type';
+  // v21: post_impressions / post_impressions_unique / post_engaged_users are no
+  // longer valid post-level metrics. Use post_reactions_like_total (likes),
+  // post_video_views (reels) and post_activity_by_action_type (comment/share actions).
+  const metrics = 'post_reactions_like_total,post_video_views,post_activity_by_action_type';
   const data = await fetchAuthed(`${GRAPH_API_BASE}/${postId}/insights?metric=${metrics}`, accessToken);
   if (data.error) throw new Error(data.error.message);
   const result: any = {};
   for (const m of data.data || []) {
     const v = m.values?.[0]?.value;
     switch (m.name) {
-      case 'post_impressions': result.impressions = v; break;
-      case 'post_impressions_unique': result.reach = v; break;
-      case 'post_reactions_like_total': result.likes = v; break;
+      case 'post_reactions_like_total': result.likes = v ?? 0; break;
+      case 'post_video_views': result.videoViews = v ?? 0; break;
       case 'post_activity_by_action_type':
-        if (typeof v === 'object') {
-          result.comments = v.comment || 0;
-          result.shares = v.share || 0;
+        if (v && typeof v === 'object') {
+          result.comments = v.comment ?? v.comments ?? 0;
+          result.shares = v.share ?? v.shares ?? 0;
         }
         break;
     }

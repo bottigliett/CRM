@@ -51,6 +51,11 @@ if (result.error) {
 
 const app: Application = express();
 
+// The app sits behind nginx (1 proxy hop). Trust it so `req.ip` reflects the
+// real client IP from X-Forwarded-For — otherwise express-rate-limit sees every
+// request as coming from 127.0.0.1 and logs ERR_ERL_UNEXPECTED_X_FORWARDED_FOR.
+app.set('trust proxy', 1);
+
 // CORS configuration
 const corsOptions = {
   origin: process.env.FRONTEND_URL || 'http://localhost:5174',

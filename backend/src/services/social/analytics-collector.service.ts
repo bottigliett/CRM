@@ -76,6 +76,11 @@ async function collectAccountAnalytics(account: {
     case SocialPlatform.FACEBOOK: {
       const insights = await meta.getFacebookPageInsights(account.accessToken, account.platformId, since, until);
       metrics = parseMetaInsights(insights);
+      // page_fans is no longer a valid insights metric — read fan_count instead
+      try {
+        const fc = await meta.getFacebookFollowerCount(account.accessToken, account.platformId);
+        if (fc != null) metrics.followers = fc;
+      } catch { /* non-critical */ }
       break;
     }
     case SocialPlatform.LINKEDIN: {
@@ -245,27 +250,13 @@ export async function collectRecentPostMetrics(): Promise<{ success: number; fai
       success++;
     } catch (err: any) {
       const msg = String(err?.message || '');
-      // Detect posts removed/archived directly on the platform (Meta returns a
-      // "not found"-style error) and reflect it in Mismo instead of keeping PUBLISHED.
-      const isRemoved = /does not exist|not exist|invalid media|media id|object with id|unsupported get request|alias.*not exist/i.test(msg);
-      if (isRemoved && account.platform === SocialPlatform.INSTAGRAM) {
-        await prisma.socialPostTarget.update({
-          where: { id: target.id },
-          data: { status: 'ARCHIVED', errorMessage: 'Rimosso su Instagram' },
-        });
-        const remaining = await prisma.socialPostTarget.count({
-          where: { postId: target.postId, status: { not: 'ARCHIVED' } },
-        });
-        if (remaining === 0) {
-          await prisma.socialPost.update({
-            where: { id: target.postId },
-            data: { status: 'ARCHIVED' },
-          });
-        }
-        console.log(`[post-metrics-batch] Post ${target.postId} marcato ARCHIVED (rimosso su Instagram)`);
-      } else {
-        console.error(`[post-metrics-batch] Failed for target ${target.id}:`, err);
-      }
+      // NOTE: Meta's "Object with ID ... does not exist, cannot be loaded due to
+      // missing permissions, or does not support this operation" is ambiguous — it
+      // fires both when a post was actually removed AND when the token simply lacks
+      // instagram_manage_insights. Auto-archiving on that message caused false
+      // positives (valid posts marked ARCHIVED), so we no longer auto-archive:
+      // we only log. Re-enable a stricter check once insights permissions are granted.
+      console.error(`[post-metrics-batch] Failed for target ${target.id} (${account.platform}):`, msg);
       failed++;
     }
   }

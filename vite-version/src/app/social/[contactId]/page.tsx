@@ -1597,6 +1597,8 @@ function CedIdeeCalendar({ ideas, cid, onRefresh, accounts, focusPostId, focusMo
                       const status = idea.ideaStatus || "Idea"
                       const isFocused = idea.id === focusPostId
                       const thumb = idea.coverImageUrl || (idea.mediaUrls as string[] | null)?.[0]
+                      const likes = isProduction ? (idea.postMetrics || []).reduce((s: number, m: any) => s + (Number(m.likes) || 0), 0) : 0
+                      const comments = isProduction ? (idea.postMetrics || []).reduce((s: number, m: any) => s + (Number(m.comments) || 0), 0) : 0
                       return (
                         <div key={idea.id}
                           ref={isFocused ? el => { if (el) setTimeout(() => el.scrollIntoView({ block: "center", behavior: "smooth" }), 250) } : undefined}
@@ -1638,7 +1640,13 @@ function CedIdeeCalendar({ ideas, cid, onRefresh, accounts, focusPostId, focusMo
                                     ))}
                                   </div>
                                 )}
-                                <span className="ml-auto flex items-center gap-0.5">
+                                <span className="ml-auto flex items-center gap-1">
+                                  <span className="flex items-center gap-0.5 text-[9px] text-muted-foreground" title="Like">
+                                    <Heart className="h-2.5 w-2.5 text-pink-500" />{likes}
+                                  </span>
+                                  <span className="flex items-center gap-0.5 text-[9px] text-muted-foreground" title="Commenti">
+                                    <MessageCircle className="h-2.5 w-2.5" />{comments}
+                                  </span>
                                   <span className={`w-1.5 h-1.5 rounded-full ${idea.status === "PUBLISHED" ? "bg-green-500" : "bg-blue-500"}`} />
                                   {idea.scheduledAt && <span className="text-[9px] text-muted-foreground">{format(new Date(idea.scheduledAt), "HH:mm")}</span>}
                                 </span>
