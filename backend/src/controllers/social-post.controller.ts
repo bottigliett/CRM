@@ -3,6 +3,8 @@ import prisma from '../config/database';
 import { AuthRequest } from '../middleware/auth';
 import { uploadToR2 } from '../services/social/r2.service';
 import { isVideoMime } from '../services/social/transcription.service';
+import { extractVideoThumbnail } from '../services/social/video-processing.service';
+import path from 'path';
 
 /** Enqueue a background transcription job when any uploaded media is a video/reel. */
 async function enqueueTranscriptionIfVideo(postId: number, mediaFiles: Express.Multer.File[], platformFiles: Record<string, { media?: Express.Multer.File; cover?: Express.Multer.File }> = {}): Promise<void> {
@@ -202,6 +204,22 @@ export const createPost = async (req: AuthRequest, res: Response) => {
     if (coverFile) {
       const { url } = await uploadToR2(coverFile.buffer, contactId, coverFile.originalname, coverFile.mimetype);
       coverImageUrl = url;
+    } else if (mediaFiles.length) {
+      // Auto-generate a cover frame for videos (reels) when no cover was uploaded,
+      // so the calendar preview shows a real thumbnail instead of a gray box.
+      const firstVideo = mediaFiles.find(f => isVideoMime(f.mimetype));
+      if (firstVideo) {
+        try {
+          const ext = path.extname(firstVideo.originalname || '') || '.mp4';
+          const thumb = await extractVideoThumbnail(firstVideo.buffer, ext);
+          if (thumb) {
+            const { url } = await uploadToR2(thumb, contactId, `cover-${Date.now()}.jpg`, 'image/jpeg');
+            coverImageUrl = url;
+          }
+        } catch (err: any) {
+          console.warn('[social-post] cover frame generation failed:', err?.message || err);
+        }
+      }
     }
 
     // Also accept pre-existing mediaUrls from body (for editing/duplicating)

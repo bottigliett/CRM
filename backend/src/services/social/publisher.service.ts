@@ -5,6 +5,7 @@ import * as linkedin from './linkedin.service';
 import * as tiktok from './tiktok.service';
 import { getSignedR2Url, downloadFromR2, uploadToR2 } from './r2.service';
 import { uniquifyVideo } from './video-uniquifier.service';
+import { convertToMp4 } from './video-processing.service';
 import { uploadToTikTok } from './browser/tiktok-browser.service';
 import { uploadToInstagram } from './browser/instagram-browser.service';
 import fs from 'fs/promises';
@@ -107,10 +108,14 @@ export async function publishPost(postId: number): Promise<void> {
             }
             case SocialPlatform.TIKTOK: {
               if (!targetMediaUrls.length) throw new Error('TikTok requires a video');
-              const videoBuffer = await downloadFromR2(targetMediaUrls[0]);
+              const videoUrl = targetMediaUrls[0];
+              const videoBuffer = await downloadFromR2(videoUrl);
+              // TikTok only accepts MP4 (H.264); convert .mov/.webm/... before upload.
+              const ext = path.extname(videoUrl.split('?')[0]) || '.mp4';
+              const mp4Buffer = await convertToMp4(videoBuffer, ext);
               const result = await tiktok.publishToTikTok(
                 account.accessToken,
-                videoBuffer,
+                mp4Buffer,
                 content
               );
               platformPostId = result.id;
