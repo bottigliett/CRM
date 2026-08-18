@@ -1972,14 +1972,16 @@ function PostFormDialog({ open, onOpenChange, post, accounts, cid, onDone, initi
           }
           const rows = [...latestByAccount.values()]
           const sum = (k: string) => rows.reduce((s, m) => s + (Number(m[k]) || 0), 0)
-          const hasData = rows.length > 0
+          // Only show a number when at least one row actually has that field;
+          // otherwise keep null so the UI falls back to "—" (unknown ≠ 0).
+          const hasField = (k: string) => rows.some(m => m[k] !== null && m[k] !== undefined)
           setMetrics({
-            likes: hasData ? sum("likes") : null,
-            comments: hasData ? sum("comments") : null,
-            shares: hasData ? sum("shares") : null,
-            saves: hasData ? sum("saves") : null,
-            reach: hasData ? sum("reach") : null,
-            impressions: hasData ? sum("impressions") : null,
+            likes: hasField("likes") ? sum("likes") : null,
+            comments: hasField("comments") ? sum("comments") : null,
+            shares: hasField("shares") ? sum("shares") : null,
+            saves: hasField("saves") ? sum("saves") : null,
+            reach: hasField("reach") ? sum("reach") : null,
+            impressions: hasField("impressions") ? sum("impressions") : null,
           })
         }).catch(() => {})
       } else {
