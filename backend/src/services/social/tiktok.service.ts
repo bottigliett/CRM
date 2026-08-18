@@ -27,8 +27,8 @@ function isTikTokError(data: any): boolean {
 // === OAuth ===
 
 export function getTikTokAuthUrl(state: string): string {
-  // video.publish = Direct Post (auto-publish); video.upload = upload as draft.
-  const scopes = 'user.info.basic,video.upload,video.publish';
+  // video.publish = Direct Post (auto-publish). video.upload (draft) is not used.
+  const scopes = 'user.info.basic,video.publish';
   const redirectUri = `${REDIRECT_BASE()}/tiktok/callback`;
   return `${TIKTOK_AUTH}/?client_key=${CLIENT_KEY()}&response_type=code&scope=${scopes}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}`;
 }
