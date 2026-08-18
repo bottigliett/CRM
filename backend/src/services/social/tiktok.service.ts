@@ -115,54 +115,53 @@ const TIKTOK_CHUNK_SIZE = 10 * 1024 * 1024; // 10 MB per chunk (API max)
  */
 export async function publishToTikTok(accessToken: string, videoBuffer: Buffer, caption: string): Promise<{ id: string }> {
   const size = videoBuffer.length;
-  const chunkCount = Math.ceil(size / TIKTOK_CHUNK_SIZE);
+  const chunkSize = size <= TIKTOK_CHUNK_SIZE ? size : TIKTOK_CHUNK_SIZE;
+  const chunkCount = size <= TIKTOK_CHUNK_SIZE ? 1 : Math.ceil(size / TIKTOK_CHUNK_SIZE);
 
-  // 1) Init the upload
-  const init = await fetchJson(`${TIKTOK_API}/post/publish/video/init/`, {
+  // 1) Init the upload. "Upload as draft" (video.upload scope) uses
+  //    /post/publish/inbox/video/init/ — NOT /video/init/, which is Direct Post
+  //    (video.publish scope). post_info only carries the title: privacy/duet/
+  //    comment/stitch are chosen by the creator in the TikTok app.
+  const init = await fetchJson(`${TIKTOK_API}/post/publish/inbox/video/init/`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${accessToken}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      post_info: {
-        title: caption.slice(0, 150),
-        // Sandbox requires SELF_ONLY; production → PUBLIC_TO_EVERYONE
-        privacy_level: 'SELF_ONLY',
-        disable_duet: false,
-        disable_comment: false,
-        disable_stitch: false,
-      },
+      post_info: { title: caption.slice(0, 150) },
       source_info: {
         source: 'FILE_UPLOAD',
         video_size: size,
-        chunk_size: TIKTOK_CHUNK_SIZE,
+        chunk_size: chunkSize,
         total_chunk_count: chunkCount,
       },
     }),
   });
   if (isTikTokError(init)) throw new Error(init.error.message || 'TikTok init failed');
   const publishId = init.data?.publish_id;
+  const uploadUrl = init.data?.upload_url;
   if (!publishId) throw new Error('TikTok init missing publish_id');
+  if (!uploadUrl) throw new Error('TikTok init missing upload_url');
 
-  // 2) Upload chunks
+  // 2) Upload the video bytes to the pre-signed upload_url (PUT + Content-Range).
   for (let i = 0; i < chunkCount; i++) {
-    const start = i * TIKTOK_CHUNK_SIZE;
-    const end = Math.min(start + TIKTOK_CHUNK_SIZE, size) - 1;
+    const start = i * chunkSize;
+    const end = Math.min(start + chunkSize, size) - 1;
     const chunk = videoBuffer.subarray(start, end + 1);
 
-    const up = await fetch(`${TIKTOK_API}/post/publish/video/upload/`, {
-      method: 'POST',
+    const up = await fetch(uploadUrl, {
+      method: 'PUT',
       headers: {
-        Authorization: `Bearer ${accessToken}`,
         'Content-Type': 'video/mp4',
+        'Content-Length': String(end - start + 1),
         'Content-Range': `bytes ${start}-${end}/${size}`,
       },
       body: new Uint8Array(chunk),
     });
-    const upJson: any = await up.json().catch(() => ({}));
-    if (!up.ok || isTikTokError(upJson)) {
-      throw new Error(upJson.error?.message || `TikTok chunk upload failed (${up.status})`);
+    if (up.status !== 200 && up.status !== 201 && up.status !== 206) {
+      const text = await up.text().catch(() => '');
+      throw new Error(`TikTok upload failed (${up.status}): ${text.slice(0, 200)}`);
     }
   }
 
