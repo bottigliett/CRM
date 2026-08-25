@@ -238,6 +238,8 @@ function InvoicesSection({ invoices, clients, onRefresh }: { invoices: PersonalI
   const [clientSel, setClientSel] = useState("")
   const [previewOpen, setPreviewOpen] = useState(false)
   const [previewHtml, setPreviewHtml] = useState("")
+  const [eInvoiceTarget, setEInvoiceTarget] = useState<PersonalInvoice | null>(null)
+  const [eInvoiceNumber, setEInvoiceNumber] = useState("")
   const [recurringOpen, setRecurringOpen] = useState(false)
   const [recurring, setRecurring] = useState<any[]>([])
   const [recForm, setRecForm] = useState({ personalClientId: "", clientName: "", subjectTemplate: "", total: "", paymentDays: "30", generationDay: "10" })
@@ -263,6 +265,16 @@ function InvoicesSection({ invoices, clients, onRefresh }: { invoices: PersonalI
   const delRecurring = async (id: number) => {
     if (!confirm("Eliminare il template ricorrente?")) return
     try { await personalAPI.deleteRecurring(id); toast.success("Eliminato"); loadRecurring() }
+    catch (e: any) { toast.error(e.message) }
+  }
+
+  const saveEInvoice = async () => {
+    if (!eInvoiceTarget || !eInvoiceNumber.trim()) return
+    try { await personalAPI.updateInvoice(eInvoiceTarget.id, { electronicInvoiceNumber: eInvoiceNumber.trim() }); toast.success("Fattura elettronica salvata"); setEInvoiceTarget(null); setEInvoiceNumber(""); onRefresh() }
+    catch (e: any) { toast.error(e.message) }
+  }
+  const clearEInvoice = async (inv: PersonalInvoice) => {
+    try { await personalAPI.updateInvoice(inv.id, { electronicInvoiceNumber: "" }); toast.success("Fattura elettronica rimossa"); onRefresh() }
     catch (e: any) { toast.error(e.message) }
   }
 
@@ -435,12 +447,14 @@ function InvoicesSection({ invoices, clients, onRefresh }: { invoices: PersonalI
                   <TableHead className="min-w-[220px]">Cliente</TableHead>
                   <TableHead className="w-[110px] text-right">Totale</TableHead>
                   <TableHead className="w-[90px]">Data</TableHead>
+                  <TableHead className="w-[120px]">Fiscale</TableHead>
                   <TableHead className="w-[90px]">Stato</TableHead>
                   <TableHead className="w-[50px]"></TableHead>
                 </TableRow>
                 <TableRow>
                   <TableHead className="p-1"><Input className="h-8 text-xs" placeholder="Numero..." value={search} onChange={e => setSearch(e.target.value)} /></TableHead>
                   <TableHead className="p-1"><Input className="h-8 text-xs" placeholder="Cliente..." value={search} onChange={e => setSearch(e.target.value)} /></TableHead>
+                  <TableHead className="p-1"></TableHead>
                   <TableHead className="p-1"></TableHead>
                   <TableHead className="p-1"></TableHead>
                   <TableHead className="p-1">
@@ -461,7 +475,7 @@ function InvoicesSection({ invoices, clients, onRefresh }: { invoices: PersonalI
               <TableBody>
                 {filtered.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-10">
+                    <TableCell colSpan={7} className="text-center py-10">
                       <div className="flex flex-col items-center gap-2">
                         <FileText className="h-12 w-12 text-muted-foreground/40" />
                         <p className="text-sm text-muted-foreground">Nessuna fattura trovata</p>
@@ -478,6 +492,23 @@ function InvoicesSection({ invoices, clients, onRefresh }: { invoices: PersonalI
                     </TableCell>
                     <TableCell className="font-semibold text-right tabular-nums">€ {inv.total.toLocaleString("it-IT", { minimumFractionDigits: 2 })}</TableCell>
                     <TableCell className="text-xs whitespace-nowrap">{inv.issueDate ? format(new Date(inv.issueDate), "dd/MM/yy") : "—"}</TableCell>
+                    <TableCell onClick={e => e.stopPropagation()} className="text-xs">
+                      {inv.status === "PAID" ? (
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-1.5">
+                            <Landmark className={`h-3.5 w-3.5 shrink-0 ${inv.taxReserved ? "text-orange-500" : "text-muted-foreground/30"}`} />
+                            <span className={inv.taxReserved ? "text-orange-600" : "text-muted-foreground/40"}>Tasse acc.</span>
+                          </div>
+                          <button onClick={() => inv.electronicInvoiceNumber ? clearEInvoice(inv) : (setEInvoiceTarget(inv), setEInvoiceNumber(""))} className="flex items-center gap-1.5 group">
+                            {inv.electronicInvoiceNumber ? (
+                              <span className="text-blue-600 truncate max-w-[110px]">FE {inv.electronicInvoiceNumber}</span>
+                            ) : (
+                              <span className="text-muted-foreground/40 group-hover:text-muted-foreground">Fatt. elettronica</span>
+                            )}
+                          </button>
+                        </div>
+                      ) : <span className="text-muted-foreground/30">—</span>}
+                    </TableCell>
                     <TableCell>
                       <Badge variant={STATUS_BADGE[inv.status]?.variant || "secondary"} className={inv.status === "PAID" ? "bg-green-600" : ""}>{STATUS_BADGE[inv.status]?.label || inv.status}</Badge>
                     </TableCell>
@@ -597,6 +628,21 @@ function InvoicesSection({ invoices, clients, onRefresh }: { invoices: PersonalI
               <Button size="sm" onClick={addRecurring} disabled={!recForm.clientName.trim() || !recForm.total}><Plus className="h-4 w-4 mr-1" /> Aggiungi template</Button>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Electronic invoice dialog */}
+      <Dialog open={!!eInvoiceTarget} onOpenChange={o => { if (!o) setEInvoiceTarget(null) }}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader><DialogTitle>Fattura Elettronica</DialogTitle></DialogHeader>
+          <div className="space-y-2">
+            <Label>Numero fattura elettronica</Label>
+            <Input value={eInvoiceNumber} onChange={e => setEInvoiceNumber(e.target.value)} autoFocus placeholder="Es. 12345" />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEInvoiceTarget(null)}>Annulla</Button>
+            <Button onClick={saveEInvoice} disabled={!eInvoiceNumber.trim()}>Salva</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </>
