@@ -240,7 +240,7 @@ export const getPersonalRecurringInvoices = async (req: AuthRequest, res: Respon
   if (userId === null) return;
   try {
     const list = await prisma.personalRecurringInvoice.findMany({
-      include: { personalClient: true },
+      include: { contact: true, paymentEntity: true },
       orderBy: { createdAt: 'desc' },
     });
     return res.json({ success: true, data: list });
@@ -256,7 +256,8 @@ export const createPersonalRecurringInvoice = async (req: AuthRequest, res: Resp
     const b = req.body;
     const rec = await prisma.personalRecurringInvoice.create({
       data: {
-        personalClientId: parseInt(b.personalClientId),
+        contactId: b.contactId ? parseInt(b.contactId) : null,
+        paymentEntityId: b.paymentEntityId ? parseInt(b.paymentEntityId) : null,
         clientName: b.clientName || '',
         clientAddress: b.clientAddress || null,
         clientPIva: b.clientPIva || null,
@@ -275,7 +276,7 @@ export const createPersonalRecurringInvoice = async (req: AuthRequest, res: Resp
         isActive: b.isActive !== false,
         createdBy: userId,
       },
-      include: { personalClient: true },
+      include: { contact: true, paymentEntity: true },
     });
     return res.status(201).json({ success: true, data: rec });
   } catch (e: any) {
@@ -296,9 +297,10 @@ export const updatePersonalRecurringInvoice = async (req: AuthRequest, res: Resp
     for (const f of ['quantity', 'unitPrice', 'subtotal', 'vatPercentage', 'vatAmount', 'total', 'paymentDays', 'generationDay']) {
       if (b[f] !== undefined) data[f] = Number(b[f]);
     }
-    if (b.personalClientId !== undefined) data.personalClientId = parseInt(b.personalClientId);
+    if (b.contactId !== undefined) data.contactId = b.contactId ? parseInt(b.contactId) : null;
+    if (b.paymentEntityId !== undefined) data.paymentEntityId = b.paymentEntityId ? parseInt(b.paymentEntityId) : null;
     if (b.isActive !== undefined) data.isActive = b.isActive === true || b.isActive === 'true';
-    const rec = await prisma.personalRecurringInvoice.update({ where: { id }, data, include: { personalClient: true } });
+    const rec = await prisma.personalRecurringInvoice.update({ where: { id }, data, include: { contact: true, paymentEntity: true } });
     return res.json({ success: true, data: rec });
   } catch (e: any) {
     return res.status(500).json({ success: false, message: e.message });
@@ -400,7 +402,7 @@ export const generatePersonalRecurringInvoice = async (req: AuthRequest, res: Re
     const invoice = await prisma.personalInvoice.create({
       data: {
         invoiceNumber,
-        personalClientId: rec.personalClientId,
+        paymentEntityId: rec.paymentEntityId,
         clientName: rec.clientName,
         clientAddress: rec.clientAddress,
         clientPIva: rec.clientPIva,

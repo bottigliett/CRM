@@ -227,6 +227,7 @@ model Contact {
   transactions      Transaction[] // Transactions linked to this contact
   invoices          Invoice[] // Invoices for this contact
   recurringInvoices RecurringInvoice[] // Recurring invoice templates for this contact
+  personalRecurringInvoices PersonalRecurringInvoice[] // Personal recurring invoice templates
   projects          Project[]            @relation("ProjectContact") // Projects for this contact
   clientAccess      ClientAccess? // Client access credentials (if client)
   quotes            Quote[] // Quotes for this contact
@@ -663,6 +664,7 @@ model PaymentEntity {
   invoices          Invoice[]
   recurringInvoices RecurringInvoice[]
   personalInvoices  PersonalInvoice[]
+  personalRecurringInvoices PersonalRecurringInvoice[]
 
   @@map("payment_entities")
 }
@@ -787,7 +789,6 @@ model PersonalClient {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   invoices PersonalInvoice[]
-  recurringInvoices PersonalRecurringInvoice[]
 
   @@index([name])
   @@map("personal_clients")
@@ -853,11 +854,12 @@ model PersonalInvoice {
 model PersonalRecurringInvoice {
   id Int @id @default(autoincrement())
 
-  personalClientId Int @map("personal_client_id")
-  clientName       String @map("client_name")
-  clientAddress    String? @map("client_address")
-  clientPIva       String? @map("client_piva")
-  clientCF         String? @map("client_cf")
+  contactId      Int?    @map("contact_id")
+  paymentEntityId Int?   @map("payment_entity_id")
+  clientName      String  @map("client_name")
+  clientAddress   String? @map("client_address")
+  clientPIva      String? @map("client_piva")
+  clientCF        String? @map("client_cf")
 
   subjectTemplate String  @map("subject_template")
   description     String? @db.Text // JSON services array
@@ -878,10 +880,12 @@ model PersonalRecurringInvoice {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  personalClient PersonalClient @relation(fields: [personalClientId], references: [id], onDelete: Cascade)
-  creator        User           @relation("PersonalRecurringInvoiceCreator", fields: [createdBy], references: [id])
+  contact       Contact?       @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  paymentEntity PaymentEntity? @relation(fields: [paymentEntityId], references: [id], onDelete: SetNull)
+  creator       User           @relation("PersonalRecurringInvoiceCreator", fields: [createdBy], references: [id])
 
-  @@index([personalClientId])
+  @@index([contactId])
+  @@index([paymentEntityId])
   @@index([isActive])
   @@index([createdBy])
   @@map("personal_recurring_invoices")
