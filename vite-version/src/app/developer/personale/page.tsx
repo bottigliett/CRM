@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { useAuthStore } from "@/store/auth-store"
 import { personalAPI, type PersonalClient, type PersonalInvoice } from "@/lib/personal-api"
-import { generateInvoicePDF } from "@/lib/pdf-generator"
+import { generateInvoicePDF, getInvoiceHTML } from "@/lib/pdf-generator"
 import { PaymentEntitySettings } from "@/components/payment-entity-settings"
 import { contactsAPI, type Contact } from "@/lib/contacts-api"
 import { toast } from "sonner"
@@ -235,6 +235,8 @@ function InvoicesSection({ invoices, clients, onRefresh }: { invoices: PersonalI
   const [taxSubmitting, setTaxSubmitting] = useState(false)
   const [contacts, setContacts] = useState<Contact[]>([])
   const [clientSel, setClientSel] = useState("")
+  const [previewOpen, setPreviewOpen] = useState(false)
+  const [previewHtml, setPreviewHtml] = useState("")
 
   useEffect(() => {
     contactsAPI.getContacts({ limit: 1000 }).then(r => { if (r.success) setContacts(r.data.contacts) }).catch(() => {})
@@ -340,20 +342,27 @@ function InvoicesSection({ invoices, clients, onRefresh }: { invoices: PersonalI
     catch (e: any) { toast.error(e.message) }
   }
 
+  const buildPdfData = (inv: PersonalInvoice) => ({
+    invoiceNumber: inv.invoiceNumber,
+    invoiceDate: inv.issueDate ? format(new Date(inv.issueDate), "dd/MM/yyyy") : "",
+    dueDate: inv.dueDate ? format(new Date(inv.dueDate), "dd/MM/yyyy") : "",
+    paymentDays: inv.paymentDays,
+    clientName: inv.clientName, clientAddress: inv.clientAddress, clientPIva: inv.clientPIva, clientCF: inv.clientCF,
+    subject: inv.subject, description: inv.description || "",
+    quantity: String(inv.quantity), unitPrice: String(inv.unitPrice),
+    subtotal: String(inv.subtotal), vatPercentage: String(inv.vatPercentage), vatAmount: String(inv.vatAmount), total: String(inv.total),
+    fiscalNotes: inv.fiscalNotes, isVatZero: true,
+    services: (() => { try { const p = JSON.parse(inv.description || "[]"); return Array.isArray(p) ? p : [] } catch { return [] } })(),
+    personal: true,
+  })
+
   const downloadPdf = (inv: PersonalInvoice) => {
-    generateInvoicePDF(inv.id, {
-      invoiceNumber: inv.invoiceNumber,
-      invoiceDate: inv.issueDate ? format(new Date(inv.issueDate), "dd/MM/yyyy") : "",
-      dueDate: inv.dueDate ? format(new Date(inv.dueDate), "dd/MM/yyyy") : "",
-      paymentDays: inv.paymentDays,
-      clientName: inv.clientName, clientAddress: inv.clientAddress, clientPIva: inv.clientPIva, clientCF: inv.clientCF,
-      subject: inv.subject, description: inv.description || "",
-      quantity: String(inv.quantity), unitPrice: String(inv.unitPrice),
-      subtotal: String(inv.subtotal), vatPercentage: String(inv.vatPercentage), vatAmount: String(inv.vatAmount), total: String(inv.total),
-      fiscalNotes: inv.fiscalNotes, isVatZero: true,
-      services: (() => { try { const p = JSON.parse(inv.description || "[]"); return Array.isArray(p) ? p : [] } catch { return [] } })(),
-      personal: true,
-    }).catch(e => toast.error(e.message))
+    generateInvoicePDF(inv.id, buildPdfData(inv)).catch(e => toast.error(e.message))
+  }
+
+  const openPreview = (inv: PersonalInvoice) => {
+    setPreviewHtml(getInvoiceHTML(buildPdfData(inv)))
+    setPreviewOpen(true)
   }
 
   return (
@@ -447,7 +456,7 @@ function InvoicesSection({ invoices, clients, onRefresh }: { invoices: PersonalI
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild><Button variant="ghost" className="h-8 w-8 p-0"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => downloadPdf(inv)}><FileText className="mr-2 h-4 w-4" /> Anteprima</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => openPreview(inv)}><FileText className="mr-2 h-4 w-4" /> Anteprima</DropdownMenuItem>
                           <DropdownMenuItem onClick={() => openEdit(inv)}><Pencil className="mr-2 h-4 w-4" /> Modifica</DropdownMenuItem>
                           <DropdownMenuItem onClick={() => downloadPdf(inv)}><Download className="mr-2 h-4 w-4" /> Scarica PDF</DropdownMenuItem>
                           {inv.status === "PAID" && !inv.taxReserved && (
@@ -611,6 +620,17 @@ function InvoicesSection({ invoices, clients, onRefresh }: { invoices: PersonalI
               Accantona
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Invoice Preview Dialog */}
+      <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+        <DialogContent className="sm:max-w-[820px] max-h-[92vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Anteprima Fattura</DialogTitle>
+            <DialogDescription>Visualizzazione della fattura</DialogDescription>
+          </DialogHeader>
+          <iframe title="Anteprima fattura" srcDoc={previewHtml} className="w-full h-[72vh] border rounded" />
         </DialogContent>
       </Dialog>
     </>

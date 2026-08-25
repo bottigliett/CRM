@@ -101,7 +101,7 @@ export async function generateInvoicePDF(invoiceId: number, data: InvoicePDFData
   }
 }
 
-function getInvoiceHTML(data: InvoicePDFData): string {
+export function getInvoiceHTML(data: InvoicePDFData): string {
   const paymentBank = data.paymentBank || 'REVOLUT BANK UAB';
   const paymentIban = data.paymentIban || 'LT95 3250 0482 6617 5203';
   const paymentBeneficiary = data.paymentBeneficiary || (data.personal ? 'DAVIDE MARANGONI' : 'STEFANO COSTATO E DAVIDE MARANGONI');
