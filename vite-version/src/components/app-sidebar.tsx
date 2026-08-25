@@ -18,6 +18,7 @@ import {
   Megaphone,
   Code,
   Share2,
+  Lock,
 } from "lucide-react"
 import { Link } from "react-router-dom"
 import { Logo } from "@/components/logo"
@@ -177,6 +178,11 @@ const developerNavGroup: NavGroup = {
       title: "Sandbox",
       url: "/developer/sandbox",
       icon: Code,
+    },
+    {
+      title: "Personale",
+      url: "/developer/personale",
+      icon: Lock,
     },
   ],
 }
