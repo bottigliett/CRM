@@ -9,23 +9,31 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog"
 import { useAuthStore } from "@/store/auth-store"
 import { personalAPI, type PersonalClient, type PersonalInvoice } from "@/lib/personal-api"
 import { generateInvoicePDF } from "@/lib/pdf-generator"
 import { toast } from "sonner"
 import { format } from "date-fns"
-import { Lock, Plus, Trash2, FileText, Pencil, BarChart3 } from "lucide-react"
+import { Lock, Plus, Trash2, FileText, Pencil, BarChart3, Loader2 } from "lucide-react"
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, CartesianGrid } from "recharts"
 
 const UNLOCK_CODE = "1212"
 
-const STATUS_LABEL: Record<string, { label: string; cls: string }> = {
-  DRAFT: { label: "Bozza", cls: "bg-gray-100 text-gray-700" },
-  ISSUED: { label: "Emessa", cls: "bg-blue-100 text-blue-700" },
-  PAID: { label: "Pagata", cls: "bg-green-100 text-green-700" },
-  CANCELLED: { label: "Stornata", cls: "bg-red-100 text-red-700" },
+const STATUS_BADGE: Record<string, string> = {
+  DRAFT: "bg-gray-100 text-gray-700",
+  ISSUED: "bg-blue-100 text-blue-700",
+  PAID: "bg-green-100 text-green-700",
+  CANCELLED: "bg-red-100 text-red-700",
 }
+const STATUS_LABEL: Record<string, string> = {
+  DRAFT: "Bozza", ISSUED: "Emessa", PAID: "Pagata", CANCELLED: "Stornata",
+}
+
+const FISCAL_NOTES_DEFAULT = "IVA 0% - OPERAZIONE NON SOGGETTA A IVA AI SENSI DELL'ART. 1, COMMI 54-89, LEGGE N. 190/2014 E SUCC. MODIFICHE/INTEGRAZIONI.\n\nQUESTO DOCUMENTO NON COSTITUISCE FATTURA A FINI FISCALI, CHE SARÀ EMESSA AL MOMENTO DEL PAGAMENTO."
+
+type ServiceItem = { id: string; description: string; quantity: number; unitPrice: number }
 
 type InvoiceForm = {
   personalClientId: string
@@ -34,16 +42,16 @@ type InvoiceForm = {
   clientPIva: string
   clientCF: string
   subject: string
-  description: string
-  total: string
+  status: string
   issueDate: string
-  dueDate: string
   paymentDays: string
+  paymentDate: string
   paymentMethod: string
   paymentNotes: string
   taxReserved: boolean
   taxAmount: string
   electronicInvoiceNumber: string
+  fiscalNotes: string
 }
 
 const emptyForm: InvoiceForm = {
@@ -53,16 +61,16 @@ const emptyForm: InvoiceForm = {
   clientPIva: "",
   clientCF: "",
   subject: "",
-  description: "",
-  total: "",
+  status: "DRAFT",
   issueDate: new Date().toISOString().slice(0, 10),
-  dueDate: new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10),
   paymentDays: "30",
+  paymentDate: "",
   paymentMethod: "",
   paymentNotes: "",
   taxReserved: false,
   taxAmount: "",
   electronicInvoiceNumber: "",
+  fiscalNotes: FISCAL_NOTES_DEFAULT,
 }
 
 export default function DeveloperPersonale() {
@@ -74,20 +82,12 @@ export default function DeveloperPersonale() {
   const isDev = user?.role === "DEVELOPER" || user?.role === "ADMIN" || user?.role === "SUPER_ADMIN"
 
   const tryUnlock = () => {
-    if (code === UNLOCK_CODE) {
-      setUnlocked(true)
-      setWrong(false)
-    } else {
-      setWrong(true)
-    }
+    if (code === UNLOCK_CODE) { setUnlocked(true); setWrong(false) }
+    else setWrong(true)
   }
 
   if (!isDev) {
-    return (
-      <BaseLayout title="Accesso negato">
-        <div className="px-4 lg:px-6 py-16 text-center text-muted-foreground">Accesso riservato.</div>
-      </BaseLayout>
-    )
+    return <BaseLayout title="Accesso negato"><div className="px-4 lg:px-6 py-16 text-center text-muted-foreground">Accesso riservato.</div></BaseLayout>
   }
 
   if (!unlocked) {
@@ -98,15 +98,7 @@ export default function DeveloperPersonale() {
             <Lock className="h-8 w-8 mx-auto text-muted-foreground" />
             <h2 className="text-lg font-semibold">Area riservata</h2>
             <p className="text-sm text-muted-foreground">Inserisci il codice di sblocco</p>
-            <Input
-              type="password"
-              value={code}
-              onChange={e => { setCode(e.target.value); setWrong(false) }}
-              onKeyDown={e => e.key === "Enter" && tryUnlock()}
-              placeholder="••••"
-              autoFocus
-              className="text-center text-lg tracking-widest"
-            />
+            <Input type="password" value={code} onChange={e => { setCode(e.target.value); setWrong(false) }} onKeyDown={e => e.key === "Enter" && tryUnlock()} placeholder="••••" autoFocus className="text-center text-lg tracking-widest" />
             {wrong && <p className="text-xs text-red-500">Codice errato</p>}
             <Button className="w-full" onClick={tryUnlock}>Sblocca</Button>
           </div>
@@ -129,29 +121,19 @@ function PersonalContent() {
       const [c, inv] = await Promise.all([personalAPI.getClients(), personalAPI.getInvoices()])
       setClients(c.data)
       setInvoices(inv.data)
-    } catch (e: any) {
-      toast.error(e.message)
-    }
+    } catch (e: any) { toast.error(e.message) }
   }
 
   useEffect(() => { loadAll() }, [])
   useEffect(() => {
-    personalAPI.getComparison(granularity)
-      .then(r => setComparison(r.data))
-      .catch(e => toast.error(e.message))
+    personalAPI.getComparison(granularity).then(r => setComparison(r.data)).catch(e => toast.error(e.message))
   }, [granularity])
 
-  const chartData = useMemo(() =>
-    comparison.map(c => ({
-      name: c.period,
-      Davide: c.davide,
-      Stefano: c.stefano,
-    })), [comparison])
+  const chartData = useMemo(() => comparison.map(c => ({ name: c.period, Davide: c.davide, Stefano: c.stefano })), [comparison])
 
   return (
     <BaseLayout title="Area personale" description="Fatturato personale e fatture private">
       <div className="px-4 lg:px-6 space-y-6">
-        {/* Chart */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
@@ -160,8 +142,7 @@ function PersonalContent() {
             </div>
             <div className="flex gap-1 bg-muted rounded-lg p-0.5">
               {(["monthly", "yearly"] as const).map(g => (
-                <button key={g} onClick={() => setGranularity(g)}
-                  className={`px-3 py-1.5 text-xs font-medium rounded-md ${granularity === g ? "bg-background shadow-sm" : "text-muted-foreground"}`}>
+                <button key={g} onClick={() => setGranularity(g)} className={`px-3 py-1.5 text-xs font-medium rounded-md ${granularity === g ? "bg-background shadow-sm" : "text-muted-foreground"}`}>
                   {g === "monthly" ? "Mensile" : "Annuale"}
                 </button>
               ))}
@@ -202,9 +183,7 @@ function ClientsSection({ clients, onRefresh }: { clients: PersonalClient[]; onR
     try {
       if (dialog.editing) await personalAPI.updateClient(dialog.editing.id, form)
       else await personalAPI.createClient(form)
-      toast.success("Cliente salvato")
-      setDialog({ open: false })
-      onRefresh()
+      toast.success("Cliente salvato"); setDialog({ open: false }); onRefresh()
     } catch (e: any) { toast.error(e.message) }
   }
 
@@ -227,9 +206,7 @@ function ClientsSection({ clients, onRefresh }: { clients: PersonalClient[]; onR
               <div key={c.id} className="flex items-center justify-between border rounded-md px-3 py-2">
                 <div className="min-w-0">
                   <p className="text-sm font-medium truncate">{c.name}</p>
-                  <p className="text-xs text-muted-foreground truncate">
-                    {[c.piva && `P.IVA ${c.piva}`, c.cf && `C.F. ${c.cf}`, c.address].filter(Boolean).join(" · ")}
-                  </p>
+                  <p className="text-xs text-muted-foreground truncate">{["P.IVA " + c.piva, "C.F. " + c.cf, c.address].filter(x => x && !x.includes("undefined")).join(" · ")}</p>
                 </div>
                 <div className="flex gap-1 shrink-0">
                   <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => openEdit(c)}><Pencil className="h-4 w-4" /></Button>
@@ -265,67 +242,66 @@ function ClientsSection({ clients, onRefresh }: { clients: PersonalClient[]; onR
 function InvoicesSection({ invoices, clients, onRefresh }: { invoices: PersonalInvoice[]; clients: PersonalClient[]; onRefresh: () => void }) {
   const [dialog, setDialog] = useState<{ open: boolean; editing?: PersonalInvoice }>({ open: false })
   const [form, setForm] = useState<InvoiceForm>(emptyForm)
+  const [services, setServices] = useState<ServiceItem[]>([{ id: "1", description: "", quantity: 1, unitPrice: 0 }])
+  const [submitting, setSubmitting] = useState(false)
 
-  const openCreate = () => { setForm(emptyForm); setDialog({ open: true }) }
+  const subtotal = services.reduce((s, x) => s + (x.quantity * x.unitPrice), 0)
+  const total = subtotal
+
+  const openCreate = () => { setForm(emptyForm); setServices([{ id: "1", description: "", quantity: 1, unitPrice: 0 }]); setDialog({ open: true }) }
+
   const openEdit = (inv: PersonalInvoice) => {
     setForm({
       personalClientId: inv.personalClientId ? String(inv.personalClientId) : "",
-      clientName: inv.clientName,
-      clientAddress: inv.clientAddress || "",
-      clientPIva: inv.clientPIva || "",
-      clientCF: inv.clientCF || "",
-      subject: inv.subject,
-      description: inv.description || "",
-      total: String(inv.total),
-      issueDate: inv.issueDate?.slice(0, 10) || "",
-      dueDate: inv.dueDate?.slice(0, 10) || "",
-      paymentDays: String(inv.paymentDays ?? 30),
-      paymentMethod: inv.paymentMethod || "",
-      paymentNotes: inv.paymentNotes || "",
-      taxReserved: inv.taxReserved,
-      taxAmount: inv.taxAmount != null ? String(inv.taxAmount) : "",
-      electronicInvoiceNumber: inv.electronicInvoiceNumber || "",
+      clientName: inv.clientName, clientAddress: inv.clientAddress || "", clientPIva: inv.clientPIva || "", clientCF: inv.clientCF || "",
+      subject: inv.subject, status: inv.status,
+      issueDate: inv.issueDate?.slice(0, 10) || "", paymentDays: String(inv.paymentDays ?? 30),
+      paymentDate: inv.paymentDate?.slice(0, 10) || "", paymentMethod: inv.paymentMethod || "", paymentNotes: inv.paymentNotes || "",
+      taxReserved: inv.taxReserved, taxAmount: inv.taxAmount != null ? String(inv.taxAmount) : "",
+      electronicInvoiceNumber: inv.electronicInvoiceNumber || "", fiscalNotes: inv.fiscalNotes || FISCAL_NOTES_DEFAULT,
     })
+    try {
+      const parsed = JSON.parse(inv.description || "[]")
+      setServices(Array.isArray(parsed) && parsed.length ? parsed : [{ id: "1", description: inv.description || "", quantity: inv.quantity, unitPrice: inv.unitPrice }])
+    } catch { setServices([{ id: "1", description: inv.description || "", quantity: inv.quantity, unitPrice: inv.unitPrice }]) }
     setDialog({ open: true, editing: inv })
   }
 
-  const applyClient = (clientId: string) => {
-    const c = clients.find(x => String(x.id) === clientId)
-    setForm(f => ({
-      ...f,
-      personalClientId: clientId,
-      clientName: c?.name || "",
-      clientAddress: c?.address || "",
-      clientPIva: c?.piva || "",
-      clientCF: c?.cf || "",
-    }))
+  const pickClient = (id: string) => {
+    const c = clients.find(x => String(x.id) === id)
+    setForm(f => ({ ...f, personalClientId: id, clientName: c?.name || "", clientAddress: c?.address || "", clientPIva: c?.piva || "", clientCF: c?.cf || "" }))
   }
 
+  const addService = () => {
+    const nid = (Math.max(...services.map(s => parseInt(s.id)), 0) + 1).toString()
+    setServices([...services, { id: nid, description: "", quantity: 1, unitPrice: 0 }])
+  }
+  const removeService = (id: string) => { if (services.length > 1) setServices(services.filter(s => s.id !== id)) }
+  const updateService = (id: string, field: keyof ServiceItem, value: any) => setServices(services.map(s => s.id === id ? { ...s, [field]: value } : s))
+
   const save = async () => {
-    const total = parseFloat(form.total) || 0
     const payload = {
       ...form,
-      total,
-      subtotal: total,
-      vatPercentage: 0,
-      vatAmount: 0,
-      quantity: 1,
-      unitPrice: total,
       personalClientId: form.personalClientId || null,
+      description: JSON.stringify(services),
+      quantity: services[0]?.quantity ?? 1,
+      unitPrice: services[0]?.unitPrice ?? 0,
+      subtotal, vatPercentage: 0, vatAmount: 0, total,
       taxAmount: form.taxAmount ? parseFloat(form.taxAmount) : null,
       paymentDays: parseInt(form.paymentDays) || 30,
+      paymentDate: form.paymentDate || null,
     }
+    setSubmitting(true)
     try {
       if (dialog.editing) await personalAPI.updateInvoice(dialog.editing.id, payload)
       else await personalAPI.createInvoice(payload)
-      toast.success("Fattura salvata")
-      setDialog({ open: false })
-      onRefresh()
+      toast.success("Fattura salvata"); setDialog({ open: false }); onRefresh()
     } catch (e: any) { toast.error(e.message) }
+    finally { setSubmitting(false) }
   }
 
   const setStatus = async (inv: PersonalInvoice, status: string) => {
-    try { await personalAPI.updateInvoice(inv.id, { status }); toast.success("Stato aggiornato"); onRefresh() }
+    try { await personalAPI.updateInvoice(inv.id, { status, paymentDate: status === "PAID" ? new Date().toISOString() : inv.paymentDate }); toast.success("Stato aggiornato"); onRefresh() }
     catch (e: any) { toast.error(e.message) }
   }
 
@@ -341,21 +317,12 @@ function InvoicesSection({ invoices, clients, onRefresh }: { invoices: PersonalI
       invoiceDate: inv.issueDate ? format(new Date(inv.issueDate), "dd/MM/yyyy") : "",
       dueDate: inv.dueDate ? format(new Date(inv.dueDate), "dd/MM/yyyy") : "",
       paymentDays: inv.paymentDays,
-      clientName: inv.clientName,
-      clientAddress: inv.clientAddress,
-      clientPIva: inv.clientPIva,
-      clientCF: inv.clientCF,
-      subject: inv.subject,
-      description: inv.description || "",
-      quantity: String(inv.quantity),
-      unitPrice: String(inv.unitPrice),
-      subtotal: String(inv.subtotal),
-      vatPercentage: String(inv.vatPercentage),
-      vatAmount: String(inv.vatAmount),
-      total: String(inv.total),
-      fiscalNotes: inv.fiscalNotes,
-      isVatZero: inv.vatPercentage === 0,
-      services: [{ description: inv.description || inv.subject, quantity: String(inv.quantity), unitPrice: String(inv.unitPrice) }],
+      clientName: inv.clientName, clientAddress: inv.clientAddress, clientPIva: inv.clientPIva, clientCF: inv.clientCF,
+      subject: inv.subject, description: inv.description || "",
+      quantity: String(inv.quantity), unitPrice: String(inv.unitPrice),
+      subtotal: String(inv.subtotal), vatPercentage: String(inv.vatPercentage), vatAmount: String(inv.vatAmount), total: String(inv.total),
+      fiscalNotes: inv.fiscalNotes, isVatZero: true,
+      services: (() => { try { const p = JSON.parse(inv.description || "[]"); return Array.isArray(p) ? p : [] } catch { return [] } })(),
       personal: true,
     }).catch(e => toast.error(e.message))
   }
@@ -376,30 +343,21 @@ function InvoicesSection({ invoices, clients, onRefresh }: { invoices: PersonalI
                   <TableHead>Cliente</TableHead>
                   <TableHead>Totale</TableHead>
                   <TableHead>Data</TableHead>
+                  <TableHead>Destinatario</TableHead>
                   <TableHead>Stato</TableHead>
                   <TableHead className="w-28"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {invoices.map(inv => (
-                  <TableRow key={inv.id}>
+                  <TableRow key={inv.id} className="cursor-pointer" onClick={() => openEdit(inv)}>
                     <TableCell className="font-medium">{inv.invoiceNumber}</TableCell>
                     <TableCell className="max-w-[160px] truncate">{inv.clientName}</TableCell>
                     <TableCell>€ {inv.total.toLocaleString("it-IT")}</TableCell>
                     <TableCell className="text-xs text-muted-foreground">{inv.issueDate ? format(new Date(inv.issueDate), "dd/MM/yy") : "—"}</TableCell>
-                    <TableCell>
-                      <select
-                        value={inv.status}
-                        onChange={e => setStatus(inv, e.target.value)}
-                        className={`text-xs rounded px-1.5 py-0.5 border-0 ${STATUS_LABEL[inv.status]?.cls || ""}`}
-                      >
-                        <option value="DRAFT">Bozza</option>
-                        <option value="ISSUED">Emessa</option>
-                        <option value="PAID">Pagata</option>
-                        <option value="CANCELLED">Stornata</option>
-                      </select>
-                    </TableCell>
-                    <TableCell>
+                    <TableCell className="text-xs">Davide</TableCell>
+                    <TableCell><span className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_BADGE[inv.status] || ""}`}>{STATUS_LABEL[inv.status] || inv.status}</span></TableCell>
+                    <TableCell onClick={e => e.stopPropagation()}>
                       <div className="flex justify-end gap-1">
                         <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => openEdit(inv)}><Pencil className="h-4 w-4" /></Button>
                         <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => downloadPdf(inv)}><FileText className="h-4 w-4" /></Button>
@@ -417,47 +375,133 @@ function InvoicesSection({ invoices, clients, onRefresh }: { invoices: PersonalI
       </CardContent>
 
       <Dialog open={dialog.open} onOpenChange={o => { if (!o) setDialog({ open: false }) }}>
-        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>{dialog.editing ? "Modifica fattura" : "Nuova fattura personale"}</DialogTitle></DialogHeader>
-          <div className="space-y-3">
-            <div className="space-y-1">
-              <Label>Cliente personale</Label>
-              <select className="w-full h-9 rounded-md border px-2 text-sm" value={form.personalClientId} onChange={e => applyClient(e.target.value)}>
-                <option value="">— Manuale —</option>
-                {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
-            </div>
-            <div className="space-y-1"><Label>Nome cliente *</Label><Input value={form.clientName} onChange={e => setForm(f => ({ ...f, clientName: e.target.value }))} /></div>
-            <div className="grid grid-cols-2 gap-2">
-              <div className="space-y-1"><Label>P.IVA</Label><Input value={form.clientPIva} onChange={e => setForm(f => ({ ...f, clientPIva: e.target.value }))} /></div>
-              <div className="space-y-1"><Label>C.F.</Label><Input value={form.clientCF} onChange={e => setForm(f => ({ ...f, clientCF: e.target.value }))} /></div>
-            </div>
-            <div className="space-y-1"><Label>Indirizzo</Label><Input value={form.clientAddress} onChange={e => setForm(f => ({ ...f, clientAddress: e.target.value }))} /></div>
-            <div className="space-y-1"><Label>Oggetto *</Label><Input value={form.subject} onChange={e => setForm(f => ({ ...f, subject: e.target.value }))} /></div>
-            <div className="space-y-1"><Label>Descrizione</Label><Textarea rows={3} value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} /></div>
-            <div className="space-y-1"><Label>Totale (€) *</Label><Input type="number" value={form.total} onChange={e => setForm(f => ({ ...f, total: e.target.value }))} /></div>
-            <div className="grid grid-cols-3 gap-2">
-              <div className="space-y-1"><Label>Emissione</Label><Input type="date" value={form.issueDate} onChange={e => setForm(f => ({ ...f, issueDate: e.target.value }))} /></div>
-              <div className="space-y-1"><Label>Scadenza</Label><Input type="date" value={form.dueDate} onChange={e => setForm(f => ({ ...f, dueDate: e.target.value }))} /></div>
-              <div className="space-y-1"><Label>Giorni</Label><Input type="number" value={form.paymentDays} onChange={e => setForm(f => ({ ...f, paymentDays: e.target.value }))} /></div>
-            </div>
-            <div className="space-y-1"><Label>Metodo pagamento</Label><Input value={form.paymentMethod} onChange={e => setForm(f => ({ ...f, paymentMethod: e.target.value }))} /></div>
-            <div className="space-y-1"><Label>Note</Label><Input value={form.paymentNotes} onChange={e => setForm(f => ({ ...f, paymentNotes: e.target.value }))} /></div>
-            <div className="space-y-1"><Label>Numero fattura elettronica</Label><Input value={form.electronicInvoiceNumber} onChange={e => setForm(f => ({ ...f, electronicInvoiceNumber: e.target.value }))} /></div>
-            <div className="flex items-center justify-between rounded-md border p-3">
-              <div>
-                <Label>Accantonamento tasse</Label>
-                <p className="text-xs text-muted-foreground">Segna che le tasse sono state accantonate</p>
+        <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{dialog.editing ? "Modifica Fattura" : "Nuova Fattura Personale"}</DialogTitle>
+            <DialogDescription>Compila i dettagli della fattura personale</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Stato</Label>
+                <Select value={form.status} onValueChange={(v: string) => setForm(f => ({ ...f, status: v, paymentDate: v === "PAID" ? (f.paymentDate || new Date().toISOString().slice(0, 10)) : f.paymentDate }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="DRAFT">Bozza</SelectItem>
+                    <SelectItem value="ISSUED">Emessa</SelectItem>
+                    <SelectItem value="PAID">Pagata</SelectItem>
+                    <SelectItem value="CANCELLED">Annullata</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-              <Switch checked={form.taxReserved} onCheckedChange={v => setForm(f => ({ ...f, taxReserved: v }))} />
+              <div className="space-y-2">
+                <Label>Cliente personale *</Label>
+                <Select value={form.personalClientId} onValueChange={pickClient}>
+                  <SelectTrigger><SelectValue placeholder="Seleziona cliente..." /></SelectTrigger>
+                  <SelectContent>
+                    {clients.map(c => <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-            {form.taxReserved && (
-              <div className="space-y-1"><Label>Importo tasse (€)</Label><Input type="number" value={form.taxAmount} onChange={e => setForm(f => ({ ...f, taxAmount: e.target.value }))} /></div>
-            )}
+
+            <div className="border-t pt-4 space-y-3">
+              <h3 className="font-semibold">Dati Cliente</h3>
+              <div className="space-y-2"><Label>Nome cliente *</Label><Input value={form.clientName} onChange={e => setForm(f => ({ ...f, clientName: e.target.value }))} /></div>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1"><Label>P.IVA</Label><Input value={form.clientPIva} onChange={e => setForm(f => ({ ...f, clientPIva: e.target.value }))} /></div>
+                <div className="space-y-1"><Label>C.F.</Label><Input value={form.clientCF} onChange={e => setForm(f => ({ ...f, clientCF: e.target.value }))} /></div>
+              </div>
+              <div className="space-y-1"><Label>Indirizzo</Label><Input value={form.clientAddress} onChange={e => setForm(f => ({ ...f, clientAddress: e.target.value }))} /></div>
+            </div>
+
+            <div className="border-t pt-4 space-y-3">
+              <h3 className="font-semibold">Dettagli Fattura</h3>
+              <div className="space-y-2"><Label>Oggetto *</Label><Input value={form.subject} onChange={e => setForm(f => ({ ...f, subject: e.target.value }))} /></div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label>Servizi *</Label>
+                  <Button type="button" variant="outline" size="sm" onClick={addService}>+ Aggiungi Servizio</Button>
+                </div>
+                {services.map((s, i) => (
+                  <div key={s.id} className="grid grid-cols-12 gap-2 items-end">
+                    <div className="col-span-6 space-y-1">
+                      {i === 0 && <Label className="text-xs">Descrizione</Label>}
+                      <Input placeholder="Gestione social media" value={s.description} onChange={e => updateService(s.id, "description", e.target.value)} />
+                    </div>
+                    <div className="col-span-2 space-y-1">
+                      {i === 0 && <Label className="text-xs">Qtà</Label>}
+                      <Input type="number" step="0.01" min="0" value={s.quantity || ""} onChange={e => updateService(s.id, "quantity", parseFloat(e.target.value) || 0)} />
+                    </div>
+                    <div className="col-span-3 space-y-1">
+                      {i === 0 && <Label className="text-xs">Prezzo €</Label>}
+                      <Input type="number" step="0.01" min="0" value={s.unitPrice || ""} onChange={e => updateService(s.id, "unitPrice", parseFloat(e.target.value) || 0)} />
+                    </div>
+                    <div className="col-span-1">
+                      {services.length > 1 && (
+                        <Button type="button" variant="ghost" size="sm" className="h-9 w-9 p-0 text-destructive" onClick={() => removeService(s.id)}><Trash2 className="h-4 w-4" /></Button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="bg-muted p-3 rounded-md space-y-1 text-sm">
+                <div className="flex justify-between"><span>Imponibile:</span><span className="font-medium">€ {subtotal.toLocaleString("it-IT", { minimumFractionDigits: 2 })}</span></div>
+                <div className="flex justify-between"><span>IVA (0%):</span><span className="font-medium">€ 0,00</span></div>
+                <div className="flex justify-between text-base font-semibold border-t pt-1"><span>Totale:</span><span>€ {total.toLocaleString("it-IT", { minimumFractionDigits: 2 })}</span></div>
+              </div>
+            </div>
+
+            <div className="border-t pt-4 space-y-3">
+              <h3 className="font-semibold">Date e Pagamento</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2"><Label>Data Emissione *</Label><Input type="date" value={form.issueDate} onChange={e => setForm(f => ({ ...f, issueDate: e.target.value }))} /></div>
+                <div className="space-y-2">
+                  <Label>Giorni Pagamento *</Label>
+                  <Select value={form.paymentDays} onValueChange={(v: string) => setForm(f => ({ ...f, paymentDays: v }))}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="0">Immediato</SelectItem>
+                      <SelectItem value="7">7 giorni</SelectItem>
+                      <SelectItem value="15">15 giorni</SelectItem>
+                      <SelectItem value="30">30 giorni</SelectItem>
+                      <SelectItem value="60">60 giorni</SelectItem>
+                      <SelectItem value="90">90 giorni</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              {form.status === "PAID" && (
+                <div className="space-y-2"><Label>Data Pagamento</Label><Input type="date" value={form.paymentDate} onChange={e => setForm(f => ({ ...f, paymentDate: e.target.value }))} /></div>
+              )}
+              <div className="space-y-2"><Label>Metodo pagamento</Label><Input value={form.paymentMethod} onChange={e => setForm(f => ({ ...f, paymentMethod: e.target.value }))} /></div>
+              <div className="space-y-2"><Label>Note</Label><Textarea rows={2} value={form.paymentNotes} onChange={e => setForm(f => ({ ...f, paymentNotes: e.target.value }))} /></div>
+            </div>
+
+            <div className="border-t pt-4 space-y-3">
+              <h3 className="font-semibold">Tasse e Fatturazione elettronica</h3>
+              <div className="flex items-center justify-between rounded-md border p-3">
+                <div>
+                  <Label>Accantonamento tasse</Label>
+                  <p className="text-xs text-muted-foreground">Segna che le tasse sono state accantonate</p>
+                </div>
+                <Switch checked={form.taxReserved} onCheckedChange={v => setForm(f => ({ ...f, taxReserved: v }))} />
+              </div>
+              {form.taxReserved && (
+                <div className="space-y-2"><Label>Importo tasse (€)</Label><Input type="number" value={form.taxAmount} onChange={e => setForm(f => ({ ...f, taxAmount: e.target.value }))} /></div>
+              )}
+              <div className="space-y-2"><Label>Numero fattura elettronica</Label><Input value={form.electronicInvoiceNumber} onChange={e => setForm(f => ({ ...f, electronicInvoiceNumber: e.target.value }))} /></div>
+            </div>
           </div>
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialog({ open: false })}>Annulla</Button>
-            <Button onClick={save} disabled={!form.clientName.trim() || !form.subject.trim() || !form.total}>Salva</Button>
+            <Button onClick={save} disabled={submitting || !form.clientName.trim() || !form.subject.trim() || services.every(s => !s.description.trim())}>
+              {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {dialog.editing ? "Salva Modifiche" : "Crea Fattura"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
