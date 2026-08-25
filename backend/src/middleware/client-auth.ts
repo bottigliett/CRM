@@ -37,7 +37,10 @@ export const authenticateClient = (
     }
 
     const token = authHeader.substring(7);
-    const secret = process.env.JWT_SECRET || 'fallback-secret-key';
+    const secret = process.env.JWT_SECRET;
+    if (!secret) {
+      return res.status(500).json({ success: false, message: 'Server configuration error' });
+    }
 
     const decoded = jwt.verify(token, secret) as ClientJwtPayload;
 

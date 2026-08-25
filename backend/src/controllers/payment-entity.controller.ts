@@ -41,7 +41,7 @@ export const getPaymentEntities = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Errore nel recupero delle entità di pagamento',
-      error: error.message,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };
@@ -71,7 +71,7 @@ export const getPaymentEntity = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Errore nel recupero dell\'entità di pagamento',
-      error: error.message,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };
@@ -132,7 +132,7 @@ export const createPaymentEntity = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Errore nella creazione dell\'entità di pagamento',
-      error: error.message,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };
@@ -200,7 +200,7 @@ export const updatePaymentEntity = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Errore nell\'aggiornamento dell\'entità di pagamento',
-      error: error.message,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };
@@ -253,7 +253,7 @@ export const deletePaymentEntity = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Errore nell\'eliminazione dell\'entità di pagamento',
-      error: error.message,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };
@@ -299,7 +299,7 @@ export const setDefaultPaymentEntity = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Errore nell\'impostazione dell\'entità predefinita',
-      error: error.message,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };

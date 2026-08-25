@@ -20,7 +20,7 @@ interface ClientJwtPayload {
  * Generate Client JWT Token
  */
 function generateClientToken(payload: ClientJwtPayload): string {
-  const secret = process.env.JWT_SECRET || 'fallback-secret-key';
+  const secret = process.env.JWT_SECRET!;
   return jwt.sign(
     { ...payload, type: 'CLIENT' }, // Aggiungi type per distinguere da admin
     secret,
@@ -32,7 +32,7 @@ function generateClientToken(payload: ClientJwtPayload): string {
  * Generate 6-digit verification code
  */
 function generateVerificationCode(): string {
-  return Math.floor(100000 + Math.random() * 900000).toString();
+  return crypto.randomInt(100000, 1000000).toString();
 }
 
 /**
@@ -100,7 +100,7 @@ export const verifyActivationToken = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Errore nella verifica del token',
-      error: error.message,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };
@@ -180,7 +180,7 @@ export const sendVerificationCode = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Errore nell\'invio del codice di verifica',
-      error: error.message,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };
@@ -238,7 +238,7 @@ export const verifyCode = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Errore nella verifica del codice',
-      error: error.message,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };
@@ -376,7 +376,7 @@ export const completeActivation = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Errore nel completamento dell\'attivazione',
-      error: error.message,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };
@@ -453,7 +453,7 @@ export const verifyUsername = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Errore nella verifica dell\'username',
-      error: error.message,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };
@@ -502,8 +502,8 @@ export const sendActivationCode = async (req: Request, res: Response) => {
       });
     }
 
-    // Genera codice a 6 cifre
-    const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+    // Genera codice a 6 cifre (CSPRNG)
+    const verificationCode = crypto.randomInt(100000, 1000000).toString();
 
     // Salva il codice con timestamp (scade dopo 15 minuti)
     const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minuti
@@ -542,7 +542,7 @@ export const sendActivationCode = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: "Errore nell'invio del codice",
-      error: error.message,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };
@@ -628,7 +628,7 @@ export const verifyActivationCode = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Errore nella verifica del codice',
-      error: error.message,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };
@@ -790,7 +790,7 @@ export const completeManualActivation = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Errore nel completamento dell\'attivazione',
-      error: error.message,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };
@@ -922,7 +922,7 @@ export const clientLogin = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Errore durante il login',
-      error: error.message,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };
@@ -1003,7 +1003,7 @@ export const getClientMe = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Errore nel recupero dei dati cliente',
-      error: error.message,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };
@@ -1081,7 +1081,7 @@ export const changePassword = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Errore nel cambio password',
-      error: error.message,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };

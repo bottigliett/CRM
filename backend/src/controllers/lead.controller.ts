@@ -76,7 +76,7 @@ export const getLeads = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Errore nel recupero dei lead',
-      error: error.message,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };
@@ -134,7 +134,7 @@ export const moveLead = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Errore nello spostamento del lead',
-      error: error.message,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };
@@ -158,7 +158,7 @@ export const getFunnelStages = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Errore nel recupero degli stage del funnel',
-      error: error.message,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };
@@ -197,7 +197,7 @@ export const createFunnelStage = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Errore nella creazione dello stage',
-      error: error.message,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };
@@ -275,7 +275,7 @@ export const createQuickLead = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Errore nella creazione del lead',
-      error: error.message,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };
@@ -365,7 +365,7 @@ export const updateLead = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Errore nell\'aggiornamento del lead',
-      error: error.message,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };
@@ -404,7 +404,7 @@ export const deleteLead = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Errore nell\'eliminazione del lead',
-      error: error.message,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };

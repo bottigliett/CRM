@@ -13,10 +13,11 @@ import {
 } from '../controllers/client-auth.controller';
 import { authenticateClient } from '../middleware/client-auth';
 import { debugLogger } from '../middleware/debug-logger';
+import { loginLimiter } from '../middleware/security';
 
 const router = express.Router();
 
-// Enable debug logging for all client-auth routes
+// Enable debug logging for all client-auth routes (only in development, passwords redacted)
 router.use(debugLogger);
 
 /**
@@ -31,7 +32,7 @@ router.post('/verify-token', verifyActivationToken);
 router.post('/send-verification-code', sendVerificationCode);
 
 // Step 2.5: Verifica codice email
-router.post('/verify-code', verifyCode);
+router.post('/verify-code', loginLimiter, verifyCode);
 
 // Step 3: Completa attivazione con password
 router.post('/complete-activation', completeActivation);
@@ -47,7 +48,7 @@ router.post('/verify-activation-code', verifyActivationCode);
 router.post('/complete-manual-activation', completeManualActivation);
 
 // Login cliente
-router.post('/login', clientLogin);
+router.post('/login', loginLimiter, clientLogin);
 
 /**
  * PROTECTED ROUTES - Richiedono autenticazione CLIENT

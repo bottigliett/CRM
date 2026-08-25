@@ -118,7 +118,7 @@ export const uploadAttachments = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Errore nel caricamento degli allegati',
-      error: error.message
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 };
@@ -199,9 +199,9 @@ export const downloadAttachment = async (req: Request, res: Response) => {
     const isImage = attachment.mimeType.startsWith('image/');
 
     if (forceDownload || !isImage) {
-      res.setHeader('Content-Disposition', `attachment; filename="${attachment.originalFileName}"`);
+      res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(attachment.originalFileName)}`);
     } else {
-      res.setHeader('Content-Disposition', `inline; filename="${attachment.originalFileName}"`);
+      res.setHeader('Content-Disposition', `inline; filename*=UTF-8''${encodeURIComponent(attachment.originalFileName)}`);
     }
 
     res.sendFile(filePath);
@@ -210,7 +210,7 @@ export const downloadAttachment = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Errore nel download dell\'allegato',
-      error: error.message
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 };
@@ -309,9 +309,9 @@ export const downloadClientAttachment = async (req: Request, res: Response) => {
     const isImage = attachment.mimeType.startsWith('image/');
 
     if (forceDownload || !isImage) {
-      res.setHeader('Content-Disposition', `attachment; filename="${attachment.originalFileName}"`);
+      res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(attachment.originalFileName)}`);
     } else {
-      res.setHeader('Content-Disposition', `inline; filename="${attachment.originalFileName}"`);
+      res.setHeader('Content-Disposition', `inline; filename*=UTF-8''${encodeURIComponent(attachment.originalFileName)}`);
     }
 
     res.sendFile(filePath);
@@ -320,7 +320,7 @@ export const downloadClientAttachment = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Errore nel download dell\'allegato',
-      error: error.message
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 };
@@ -373,7 +373,7 @@ export const deleteAttachment = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Errore nell\'eliminazione dell\'allegato',
-      error: error.message
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 };

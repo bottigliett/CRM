@@ -39,7 +39,7 @@ export const getEventCategories = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Errore nel recupero delle categorie',
-      error: error.message,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };
@@ -79,7 +79,7 @@ export const getEventCategoryById = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Errore nel recupero della categoria',
-      error: error.message,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };
@@ -131,7 +131,7 @@ export const createEventCategory = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Errore nella creazione della categoria',
-      error: error.message,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };
@@ -192,7 +192,7 @@ export const updateEventCategory = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: "Errore nell'aggiornamento della categoria",
-      error: error.message,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };
@@ -245,7 +245,7 @@ export const deleteEventCategory = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: "Errore nell'eliminazione della categoria",
-      error: error.message,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };

@@ -10,6 +10,15 @@ import { generateTokenHash } from '../utils/token-hash';
 
 export const register = async (req: Request, res: Response) => {
   try {
+    // Only SUPER_ADMIN can register new users
+    const requestingUser = (req as any).user;
+    if (!requestingUser || requestingUser.role !== 'SUPER_ADMIN') {
+      return res.status(403).json({
+        success: false,
+        message: 'Solo SUPER_ADMIN può creare nuovi utenti',
+      });
+    }
+
     const { username, email, password, firstName, lastName } = req.body;
 
     // Validazione campi obbligatori
@@ -17,6 +26,14 @@ export const register = async (req: Request, res: Response) => {
       return res.status(400).json({
         success: false,
         message: 'Username, email e password sono obbligatori',
+      });
+    }
+
+    // Password minimum length
+    if (password.length < 8) {
+      return res.status(400).json({
+        success: false,
+        message: 'La password deve essere di almeno 8 caratteri',
       });
     }
 
@@ -73,7 +90,7 @@ export const register = async (req: Request, res: Response) => {
     await prisma.session.create({
       data: {
         userId: user.id,
-        token,
+        token: 'redacted',
         tokenHash: generateTokenHash(token),
         expiresAt,
       },
@@ -279,10 +296,9 @@ export const login = async (req: Request, res: Response) => {
       let isPasswordValid = false;
       const usingTemporaryPassword = !!client.temporaryPassword;
 
-      // Controlla se usa password temporanea (accesso momentaneo)
+      // Controlla se usa password temporanea (hashed)
       if (client.temporaryPassword) {
-        // Password temporanea è in chiaro, confronto diretto
-        isPasswordValid = password === client.temporaryPassword;
+        isPasswordValid = await comparePassword(password, client.temporaryPassword);
       } else if (client.passwordHash) {
         // Password normale con hash
         isPasswordValid = await comparePassword(password, client.passwordHash);
@@ -374,7 +390,7 @@ export const login = async (req: Request, res: Response) => {
           accessType: client.accessType,
           type: 'CLIENT', // IMPORTANTE: distingui tipo utente
         },
-        process.env.JWT_SECRET || 'fallback-secret-key',
+        process.env.JWT_SECRET!,
         { expiresIn: '7d' }
       );
 
@@ -754,10 +770,8 @@ export const requestPasswordReset = async (req: Request, res: Response) => {
       },
     });
 
+    // Salva hash del token nel database per sicurezza
     // TODO: Invia email con il link di ripristino
-    // Per ora logghiamo il token in console (in produzione invia email)
-    console.log(`Password reset token for ${email}: ${token}`);
-    console.log(`Reset link: http://localhost:5173/auth/reset-password?token=${token}`);
 
     // Log dell'azione
     await prisma.accessLog.create({
@@ -914,8 +928,8 @@ export const sendEmailVerificationCode = async (req: AuthRequest, res: Response)
       });
     }
 
-    // Genera codice a 6 cifre
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    // Genera codice a 6 cifre (CSPRNG)
+    const code = crypto.randomInt(100000, 1000000).toString();
 
     // Scadenza: 15 minuti
     const expiresAt = new Date();

@@ -66,7 +66,11 @@ import {
   YAxis,
   CartesianGrid,
   Legend,
+  BarChart,
+  Bar,
 } from "recharts"
+import { invoicesAPI } from "@/lib/invoices-api"
+import { paymentEntityAPI, type PaymentEntity } from "@/lib/payment-entity-api"
 import { TransactionDialog } from "./components/transaction-dialog"
 
 export default function FinancePage() {
@@ -116,6 +120,9 @@ export default function FinancePage() {
     income: number
     expense: number
   }>>([])
+
+  const [entityMonthlyData, setEntityMonthlyData] = useState<Array<Record<string, any>>>([])
+  const [paymentEntities, setPaymentEntities] = useState<PaymentEntity[]>([])
 
   const [pagination, setPagination] = useState({
     total: 0,
@@ -229,6 +236,49 @@ export default function FinancePage() {
     }
 
     loadMonthlyData()
+  }, [selectedYear])
+
+  // Load invoice revenue by payment entity
+  useEffect(() => {
+    async function loadEntityData() {
+      try {
+        const [invoicesRes, entitiesRes] = await Promise.all([
+          invoicesAPI.getInvoices({ year: selectedYear, limit: 500 }),
+          paymentEntityAPI.getAll(true),
+        ])
+
+        if (invoicesRes.success && entitiesRes.success) {
+          const entities = entitiesRes.data
+          setPaymentEntities(entities)
+
+          const entityMap = new Map(entities.map((e: PaymentEntity) => [e.id, e.name]))
+          const months = ['gen', 'feb', 'mar', 'apr', 'mag', 'giu', 'lug', 'ago', 'set', 'ott', 'nov', 'dic']
+
+          // Group by month and entity
+          const grid = months.map(m => ({ month: m } as Record<string, any>))
+          entities.forEach((e: PaymentEntity) => grid.forEach(row => (row[e.name] = 0)))
+
+          invoicesRes.data.invoices
+            .filter((inv: any) => inv.status !== 'DRAFT' && inv.status !== 'CANCELLED')
+            .forEach((inv: any) => {
+              const d = new Date(inv.issueDate)
+              if (d.getFullYear() !== parseInt(selectedYear)) return
+              const mi = d.getMonth()
+              const name = entityMap.get(inv.paymentEntityId) || 'Altro'
+              if (!grid[mi][name]) grid[mi][name] = 0
+              grid[mi][name] += inv.total
+            })
+
+          const year = parseInt(selectedYear)
+          const cutoff = year === currentYear ? currentMonth : 12
+          setEntityMonthlyData(grid.slice(0, cutoff))
+        }
+      } catch (error) {
+        console.error('Failed to load entity data:', error)
+      }
+    }
+
+    loadEntityData()
   }, [selectedYear])
 
   // Load statistics
@@ -658,6 +708,42 @@ export default function FinancePage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Revenue by Payment Entity */}
+      {entityMonthlyData.length > 0 && paymentEntities.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Fatturato per Entità</CardTitle>
+            <CardDescription>Fatturato mensile per entità di pagamento — {selectedYear}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={280}>
+              <BarChart data={entityMonthlyData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="currentColor" opacity={0.1} />
+                <XAxis dataKey="month" stroke="currentColor" fontSize={12} tickLine={false} axisLine={false} />
+                <YAxis stroke="currentColor" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(v) => `€${(v / 1000).toFixed(0)}k`} />
+                <Tooltip
+                  formatter={(value: number) => `€ ${value.toLocaleString('it-IT', { minimumFractionDigits: 2 })}`}
+                  contentStyle={{
+                    backgroundColor: 'var(--popover)',
+                    borderColor: 'var(--border)',
+                    borderRadius: '6px',
+                    color: 'var(--popover-foreground)',
+                  }}
+                />
+                <Legend />
+                {paymentEntities.map((entity, i) => (
+                  <Bar
+                    key={entity.id}
+                    dataKey={entity.name}
+                    fill={['#3b82f6', '#f59e0b', '#10b981', '#8b5cf6', '#ef4444'][i % 5]}
+                  />
+                ))}
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      )}
 
       {/* 3 Pie Charts */}
       <div className="grid gap-4 md:grid-cols-3">

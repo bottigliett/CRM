@@ -80,7 +80,7 @@ export const getClientAccesses = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Errore nel recupero degli accessi client',
-      error: error.message,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };
@@ -131,7 +131,7 @@ export const getClientAccessById = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Errore nel recupero dell\'accesso client',
-      error: error.message,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };
@@ -277,7 +277,7 @@ export const createClientAccess = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Errore nella creazione dell\'accesso client',
-      error: error.message,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };
@@ -359,7 +359,7 @@ export const updateClientAccess = async (req: Request, res: Response) => {
         isActive,
         accessType,
         linkedQuoteId: linkedQuoteId !== undefined ? (linkedQuoteId ? parseInt(linkedQuoteId) : null) : undefined,
-        temporaryPassword: temporaryPassword !== undefined ? temporaryPassword : undefined,
+        temporaryPassword: temporaryPassword !== undefined ? (temporaryPassword ? await (async () => { const bcrypt = await import('bcryptjs'); return bcrypt.default.hash(temporaryPassword, 10); })() : null) : undefined,
         projectName,
         projectDescription,
         projectObjectives,
@@ -404,7 +404,7 @@ export const updateClientAccess = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Errore nell\'aggiornamento dell\'accesso client',
-      error: error.message,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };
@@ -460,7 +460,7 @@ export const resendActivation = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Errore nel re-invio dell\'email di attivazione',
-      error: error.message,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };
@@ -541,7 +541,7 @@ export const upgradeToFullClient = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Errore nell\'upgrade dell\'accesso client',
-      error: error.message,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };
@@ -589,7 +589,7 @@ export const deleteClientAccess = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Errore nell\'eliminazione dell\'accesso client',
-      error: error.message,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };
@@ -631,7 +631,7 @@ export const generatePreviewToken = async (req: Request, res: Response) => {
     }
 
     // Genera token JWT temporaneo (5 minuti)
-    const secret = process.env.JWT_SECRET || 'fallback-secret-key';
+    const secret = process.env.JWT_SECRET!;
     const token = jwt.sign(
       {
         clientAccessId: clientAccess.id,
@@ -657,7 +657,7 @@ export const generatePreviewToken = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Errore nella generazione del token di anteprima',
-      error: error.message,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };

@@ -108,7 +108,7 @@ export const getTickets = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Errore nel recupero dei ticket',
-      error: error.message,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };
@@ -204,7 +204,7 @@ export const getTicketById = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Errore nel recupero del ticket',
-      error: error.message,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };
@@ -306,7 +306,7 @@ export const createTicket = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Errore nella creazione del ticket',
-      error: error.message,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };
@@ -405,7 +405,7 @@ export const updateTicket = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Errore nell\'aggiornamento del ticket',
-      error: error.message,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };
@@ -457,7 +457,7 @@ export const deleteTicket = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Errore nell\'eliminazione del ticket',
-      error: error.message,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };
@@ -617,7 +617,7 @@ export const addTicketMessage = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Errore nell\'aggiunta del messaggio',
-      error: error.message,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };
@@ -664,7 +664,7 @@ export const assignTicket = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Errore nell\'assegnazione del ticket',
-      error: error.message,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };
@@ -747,7 +747,7 @@ export const logTime = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Errore nella registrazione del tempo',
-      error: error.message,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };
@@ -863,7 +863,7 @@ export const closeTicket = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Errore nella chiusura del ticket',
-      error: error.message,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };
@@ -902,7 +902,7 @@ export const reopenTicket = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Errore nella riapertura del ticket',
-      error: error.message,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };
@@ -969,7 +969,7 @@ export const getUnreadTicketCount = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Errore nel conteggio ticket non letti',
-      error: error.message,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };
@@ -1025,7 +1025,7 @@ export const getClientTickets = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Errore nel recupero dei ticket',
-      error: error.message,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };
@@ -1123,7 +1123,7 @@ export const createClientTicket = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Errore nella creazione del ticket',
-      error: error.message,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };
@@ -1203,7 +1203,7 @@ export const getClientTicketById = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Errore nel recupero del ticket',
-      error: error.message,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };
@@ -1303,7 +1303,7 @@ export const addClientTicketMessage = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Errore nell\'invio del messaggio',
-      error: error.message,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };

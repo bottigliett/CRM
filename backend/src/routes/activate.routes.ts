@@ -1,4 +1,5 @@
 import express from 'express';
+import rateLimit from 'express-rate-limit';
 import {
   verifyUsername,
   sendActivationCode,
@@ -8,6 +9,14 @@ import {
 } from '../controllers/client-auth.controller';
 
 const router = express.Router();
+
+const activateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: { success: false, message: 'Troppi tentativi, riprova tra 15 minuti' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 /**
  * ACTIVATION ROUTES - NO AUTHENTICATION REQUIRED
@@ -21,12 +30,12 @@ router.post('/verify-username', verifyUsername);
 router.post('/send-code', sendActivationCode);
 
 // Step 2b: Verify activation code
-router.post('/verify-code', verifyActivationCode);
+router.post('/verify-code', activateLimiter, verifyActivationCode);
 
 // Step 3: Complete activation with password
-router.post('/complete', completeManualActivation);
+router.post('/complete', activateLimiter, completeManualActivation);
 
 // Client login (after activation)
-router.post('/login', clientLogin);
+router.post('/login', activateLimiter, clientLogin);
 
 export default router;

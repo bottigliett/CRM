@@ -185,7 +185,7 @@ export const getEvents = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Errore nel recupero degli eventi',
-      error: error.message,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };
@@ -287,7 +287,7 @@ export const getEventById = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: "Errore nel recupero dell'evento",
-      error: error.message,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };
@@ -542,7 +542,7 @@ export const createEvent = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: "Errore nella creazione dell'evento",
-      error: error.message,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };
@@ -809,7 +809,7 @@ export const updateEvent = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: "Errore nell'aggiornamento dell'evento",
-      error: error.message,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };
@@ -848,7 +848,7 @@ export const deleteEvent = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: "Errore nell'eliminazione dell'evento",
-      error: error.message,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };

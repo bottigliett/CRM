@@ -11,14 +11,15 @@ import {
   verifyEmailCode
 } from '../controllers/auth.controller';
 import { authenticate } from '../middleware/auth';
+import { loginLimiter } from '../middleware/security';
 
 const router = Router();
 
-// Public routes
-router.post('/register', register);
-router.post('/login', login);
-router.post('/password-reset/request', requestPasswordReset);
-router.post('/password-reset/confirm', resetPassword);
+// Registration requires SUPER_ADMIN authentication
+router.post('/register', authenticate, register);
+router.post('/login', loginLimiter, login);
+router.post('/password-reset/request', loginLimiter, requestPasswordReset);
+router.post('/password-reset/confirm', loginLimiter, resetPassword);
 
 // Protected routes (require authentication)
 router.post('/logout', authenticate, logout);

@@ -49,7 +49,7 @@ export const getClientNotifications = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Errore nel recupero delle notifiche',
-      error: error.message,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };
@@ -78,7 +78,7 @@ export const getUnreadCount = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Errore nel conteggio delle notifiche',
-      error: error.message,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };
@@ -122,7 +122,7 @@ export const markAsRead = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Errore nell\'aggiornamento della notifica',
-      error: error.message,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };
@@ -152,7 +152,7 @@ export const markAllAsRead = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Errore nell\'aggiornamento delle notifiche',
-      error: error.message,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };
@@ -194,7 +194,7 @@ export const deleteNotification = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Errore nell\'eliminazione della notifica',
-      error: error.message,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };
@@ -236,7 +236,7 @@ export const sendNotification = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Errore nell\'invio della notifica',
-      error: error.message,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };
@@ -293,7 +293,7 @@ export const getAllNotifications = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Errore nel recupero delle notifiche',
-      error: error.message,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };
