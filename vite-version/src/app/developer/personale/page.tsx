@@ -6,8 +6,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Switch } from "@/components/ui/switch"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -16,6 +14,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { useAuthStore } from "@/store/auth-store"
 import { personalAPI, type PersonalClient, type PersonalInvoice } from "@/lib/personal-api"
 import { generateInvoicePDF } from "@/lib/pdf-generator"
+import { PaymentEntitySettings } from "@/components/payment-entity-settings"
 import { toast } from "sonner"
 import { format } from "date-fns"
 import { Lock, Plus, Trash2, FileText, Pencil, BarChart3, Loader2, MoreHorizontal, Download, Landmark, TrendingUp, Clock, AlertCircle } from "lucide-react"
@@ -230,6 +229,9 @@ function InvoicesSection({ invoices, clients, onRefresh }: { invoices: PersonalI
   const [submitting, setSubmitting] = useState(false)
   const [search, setSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
+  const [taxInvoice, setTaxInvoice] = useState<PersonalInvoice | null>(null)
+  const [taxPercentage, setTaxPercentage] = useState("28")
+  const [taxSubmitting, setTaxSubmitting] = useState(false)
 
   const issued = invoices.filter(i => i.status === "ISSUED" || i.status === "PAID").reduce((s, i) => s + i.total, 0)
   const collected = invoices.filter(i => i.status === "PAID").reduce((s, i) => s + i.total, 0)
@@ -285,9 +287,12 @@ function InvoicesSection({ invoices, clients, onRefresh }: { invoices: PersonalI
     }
     setSubmitting(true)
     try {
-      if (dialog.editing) await personalAPI.updateInvoice(dialog.editing.id, payload)
-      else await personalAPI.createInvoice(payload)
+      const res = dialog.editing ? await personalAPI.updateInvoice(dialog.editing.id, payload) : await personalAPI.createInvoice(payload)
       toast.success("Fattura salvata"); setDialog({ open: false }); onRefresh()
+      // Auto-open tax reservation when the invoice becomes PAID and taxes are not reserved yet
+      if (payload.status === "PAID" && res.data && !res.data.taxReserved) {
+        setTimeout(() => setTaxInvoice(res.data), 400)
+      }
     } catch (e: any) { toast.error(e.message) }
     finally { setSubmitting(false) }
   }
@@ -297,8 +302,20 @@ function InvoicesSection({ invoices, clients, onRefresh }: { invoices: PersonalI
     catch (e: any) { toast.error(e.message) }
   }
 
-  const reserveTaxes = async (inv: PersonalInvoice) => {
-    if (!inv.taxReserved) { await personalAPI.updateInvoice(inv.id, { taxReserved: true }); toast.success("Tasse accantonate"); onRefresh() }
+  const openTaxDialog = (inv: PersonalInvoice) => { setTaxInvoice(inv); setTaxPercentage("28") }
+
+  const confirmReserveTaxes = async () => {
+    if (!taxInvoice) return
+    const pct = parseFloat(taxPercentage) || 28
+    const amount = taxInvoice.total * (pct / 100)
+    setTaxSubmitting(true)
+    try {
+      await personalAPI.updateInvoice(taxInvoice.id, { taxReserved: true, taxAmount: amount })
+      toast.success("Tasse accantonate")
+      setTaxInvoice(null)
+      onRefresh()
+    } catch (e: any) { toast.error(e.message) }
+    finally { setTaxSubmitting(false) }
   }
 
   const remove = async (id: number) => {
@@ -349,7 +366,10 @@ function InvoicesSection({ invoices, clients, onRefresh }: { invoices: PersonalI
               <CardTitle>Fatture personali</CardTitle>
               <CardDescription>Gestisci le tue fatture personali</CardDescription>
             </div>
-            <Button onClick={openCreate} className="bg-primary hover:bg-primary/90"><Plus className="mr-2 h-4 w-4" /> Nuova Fattura</Button>
+            <div className="flex items-center gap-2">
+              <PaymentEntitySettings />
+              <Button onClick={openCreate} className="bg-primary hover:bg-primary/90"><Plus className="mr-2 h-4 w-4" /> Nuova Fattura</Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -414,7 +434,7 @@ function InvoicesSection({ invoices, clients, onRefresh }: { invoices: PersonalI
                           <DropdownMenuItem onClick={() => openEdit(inv)}><Pencil className="mr-2 h-4 w-4" /> Modifica</DropdownMenuItem>
                           <DropdownMenuItem onClick={() => downloadPdf(inv)}><Download className="mr-2 h-4 w-4" /> Scarica PDF</DropdownMenuItem>
                           {inv.status === "PAID" && !inv.taxReserved && (
-                            <DropdownMenuItem className="text-orange-600" onClick={() => reserveTaxes(inv)}><Landmark className="mr-2 h-4 w-4" /> Accantona Tasse</DropdownMenuItem>
+                            <DropdownMenuItem className="text-orange-600" onClick={() => openTaxDialog(inv)}><Landmark className="mr-2 h-4 w-4" /> Accantona Tasse</DropdownMenuItem>
                           )}
                           {inv.status !== "PAID" && (
                             <DropdownMenuItem onClick={() => setStatus(inv, "PAID")}>✓ Segna come Pagata</DropdownMenuItem>
@@ -508,17 +528,10 @@ function InvoicesSection({ invoices, clients, onRefresh }: { invoices: PersonalI
                 </div>
               </div>
               {form.status === "PAID" && <div className="space-y-2"><Label>Data Pagamento</Label><Input type="date" value={form.paymentDate} onChange={e => setForm(f => ({ ...f, paymentDate: e.target.value }))} /></div>}
-              <div className="space-y-2"><Label>Metodo pagamento</Label><Input value={form.paymentMethod} onChange={e => setForm(f => ({ ...f, paymentMethod: e.target.value }))} /></div>
-              <div className="space-y-2"><Label>Note</Label><Textarea rows={2} value={form.paymentNotes} onChange={e => setForm(f => ({ ...f, paymentNotes: e.target.value }))} /></div>
             </div>
 
             <div className="border-t pt-4 space-y-3">
-              <h3 className="font-semibold">Tasse e Fatturazione elettronica</h3>
-              <div className="flex items-center justify-between rounded-md border p-3">
-                <div><Label>Accantonamento tasse</Label><p className="text-xs text-muted-foreground">Segna che le tasse sono state accantonate</p></div>
-                <Switch checked={form.taxReserved} onCheckedChange={v => setForm(f => ({ ...f, taxReserved: v }))} />
-              </div>
-              {form.taxReserved && <div className="space-y-2"><Label>Importo tasse (€)</Label><Input type="number" value={form.taxAmount} onChange={e => setForm(f => ({ ...f, taxAmount: e.target.value }))} /></div>}
+              <h3 className="font-semibold">Fatturazione elettronica</h3>
               <div className="space-y-2"><Label>Numero fattura elettronica</Label><Input value={form.electronicInvoiceNumber} onChange={e => setForm(f => ({ ...f, electronicInvoiceNumber: e.target.value }))} /></div>
             </div>
           </div>
@@ -527,6 +540,33 @@ function InvoicesSection({ invoices, clients, onRefresh }: { invoices: PersonalI
             <Button onClick={save} disabled={submitting || !form.clientName.trim() || !form.subject.trim() || services.every(s => !s.description.trim())}>
               {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {dialog.editing ? "Salva Modifiche" : "Crea Fattura"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Tax Reserve Dialog */}
+      <Dialog open={!!taxInvoice} onOpenChange={o => { if (!o) setTaxInvoice(null) }}>
+        <DialogContent className="sm:max-w-[460px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><Landmark className="h-5 w-5 text-orange-600" /> Accantona Tasse</DialogTitle>
+            <DialogDescription>Calcola e accantona le tasse per la fattura {taxInvoice?.invoiceNumber}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-2">
+              <Label>Percentuale tasse (%)</Label>
+              <Input type="number" min="0" max="100" value={taxPercentage} onChange={e => setTaxPercentage(e.target.value)} />
+            </div>
+            <div className="bg-muted p-3 rounded-md text-sm space-y-1">
+              <div className="flex justify-between"><span>Totale fattura:</span><span className="font-medium">€ {taxInvoice ? taxInvoice.total.toLocaleString("it-IT", { minimumFractionDigits: 2 }) : "0,00"}</span></div>
+              <div className="flex justify-between"><span>Tasse ({taxPercentage || 0}%):</span><span className="font-medium">€ {taxInvoice ? (taxInvoice.total * (parseFloat(taxPercentage) || 0) / 100).toLocaleString("it-IT", { minimumFractionDigits: 2 }) : "0,00"}</span></div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setTaxInvoice(null)}>Annulla</Button>
+            <Button onClick={confirmReserveTaxes} disabled={taxSubmitting} className="bg-orange-600 hover:bg-orange-700">
+              {taxSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Accantona
             </Button>
           </DialogFooter>
         </DialogContent>
