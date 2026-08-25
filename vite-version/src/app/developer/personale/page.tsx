@@ -8,27 +8,26 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
+import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { useAuthStore } from "@/store/auth-store"
 import { personalAPI, type PersonalClient, type PersonalInvoice } from "@/lib/personal-api"
 import { generateInvoicePDF } from "@/lib/pdf-generator"
 import { toast } from "sonner"
 import { format } from "date-fns"
-import { Lock, Plus, Trash2, FileText, Pencil, BarChart3, Loader2 } from "lucide-react"
+import { Lock, Plus, Trash2, FileText, Pencil, BarChart3, Loader2, MoreHorizontal, Download, Landmark, TrendingUp, Clock, AlertCircle } from "lucide-react"
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, CartesianGrid } from "recharts"
 
 const UNLOCK_CODE = "1212"
 
-const STATUS_BADGE: Record<string, string> = {
-  DRAFT: "bg-gray-100 text-gray-700",
-  ISSUED: "bg-blue-100 text-blue-700",
-  PAID: "bg-green-100 text-green-700",
-  CANCELLED: "bg-red-100 text-red-700",
-}
-const STATUS_LABEL: Record<string, string> = {
-  DRAFT: "Bozza", ISSUED: "Emessa", PAID: "Pagata", CANCELLED: "Stornata",
+const STATUS_BADGE: Record<string, { label: string; variant: "secondary" | "outline" | "default" | "destructive" }> = {
+  DRAFT: { label: "Bozza", variant: "secondary" },
+  ISSUED: { label: "Emessa", variant: "outline" },
+  PAID: { label: "Pagata", variant: "default" },
+  CANCELLED: { label: "Annullata", variant: "destructive" },
 }
 
 const FISCAL_NOTES_DEFAULT = "IVA 0% - OPERAZIONE NON SOGGETTA A IVA AI SENSI DELL'ART. 1, COMMI 54-89, LEGGE N. 190/2014 E SUCC. MODIFICHE/INTEGRAZIONI.\n\nQUESTO DOCUMENTO NON COSTITUISCE FATTURA A FINI FISCALI, CHE SARÀ EMESSA AL MOMENTO DEL PAGAMENTO."
@@ -55,21 +54,10 @@ type InvoiceForm = {
 }
 
 const emptyForm: InvoiceForm = {
-  personalClientId: "",
-  clientName: "",
-  clientAddress: "",
-  clientPIva: "",
-  clientCF: "",
-  subject: "",
-  status: "DRAFT",
-  issueDate: new Date().toISOString().slice(0, 10),
-  paymentDays: "30",
-  paymentDate: "",
-  paymentMethod: "",
-  paymentNotes: "",
-  taxReserved: false,
-  taxAmount: "",
-  electronicInvoiceNumber: "",
+  personalClientId: "", clientName: "", clientAddress: "", clientPIva: "", clientCF: "",
+  subject: "", status: "DRAFT",
+  issueDate: new Date().toISOString().slice(0, 10), paymentDays: "30", paymentDate: "",
+  paymentMethod: "", paymentNotes: "", taxReserved: false, taxAmount: "", electronicInvoiceNumber: "",
   fiscalNotes: FISCAL_NOTES_DEFAULT,
 }
 
@@ -78,13 +66,9 @@ export default function DeveloperPersonale() {
   const [unlocked, setUnlocked] = useState(false)
   const [code, setCode] = useState("")
   const [wrong, setWrong] = useState(false)
-
   const isDev = user?.role === "DEVELOPER" || user?.role === "ADMIN" || user?.role === "SUPER_ADMIN"
 
-  const tryUnlock = () => {
-    if (code === UNLOCK_CODE) { setUnlocked(true); setWrong(false) }
-    else setWrong(true)
-  }
+  const tryUnlock = () => { if (code === UNLOCK_CODE) { setUnlocked(true); setWrong(false) } else setWrong(true) }
 
   if (!isDev) {
     return <BaseLayout title="Accesso negato"><div className="px-4 lg:px-6 py-16 text-center text-muted-foreground">Accesso riservato.</div></BaseLayout>
@@ -125,9 +109,7 @@ function PersonalContent() {
   }
 
   useEffect(() => { loadAll() }, [])
-  useEffect(() => {
-    personalAPI.getComparison(granularity).then(r => setComparison(r.data)).catch(e => toast.error(e.message))
-  }, [granularity])
+  useEffect(() => { personalAPI.getComparison(granularity).then(r => setComparison(r.data)).catch(e => toast.error(e.message)) }, [granularity])
 
   const chartData = useMemo(() => comparison.map(c => ({ name: c.period, Davide: c.davide, Stefano: c.stefano })), [comparison])
 
@@ -163,10 +145,9 @@ function PersonalContent() {
           </CardContent>
         </Card>
 
-        <div className="grid gap-6 lg:grid-cols-2">
-          <ClientsSection clients={clients} onRefresh={loadAll} />
-          <InvoicesSection invoices={invoices} clients={clients} onRefresh={loadAll} />
-        </div>
+        <InvoicesSection invoices={invoices} clients={clients} onRefresh={loadAll} />
+
+        <ClientsSection clients={clients} onRefresh={loadAll} />
       </div>
     </BaseLayout>
   )
@@ -196,17 +177,20 @@ function ClientsSection({ clients, onRefresh }: { clients: PersonalClient[]; onR
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>Clienti personali</CardTitle>
+        <div>
+          <CardTitle>Clienti personali</CardTitle>
+          <CardDescription>Anagrafica separata per le fatture personali</CardDescription>
+        </div>
         <Button size="sm" onClick={openCreate}><Plus className="h-4 w-4 mr-1" /> Nuovo</Button>
       </CardHeader>
       <CardContent>
         {clients.length ? (
-          <div className="space-y-1">
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {clients.map(c => (
-              <div key={c.id} className="flex items-center justify-between border rounded-md px-3 py-2">
+              <div key={c.id} className="border rounded-md px-3 py-2 flex items-center justify-between">
                 <div className="min-w-0">
                   <p className="text-sm font-medium truncate">{c.name}</p>
-                  <p className="text-xs text-muted-foreground truncate">{["P.IVA " + c.piva, "C.F. " + c.cf, c.address].filter(x => x && !x.includes("undefined")).join(" · ")}</p>
+                  <p className="text-xs text-muted-foreground truncate">{[c.piva && `P.IVA ${c.piva}`, c.cf && `C.F. ${c.cf}`, c.address].filter(Boolean).join(" · ")}</p>
                 </div>
                 <div className="flex gap-1 shrink-0">
                   <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => openEdit(c)}><Pencil className="h-4 w-4" /></Button>
@@ -244,6 +228,18 @@ function InvoicesSection({ invoices, clients, onRefresh }: { invoices: PersonalI
   const [form, setForm] = useState<InvoiceForm>(emptyForm)
   const [services, setServices] = useState<ServiceItem[]>([{ id: "1", description: "", quantity: 1, unitPrice: 0 }])
   const [submitting, setSubmitting] = useState(false)
+  const [search, setSearch] = useState("")
+  const [statusFilter, setStatusFilter] = useState("all")
+
+  const issued = invoices.filter(i => i.status === "ISSUED" || i.status === "PAID").reduce((s, i) => s + i.total, 0)
+  const collected = invoices.filter(i => i.status === "PAID").reduce((s, i) => s + i.total, 0)
+  const pending = invoices.filter(i => i.status === "ISSUED").reduce((s, i) => s + i.total, 0)
+
+  const filtered = invoices.filter(i => {
+    const matchStatus = statusFilter === "all" || i.status === statusFilter
+    const matchSearch = !search || i.clientName.toLowerCase().includes(search.toLowerCase()) || i.invoiceNumber.toLowerCase().includes(search.toLowerCase())
+    return matchStatus && matchSearch
+  })
 
   const subtotal = services.reduce((s, x) => s + (x.quantity * x.unitPrice), 0)
   const total = subtotal
@@ -272,10 +268,7 @@ function InvoicesSection({ invoices, clients, onRefresh }: { invoices: PersonalI
     setForm(f => ({ ...f, personalClientId: id, clientName: c?.name || "", clientAddress: c?.address || "", clientPIva: c?.piva || "", clientCF: c?.cf || "" }))
   }
 
-  const addService = () => {
-    const nid = (Math.max(...services.map(s => parseInt(s.id)), 0) + 1).toString()
-    setServices([...services, { id: nid, description: "", quantity: 1, unitPrice: 0 }])
-  }
+  const addService = () => { const nid = (Math.max(...services.map(s => parseInt(s.id)), 0) + 1).toString(); setServices([...services, { id: nid, description: "", quantity: 1, unitPrice: 0 }]) }
   const removeService = (id: string) => { if (services.length > 1) setServices(services.filter(s => s.id !== id)) }
   const updateService = (id: string, field: keyof ServiceItem, value: any) => setServices(services.map(s => s.id === id ? { ...s, [field]: value } : s))
 
@@ -284,8 +277,7 @@ function InvoicesSection({ invoices, clients, onRefresh }: { invoices: PersonalI
       ...form,
       personalClientId: form.personalClientId || null,
       description: JSON.stringify(services),
-      quantity: services[0]?.quantity ?? 1,
-      unitPrice: services[0]?.unitPrice ?? 0,
+      quantity: services[0]?.quantity ?? 1, unitPrice: services[0]?.unitPrice ?? 0,
       subtotal, vatPercentage: 0, vatAmount: 0, total,
       taxAmount: form.taxAmount ? parseFloat(form.taxAmount) : null,
       paymentDays: parseInt(form.paymentDays) || 30,
@@ -303,6 +295,10 @@ function InvoicesSection({ invoices, clients, onRefresh }: { invoices: PersonalI
   const setStatus = async (inv: PersonalInvoice, status: string) => {
     try { await personalAPI.updateInvoice(inv.id, { status, paymentDate: status === "PAID" ? new Date().toISOString() : inv.paymentDate }); toast.success("Stato aggiornato"); onRefresh() }
     catch (e: any) { toast.error(e.message) }
+  }
+
+  const reserveTaxes = async (inv: PersonalInvoice) => {
+    if (!inv.taxReserved) { await personalAPI.updateInvoice(inv.id, { taxReserved: true }); toast.success("Tasse accantonate"); onRefresh() }
   }
 
   const remove = async (id: number) => {
@@ -328,52 +324,114 @@ function InvoicesSection({ invoices, clients, onRefresh }: { invoices: PersonalI
   }
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>Fatture personali</CardTitle>
-        <Button size="sm" onClick={openCreate}><Plus className="h-4 w-4 mr-1" /> Nuova fattura</Button>
-      </CardHeader>
-      <CardContent>
-        {invoices.length ? (
-          <div className="rounded-md border">
+    <>
+      {/* Stats */}
+      <div className="grid gap-4 md:grid-cols-3">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Totale Emesso</CardTitle><FileText className="h-4 w-4 text-muted-foreground" /></CardHeader>
+          <CardContent><div className="text-2xl font-bold">€ {issued.toLocaleString("it-IT", { minimumFractionDigits: 2 })}</div></CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Totale Incassato</CardTitle><TrendingUp className="h-4 w-4 text-muted-foreground" /></CardHeader>
+          <CardContent><div className="text-2xl font-bold text-green-600">€ {collected.toLocaleString("it-IT", { minimumFractionDigits: 2 })}</div></CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">In Attesa</CardTitle><Clock className="h-4 w-4 text-muted-foreground" /></CardHeader>
+          <CardContent><div className="text-2xl font-bold text-orange-600">€ {pending.toLocaleString("it-IT", { minimumFractionDigits: 2 })}</div></CardContent>
+        </Card>
+      </div>
+
+      {/* Table */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Fatture personali</CardTitle>
+              <CardDescription>Gestisci le tue fatture personali</CardDescription>
+            </div>
+            <Button onClick={openCreate} className="bg-primary hover:bg-primary/90"><Plus className="mr-2 h-4 w-4" /> Nuova Fattura</Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="relative rounded-md border">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Numero</TableHead>
-                  <TableHead>Cliente</TableHead>
-                  <TableHead>Totale</TableHead>
-                  <TableHead>Data</TableHead>
-                  <TableHead>Destinatario</TableHead>
-                  <TableHead>Stato</TableHead>
-                  <TableHead className="w-28"></TableHead>
+                  <TableHead className="w-[120px]">Numero</TableHead>
+                  <TableHead className="min-w-[220px]">Cliente</TableHead>
+                  <TableHead className="w-[110px] text-right">Totale</TableHead>
+                  <TableHead className="w-[90px]">Data</TableHead>
+                  <TableHead className="w-[90px]">Stato</TableHead>
+                  <TableHead className="w-[50px]"></TableHead>
+                </TableRow>
+                <TableRow>
+                  <TableHead className="p-1"><Input className="h-8 text-xs" placeholder="Numero..." value={search} onChange={e => setSearch(e.target.value)} /></TableHead>
+                  <TableHead className="p-1"><Input className="h-8 text-xs" placeholder="Cliente..." value={search} onChange={e => setSearch(e.target.value)} /></TableHead>
+                  <TableHead className="p-1"></TableHead>
+                  <TableHead className="p-1"></TableHead>
+                  <TableHead className="p-1">
+                    <Select value={statusFilter} onValueChange={setStatusFilter}>
+                      <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Stato" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Tutti</SelectItem>
+                        <SelectItem value="DRAFT">Bozze</SelectItem>
+                        <SelectItem value="ISSUED">Emesse</SelectItem>
+                        <SelectItem value="PAID">Pagate</SelectItem>
+                        <SelectItem value="CANCELLED">Annullate</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </TableHead>
+                  <TableHead className="p-1"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {invoices.map(inv => (
-                  <TableRow key={inv.id} className="cursor-pointer" onClick={() => openEdit(inv)}>
-                    <TableCell className="font-medium">{inv.invoiceNumber}</TableCell>
-                    <TableCell className="max-w-[160px] truncate">{inv.clientName}</TableCell>
-                    <TableCell>€ {inv.total.toLocaleString("it-IT")}</TableCell>
-                    <TableCell className="text-xs text-muted-foreground">{inv.issueDate ? format(new Date(inv.issueDate), "dd/MM/yy") : "—"}</TableCell>
-                    <TableCell className="text-xs">Davide</TableCell>
-                    <TableCell><span className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_BADGE[inv.status] || ""}`}>{STATUS_LABEL[inv.status] || inv.status}</span></TableCell>
-                    <TableCell onClick={e => e.stopPropagation()}>
-                      <div className="flex justify-end gap-1">
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => openEdit(inv)}><Pencil className="h-4 w-4" /></Button>
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => downloadPdf(inv)}><FileText className="h-4 w-4" /></Button>
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => remove(inv.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                {filtered.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-10">
+                      <div className="flex flex-col items-center gap-2">
+                        <FileText className="h-12 w-12 text-muted-foreground/40" />
+                        <p className="text-sm text-muted-foreground">Nessuna fattura trovata</p>
+                        {invoices.length === 0 && <Button onClick={openCreate} variant="outline" size="sm"><Plus className="mr-2 h-4 w-4" /> Crea la tua prima fattura</Button>}
                       </div>
+                    </TableCell>
+                  </TableRow>
+                ) : filtered.map(inv => (
+                  <TableRow key={inv.id} className="cursor-pointer" onClick={() => openEdit(inv)}>
+                    <TableCell className="font-mono text-xs font-medium">{inv.invoiceNumber}</TableCell>
+                    <TableCell>
+                      <div className="font-medium text-sm">{inv.clientName}</div>
+                      <div className="text-xs text-muted-foreground truncate max-w-[280px]">{inv.subject}</div>
+                    </TableCell>
+                    <TableCell className="font-semibold text-right tabular-nums">€ {inv.total.toLocaleString("it-IT", { minimumFractionDigits: 2 })}</TableCell>
+                    <TableCell className="text-xs whitespace-nowrap">{inv.issueDate ? format(new Date(inv.issueDate), "dd/MM/yy") : "—"}</TableCell>
+                    <TableCell>
+                      <Badge variant={STATUS_BADGE[inv.status]?.variant || "secondary"} className={inv.status === "PAID" ? "bg-green-600" : ""}>{STATUS_BADGE[inv.status]?.label || inv.status}</Badge>
+                    </TableCell>
+                    <TableCell onClick={e => e.stopPropagation()}>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild><Button variant="ghost" className="h-8 w-8 p-0"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => openEdit(inv)}><Pencil className="mr-2 h-4 w-4" /> Modifica</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => downloadPdf(inv)}><Download className="mr-2 h-4 w-4" /> Scarica PDF</DropdownMenuItem>
+                          {inv.status === "PAID" && !inv.taxReserved && (
+                            <DropdownMenuItem className="text-orange-600" onClick={() => reserveTaxes(inv)}><Landmark className="mr-2 h-4 w-4" /> Accantona Tasse</DropdownMenuItem>
+                          )}
+                          {inv.status !== "PAID" && (
+                            <DropdownMenuItem onClick={() => setStatus(inv, "PAID")}>✓ Segna come Pagata</DropdownMenuItem>
+                          )}
+                          <DropdownMenuItem className="text-destructive" onClick={() => remove(inv.id)}><Trash2 className="mr-2 h-4 w-4" /> Elimina</DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
           </div>
-        ) : (
-          <p className="text-sm text-muted-foreground text-center py-6">Nessuna fattura personale</p>
-        )}
-      </CardContent>
+        </CardContent>
+      </Card>
 
+      {/* Invoice Dialog */}
       <Dialog open={dialog.open} onOpenChange={o => { if (!o) setDialog({ open: false }) }}>
         <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -398,9 +456,7 @@ function InvoicesSection({ invoices, clients, onRefresh }: { invoices: PersonalI
                 <Label>Cliente personale *</Label>
                 <Select value={form.personalClientId} onValueChange={pickClient}>
                   <SelectTrigger><SelectValue placeholder="Seleziona cliente..." /></SelectTrigger>
-                  <SelectContent>
-                    {clients.map(c => <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>)}
-                  </SelectContent>
+                  <SelectContent>{clients.map(c => <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
             </div>
@@ -418,35 +474,17 @@ function InvoicesSection({ invoices, clients, onRefresh }: { invoices: PersonalI
             <div className="border-t pt-4 space-y-3">
               <h3 className="font-semibold">Dettagli Fattura</h3>
               <div className="space-y-2"><Label>Oggetto *</Label><Input value={form.subject} onChange={e => setForm(f => ({ ...f, subject: e.target.value }))} /></div>
-
               <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label>Servizi *</Label>
-                  <Button type="button" variant="outline" size="sm" onClick={addService}>+ Aggiungi Servizio</Button>
-                </div>
+                <div className="flex items-center justify-between"><Label>Servizi *</Label><Button type="button" variant="outline" size="sm" onClick={addService}>+ Aggiungi Servizio</Button></div>
                 {services.map((s, i) => (
                   <div key={s.id} className="grid grid-cols-12 gap-2 items-end">
-                    <div className="col-span-6 space-y-1">
-                      {i === 0 && <Label className="text-xs">Descrizione</Label>}
-                      <Input placeholder="Gestione social media" value={s.description} onChange={e => updateService(s.id, "description", e.target.value)} />
-                    </div>
-                    <div className="col-span-2 space-y-1">
-                      {i === 0 && <Label className="text-xs">Qtà</Label>}
-                      <Input type="number" step="0.01" min="0" value={s.quantity || ""} onChange={e => updateService(s.id, "quantity", parseFloat(e.target.value) || 0)} />
-                    </div>
-                    <div className="col-span-3 space-y-1">
-                      {i === 0 && <Label className="text-xs">Prezzo €</Label>}
-                      <Input type="number" step="0.01" min="0" value={s.unitPrice || ""} onChange={e => updateService(s.id, "unitPrice", parseFloat(e.target.value) || 0)} />
-                    </div>
-                    <div className="col-span-1">
-                      {services.length > 1 && (
-                        <Button type="button" variant="ghost" size="sm" className="h-9 w-9 p-0 text-destructive" onClick={() => removeService(s.id)}><Trash2 className="h-4 w-4" /></Button>
-                      )}
-                    </div>
+                    <div className="col-span-6 space-y-1">{i === 0 && <Label className="text-xs">Descrizione</Label>}<Input placeholder="Gestione social media" value={s.description} onChange={e => updateService(s.id, "description", e.target.value)} /></div>
+                    <div className="col-span-2 space-y-1">{i === 0 && <Label className="text-xs">Qtà</Label>}<Input type="number" step="0.01" min="0" value={s.quantity || ""} onChange={e => updateService(s.id, "quantity", parseFloat(e.target.value) || 0)} /></div>
+                    <div className="col-span-3 space-y-1">{i === 0 && <Label className="text-xs">Prezzo €</Label>}<Input type="number" step="0.01" min="0" value={s.unitPrice || ""} onChange={e => updateService(s.id, "unitPrice", parseFloat(e.target.value) || 0)} /></div>
+                    <div className="col-span-1">{services.length > 1 && <Button type="button" variant="ghost" size="sm" className="h-9 w-9 p-0 text-destructive" onClick={() => removeService(s.id)}><Trash2 className="h-4 w-4" /></Button>}</div>
                   </div>
                 ))}
               </div>
-
               <div className="bg-muted p-3 rounded-md space-y-1 text-sm">
                 <div className="flex justify-between"><span>Imponibile:</span><span className="font-medium">€ {subtotal.toLocaleString("it-IT", { minimumFractionDigits: 2 })}</span></div>
                 <div className="flex justify-between"><span>IVA (0%):</span><span className="font-medium">€ 0,00</span></div>
@@ -463,19 +501,13 @@ function InvoicesSection({ invoices, clients, onRefresh }: { invoices: PersonalI
                   <Select value={form.paymentDays} onValueChange={(v: string) => setForm(f => ({ ...f, paymentDays: v }))}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="0">Immediato</SelectItem>
-                      <SelectItem value="7">7 giorni</SelectItem>
-                      <SelectItem value="15">15 giorni</SelectItem>
-                      <SelectItem value="30">30 giorni</SelectItem>
-                      <SelectItem value="60">60 giorni</SelectItem>
-                      <SelectItem value="90">90 giorni</SelectItem>
+                      <SelectItem value="0">Immediato</SelectItem><SelectItem value="7">7 giorni</SelectItem><SelectItem value="15">15 giorni</SelectItem>
+                      <SelectItem value="30">30 giorni</SelectItem><SelectItem value="60">60 giorni</SelectItem><SelectItem value="90">90 giorni</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </div>
-              {form.status === "PAID" && (
-                <div className="space-y-2"><Label>Data Pagamento</Label><Input type="date" value={form.paymentDate} onChange={e => setForm(f => ({ ...f, paymentDate: e.target.value }))} /></div>
-              )}
+              {form.status === "PAID" && <div className="space-y-2"><Label>Data Pagamento</Label><Input type="date" value={form.paymentDate} onChange={e => setForm(f => ({ ...f, paymentDate: e.target.value }))} /></div>}
               <div className="space-y-2"><Label>Metodo pagamento</Label><Input value={form.paymentMethod} onChange={e => setForm(f => ({ ...f, paymentMethod: e.target.value }))} /></div>
               <div className="space-y-2"><Label>Note</Label><Textarea rows={2} value={form.paymentNotes} onChange={e => setForm(f => ({ ...f, paymentNotes: e.target.value }))} /></div>
             </div>
@@ -483,19 +515,13 @@ function InvoicesSection({ invoices, clients, onRefresh }: { invoices: PersonalI
             <div className="border-t pt-4 space-y-3">
               <h3 className="font-semibold">Tasse e Fatturazione elettronica</h3>
               <div className="flex items-center justify-between rounded-md border p-3">
-                <div>
-                  <Label>Accantonamento tasse</Label>
-                  <p className="text-xs text-muted-foreground">Segna che le tasse sono state accantonate</p>
-                </div>
+                <div><Label>Accantonamento tasse</Label><p className="text-xs text-muted-foreground">Segna che le tasse sono state accantonate</p></div>
                 <Switch checked={form.taxReserved} onCheckedChange={v => setForm(f => ({ ...f, taxReserved: v }))} />
               </div>
-              {form.taxReserved && (
-                <div className="space-y-2"><Label>Importo tasse (€)</Label><Input type="number" value={form.taxAmount} onChange={e => setForm(f => ({ ...f, taxAmount: e.target.value }))} /></div>
-              )}
+              {form.taxReserved && <div className="space-y-2"><Label>Importo tasse (€)</Label><Input type="number" value={form.taxAmount} onChange={e => setForm(f => ({ ...f, taxAmount: e.target.value }))} /></div>}
               <div className="space-y-2"><Label>Numero fattura elettronica</Label><Input value={form.electronicInvoiceNumber} onChange={e => setForm(f => ({ ...f, electronicInvoiceNumber: e.target.value }))} /></div>
             </div>
           </div>
-
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialog({ open: false })}>Annulla</Button>
             <Button onClick={save} disabled={submitting || !form.clientName.trim() || !form.subject.trim() || services.every(s => !s.description.trim())}>
@@ -505,6 +531,6 @@ function InvoicesSection({ invoices, clients, onRefresh }: { invoices: PersonalI
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </Card>
+    </>
   )
 }
