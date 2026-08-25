@@ -15,6 +15,7 @@ import { useAuthStore } from "@/store/auth-store"
 import { personalAPI, type PersonalClient, type PersonalInvoice } from "@/lib/personal-api"
 import { generateInvoicePDF } from "@/lib/pdf-generator"
 import { PaymentEntitySettings } from "@/components/payment-entity-settings"
+import { contactsAPI, type Contact } from "@/lib/contacts-api"
 import { toast } from "sonner"
 import { format } from "date-fns"
 import { Lock, Plus, Trash2, FileText, Pencil, BarChart3, Loader2, MoreHorizontal, Download, Landmark, TrendingUp, Clock, AlertCircle } from "lucide-react"
@@ -232,6 +233,12 @@ function InvoicesSection({ invoices, clients, onRefresh }: { invoices: PersonalI
   const [taxInvoice, setTaxInvoice] = useState<PersonalInvoice | null>(null)
   const [taxPercentage, setTaxPercentage] = useState("28")
   const [taxSubmitting, setTaxSubmitting] = useState(false)
+  const [contacts, setContacts] = useState<Contact[]>([])
+  const [clientSel, setClientSel] = useState("")
+
+  useEffect(() => {
+    contactsAPI.getContacts({ limit: 1000 }).then(r => { if (r.success) setContacts(r.data.contacts) }).catch(() => {})
+  }, [])
 
   const issued = invoices.filter(i => i.status === "ISSUED" || i.status === "PAID").reduce((s, i) => s + i.total, 0)
   const collected = invoices.filter(i => i.status === "PAID").reduce((s, i) => s + i.total, 0)
@@ -246,7 +253,7 @@ function InvoicesSection({ invoices, clients, onRefresh }: { invoices: PersonalI
   const subtotal = services.reduce((s, x) => s + (x.quantity * x.unitPrice), 0)
   const total = subtotal
 
-  const openCreate = () => { setForm(emptyForm); setServices([{ id: "1", description: "", quantity: 1, unitPrice: 0 }]); setDialog({ open: true }) }
+  const openCreate = () => { setForm(emptyForm); setServices([{ id: "1", description: "", quantity: 1, unitPrice: 0 }]); setClientSel(""); setDialog({ open: true }) }
 
   const openEdit = (inv: PersonalInvoice) => {
     setForm({
@@ -262,12 +269,21 @@ function InvoicesSection({ invoices, clients, onRefresh }: { invoices: PersonalI
       const parsed = JSON.parse(inv.description || "[]")
       setServices(Array.isArray(parsed) && parsed.length ? parsed : [{ id: "1", description: inv.description || "", quantity: inv.quantity, unitPrice: inv.unitPrice }])
     } catch { setServices([{ id: "1", description: inv.description || "", quantity: inv.quantity, unitPrice: inv.unitPrice }]) }
+    setClientSel(inv.personalClientId ? `p:${inv.personalClientId}` : "")
     setDialog({ open: true, editing: inv })
   }
 
-  const pickClient = (id: string) => {
-    const c = clients.find(x => String(x.id) === id)
-    setForm(f => ({ ...f, personalClientId: id, clientName: c?.name || "", clientAddress: c?.address || "", clientPIva: c?.piva || "", clientCF: c?.cf || "" }))
+  const pickClient = (value: string) => {
+    setClientSel(value)
+    if (value.startsWith("p:")) {
+      const c = clients.find(x => String(x.id) === value.slice(2))
+      setForm(f => ({ ...f, personalClientId: value.slice(2), clientName: c?.name || "", clientAddress: c?.address || "", clientPIva: c?.piva || "", clientCF: c?.cf || "" }))
+    } else if (value.startsWith("c:")) {
+      const c = contacts.find(x => String(x.id) === value.slice(2))
+      setForm(f => ({ ...f, personalClientId: "", clientName: c?.name || "", clientAddress: c?.address || "", clientPIva: c?.partitaIva || "", clientCF: c?.codiceFiscale || "" }))
+    } else {
+      setForm(f => ({ ...f, personalClientId: "", clientName: "", clientAddress: "", clientPIva: "", clientCF: "" }))
+    }
   }
 
   const addService = () => { const nid = (Math.max(...services.map(s => parseInt(s.id)), 0) + 1).toString(); setServices([...services, { id: nid, description: "", quantity: 1, unitPrice: 0 }]) }
@@ -431,6 +447,7 @@ function InvoicesSection({ invoices, clients, onRefresh }: { invoices: PersonalI
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild><Button variant="ghost" className="h-8 w-8 p-0"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => downloadPdf(inv)}><FileText className="mr-2 h-4 w-4" /> Anteprima</DropdownMenuItem>
                           <DropdownMenuItem onClick={() => openEdit(inv)}><Pencil className="mr-2 h-4 w-4" /> Modifica</DropdownMenuItem>
                           <DropdownMenuItem onClick={() => downloadPdf(inv)}><Download className="mr-2 h-4 w-4" /> Scarica PDF</DropdownMenuItem>
                           {inv.status === "PAID" && !inv.taxReserved && (
@@ -473,11 +490,36 @@ function InvoicesSection({ invoices, clients, onRefresh }: { invoices: PersonalI
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Cliente personale *</Label>
-                <Select value={form.personalClientId} onValueChange={pickClient}>
+                <Label>Cliente *</Label>
+                <Select value={clientSel} onValueChange={pickClient}>
                   <SelectTrigger><SelectValue placeholder="Seleziona cliente..." /></SelectTrigger>
-                  <SelectContent>{clients.map(c => <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>)}</SelectContent>
+                  <SelectContent>
+                    <SelectItem value="">— Manuale —</SelectItem>
+                    {clients.length > 0 && (
+                      <>
+                        <div className="px-2 py-1 text-xs font-semibold text-muted-foreground">Personali</div>
+                        {clients.map(c => <SelectItem key={`p${c.id}`} value={`p:${c.id}`}>{c.name}</SelectItem>)}
+                      </>
+                    )}
+                    {contacts.length > 0 && (
+                      <>
+                        <div className="px-2 py-1 text-xs font-semibold text-muted-foreground">Anagrafica CRM</div>
+                        {contacts.map(c => <SelectItem key={`c${c.id}`} value={`c:${c.id}`}>{c.name}</SelectItem>)}
+                      </>
+                    )}
+                  </SelectContent>
                 </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Numero Fattura</Label>
+                <Input value={dialog.editing ? dialog.editing.invoiceNumber : "Automatico"} disabled />
+              </div>
+              <div className="space-y-2">
+                <Label>Destinatario</Label>
+                <Input value="Davide" disabled />
               </div>
             </div>
 
