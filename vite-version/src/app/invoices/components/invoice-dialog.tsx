@@ -25,6 +25,7 @@ import {
 } from "@/lib/invoices-api"
 import { contactsAPI, type Contact } from "@/lib/contacts-api"
 import { paymentEntityAPI, type PaymentEntity } from "@/lib/payment-entity-api"
+import { personalAPI, type PersonalClient } from "@/lib/personal-api"
 import { Loader2, Check, ChevronsUpDown, Trash2, Search, Users } from "lucide-react"
 import { format } from "date-fns"
 import {
@@ -48,6 +49,8 @@ interface InvoiceDialogProps {
   onSuccess?: () => void
   onInvoicePaid?: (invoice: Invoice) => void
   invoice?: Invoice | null
+  personal?: boolean
+  personalInvoice?: any | null
 }
 
 interface ServiceItem {
@@ -57,7 +60,8 @@ interface ServiceItem {
   unitPrice: number
 }
 
-export function InvoiceDialog({ open, onOpenChange, onSuccess, onInvoicePaid, invoice }: InvoiceDialogProps) {
+export function InvoiceDialog({ open, onOpenChange, onSuccess, onInvoicePaid, invoice: invoiceProp, personal, personalInvoice }: InvoiceDialogProps) {
+  const invoice: any = personal ? personalInvoice : invoiceProp
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isLoadingNumber, setIsLoadingNumber] = useState(false)
   const [contacts, setContacts] = useState<Contact[]>([])
@@ -68,6 +72,7 @@ export function InvoiceDialog({ open, onOpenChange, onSuccess, onInvoicePaid, in
   const [errorDialogOpen, setErrorDialogOpen] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
   const [paymentEntities, setPaymentEntities] = useState<PaymentEntity[]>([])
+  const [personalClients, setPersonalClients] = useState<PersonalClient[]>([])
   const [services, setServices] = useState<ServiceItem[]>([
     { id: '1', description: '', quantity: 1, unitPrice: 0 }
   ])
@@ -139,6 +144,12 @@ export function InvoiceDialog({ open, onOpenChange, onSuccess, onInvoicePaid, in
           if (contactsResponse.success) {
             setContacts(contactsResponse.data.contacts)
           }
+          if (personal) {
+            try {
+              const pc = await personalAPI.getClients()
+              if (pc.success) setPersonalClients(pc.data)
+            } catch { /* personal clients optional */ }
+          }
           if (entitiesResponse.success) {
             setPaymentEntities(entitiesResponse.data)
             // Set default payment entity if creating new invoice and one exists
@@ -163,7 +174,7 @@ export function InvoiceDialog({ open, onOpenChange, onSuccess, onInvoicePaid, in
   // Load next invoice number when creating new invoice
   useEffect(() => {
     async function loadNextNumber() {
-      if (open && !invoice) {
+      if (open && !invoice && !personal) {
         try {
           setIsLoadingNumber(true)
           const response = await invoicesAPI.getNextInvoiceNumber()
@@ -273,6 +284,17 @@ export function InvoiceDialog({ open, onOpenChange, onSuccess, onInvoicePaid, in
     }
   }
 
+  const handlePersonalClientSelect = (c: PersonalClient) => {
+    setFormData({
+      ...formData,
+      clientName: c.name,
+      clientAddress: c.address || '',
+      clientPIva: c.piva || '',
+      clientCF: c.cf || '',
+    })
+    setClientSelectorOpen(false)
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -305,7 +327,13 @@ export function InvoiceDialog({ open, onOpenChange, onSuccess, onInvoicePaid, in
 
       let updatedInvoice: Invoice | undefined
 
-      if (invoice) {
+      if (personal) {
+        if (invoice) {
+          updatedInvoice = (await personalAPI.updateInvoice(invoice.id, invoiceData)).data
+        } else {
+          updatedInvoice = (await personalAPI.createInvoice(invoiceData)).data
+        }
+      } else if (invoice) {
         // Update existing invoice
         const response = await invoicesAPI.updateInvoice(invoice.id, invoiceData)
         updatedInvoice = response.data
@@ -644,6 +672,20 @@ export function InvoiceDialog({ open, onOpenChange, onSuccess, onInvoicePaid, in
             {/* Contacts List */}
             <div className="border rounded-md overflow-hidden">
               <div className="max-h-[400px] overflow-y-auto">
+                {personal && personalClients.length > 0 && (
+                  <>
+                    <div className="px-4 py-2 text-xs font-semibold text-muted-foreground bg-muted/50">Clienti personali</div>
+                    <div className="divide-y">
+                      {personalClients.map((c) => (
+                        <div key={c.id} className="p-4 hover:bg-muted cursor-pointer transition-colors" onClick={() => handlePersonalClientSelect(c)}>
+                          <div className="font-medium">{c.name}</div>
+                          <div className="text-sm text-muted-foreground">{[c.piva && `P.IVA ${c.piva}`, c.cf && `C.F. ${c.cf}`, c.address].filter(Boolean).join(' · ')}</div>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="px-4 py-2 text-xs font-semibold text-muted-foreground bg-muted/50">Anagrafica contatti</div>
+                  </>
+                )}
                 {isLoadingContacts ? (
                   <div className="flex items-center justify-center py-8">
                     <Loader2 className="h-6 w-6 animate-spin" />

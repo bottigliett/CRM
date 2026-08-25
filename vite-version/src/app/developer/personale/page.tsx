@@ -16,6 +16,7 @@ import { personalAPI, type PersonalClient, type PersonalInvoice } from "@/lib/pe
 import { generateInvoicePDF, getInvoiceHTML } from "@/lib/pdf-generator"
 import { PaymentEntitySettings } from "@/components/payment-entity-settings"
 import { contactsAPI, type Contact } from "@/lib/contacts-api"
+import { InvoiceDialog } from "@/app/invoices/components/invoice-dialog"
 import { toast } from "sonner"
 import { format } from "date-fns"
 import { Lock, Plus, Trash2, FileText, Pencil, BarChart3, Loader2, MoreHorizontal, Download, Landmark, TrendingUp, Clock, AlertCircle, CalendarCheck } from "lucide-react"
@@ -505,124 +506,14 @@ function InvoicesSection({ invoices, clients, onRefresh }: { invoices: PersonalI
         </CardContent>
       </Card>
 
-      {/* Invoice Dialog */}
-      <Dialog open={dialog.open} onOpenChange={o => { if (!o) setDialog({ open: false }) }}>
-        <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{dialog.editing ? "Modifica Fattura" : "Nuova Fattura Personale"}</DialogTitle>
-            <DialogDescription>Compila i dettagli della fattura personale</DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Stato</Label>
-                <Select value={form.status} onValueChange={(v: string) => setForm(f => ({ ...f, status: v, paymentDate: v === "PAID" ? (f.paymentDate || new Date().toISOString().slice(0, 10)) : f.paymentDate }))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="DRAFT">Bozza</SelectItem>
-                    <SelectItem value="ISSUED">Emessa</SelectItem>
-                    <SelectItem value="PAID">Pagata</SelectItem>
-                    <SelectItem value="CANCELLED">Annullata</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Cliente *</Label>
-                <Select value={clientSel} onValueChange={pickClient}>
-                  <SelectTrigger><SelectValue placeholder="Seleziona cliente..." /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">— Manuale —</SelectItem>
-                    {clients.length > 0 && (
-                      <>
-                        <div className="px-2 py-1 text-xs font-semibold text-muted-foreground">Personali</div>
-                        {clients.map(c => <SelectItem key={`p${c.id}`} value={`p:${c.id}`}>{c.name}</SelectItem>)}
-                      </>
-                    )}
-                    {contacts.length > 0 && (
-                      <>
-                        <div className="px-2 py-1 text-xs font-semibold text-muted-foreground">Anagrafica CRM</div>
-                        {contacts.map(c => <SelectItem key={`c${c.id}`} value={`c:${c.id}`}>{c.name}</SelectItem>)}
-                      </>
-                    )}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Numero Fattura</Label>
-                <Input value={dialog.editing ? dialog.editing.invoiceNumber : "Automatico"} disabled />
-              </div>
-              <div className="space-y-2">
-                <Label>Destinatario</Label>
-                <Input value="Davide" disabled />
-              </div>
-            </div>
-
-            <div className="border-t pt-4 space-y-3">
-              <h3 className="font-semibold">Dati Cliente</h3>
-              <div className="space-y-2"><Label>Nome cliente *</Label><Input value={form.clientName} onChange={e => setForm(f => ({ ...f, clientName: e.target.value }))} /></div>
-              <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-1"><Label>P.IVA</Label><Input value={form.clientPIva} onChange={e => setForm(f => ({ ...f, clientPIva: e.target.value }))} /></div>
-                <div className="space-y-1"><Label>C.F.</Label><Input value={form.clientCF} onChange={e => setForm(f => ({ ...f, clientCF: e.target.value }))} /></div>
-              </div>
-              <div className="space-y-1"><Label>Indirizzo</Label><Input value={form.clientAddress} onChange={e => setForm(f => ({ ...f, clientAddress: e.target.value }))} /></div>
-            </div>
-
-            <div className="border-t pt-4 space-y-3">
-              <h3 className="font-semibold">Dettagli Fattura</h3>
-              <div className="space-y-2"><Label>Oggetto *</Label><Input value={form.subject} onChange={e => setForm(f => ({ ...f, subject: e.target.value }))} /></div>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between"><Label>Servizi *</Label><Button type="button" variant="outline" size="sm" onClick={addService}>+ Aggiungi Servizio</Button></div>
-                {services.map((s, i) => (
-                  <div key={s.id} className="grid grid-cols-12 gap-2 items-end">
-                    <div className="col-span-6 space-y-1">{i === 0 && <Label className="text-xs">Descrizione</Label>}<Input placeholder="Gestione social media" value={s.description} onChange={e => updateService(s.id, "description", e.target.value)} /></div>
-                    <div className="col-span-2 space-y-1">{i === 0 && <Label className="text-xs">Qtà</Label>}<Input type="number" step="0.01" min="0" value={s.quantity || ""} onChange={e => updateService(s.id, "quantity", parseFloat(e.target.value) || 0)} /></div>
-                    <div className="col-span-3 space-y-1">{i === 0 && <Label className="text-xs">Prezzo €</Label>}<Input type="number" step="0.01" min="0" value={s.unitPrice || ""} onChange={e => updateService(s.id, "unitPrice", parseFloat(e.target.value) || 0)} /></div>
-                    <div className="col-span-1">{services.length > 1 && <Button type="button" variant="ghost" size="sm" className="h-9 w-9 p-0 text-destructive" onClick={() => removeService(s.id)}><Trash2 className="h-4 w-4" /></Button>}</div>
-                  </div>
-                ))}
-              </div>
-              <div className="bg-muted p-3 rounded-md space-y-1 text-sm">
-                <div className="flex justify-between"><span>Imponibile:</span><span className="font-medium">€ {subtotal.toLocaleString("it-IT", { minimumFractionDigits: 2 })}</span></div>
-                <div className="flex justify-between"><span>IVA (0%):</span><span className="font-medium">€ 0,00</span></div>
-                <div className="flex justify-between text-base font-semibold border-t pt-1"><span>Totale:</span><span>€ {total.toLocaleString("it-IT", { minimumFractionDigits: 2 })}</span></div>
-              </div>
-            </div>
-
-            <div className="border-t pt-4 space-y-3">
-              <h3 className="font-semibold">Date e Pagamento</h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2"><Label>Data Emissione *</Label><Input type="date" value={form.issueDate} onChange={e => setForm(f => ({ ...f, issueDate: e.target.value }))} /></div>
-                <div className="space-y-2">
-                  <Label>Giorni Pagamento *</Label>
-                  <Select value={form.paymentDays} onValueChange={(v: string) => setForm(f => ({ ...f, paymentDays: v }))}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="0">Immediato</SelectItem><SelectItem value="7">7 giorni</SelectItem><SelectItem value="15">15 giorni</SelectItem>
-                      <SelectItem value="30">30 giorni</SelectItem><SelectItem value="60">60 giorni</SelectItem><SelectItem value="90">90 giorni</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              {form.status === "PAID" && <div className="space-y-2"><Label>Data Pagamento</Label><Input type="date" value={form.paymentDate} onChange={e => setForm(f => ({ ...f, paymentDate: e.target.value }))} /></div>}
-            </div>
-
-            <div className="border-t pt-4 space-y-3">
-              <h3 className="font-semibold">Fatturazione elettronica</h3>
-              <div className="space-y-2"><Label>Numero fattura elettronica</Label><Input value={form.electronicInvoiceNumber} onChange={e => setForm(f => ({ ...f, electronicInvoiceNumber: e.target.value }))} /></div>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDialog({ open: false })}>Annulla</Button>
-            <Button onClick={save} disabled={submitting || !form.clientName.trim() || !form.subject.trim() || services.every(s => !s.description.trim())}>
-              {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {dialog.editing ? "Salva Modifiche" : "Crea Fattura"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Invoice Dialog (reuses the invoices-page component) */}
+      <InvoiceDialog
+        open={dialog.open}
+        onOpenChange={o => { if (!o) setDialog({ open: false }) }}
+        onSuccess={onRefresh}
+        personal
+        personalInvoice={dialog.editing || null}
+      />
 
       {/* Tax Reserve Dialog */}
       <Dialog open={!!taxInvoice} onOpenChange={o => { if (!o) setTaxInvoice(null) }}>
