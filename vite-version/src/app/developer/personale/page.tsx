@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { Navigate } from "react-router-dom"
 import { BaseLayout } from "@/components/layouts/base-layout"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -16,12 +17,11 @@ export default function DeveloperPersonale() {
   const [code, setCode] = useState("")
   const [wrong, setWrong] = useState(false)
 
-  const isDev = user?.role === "DEVELOPER" || user?.role === "ADMIN" || user?.role === "SUPER_ADMIN"
-
   const tryUnlock = () => { if (code === UNLOCK_CODE) { setUnlocked(true); setWrong(false) } else setWrong(true) }
 
-  if (!isDev) {
-    return <BaseLayout title="Accesso negato"><div className="px-4 lg:px-6 py-16 text-center text-muted-foreground">Accesso riservato.</div></BaseLayout>
+  // Solo DEVELOPER può accedere; gli altri (SUPER_ADMIN, ADMIN, ecc.) vengono rimandati alla dashboard.
+  if (user && user.role !== "DEVELOPER") {
+    return <Navigate to="/dashboard" replace />
   }
 
   if (!unlocked) {
