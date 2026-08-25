@@ -26,6 +26,10 @@ import {
   updatePersonalRecurringInvoice,
   deletePersonalRecurringInvoice,
   generatePersonalRecurringInvoice,
+  getNextPersonalInvoiceNumber,
+  reservePersonalTaxes,
+  patchPersonalInvoice,
+  duplicatePersonalInvoice,
 } from '../controllers/personal-invoice.controller';
 
 const router = Router();
@@ -73,8 +77,12 @@ router.delete('/personal/clients/:id', deletePersonalClient);
 
 // Personal invoices
 router.get('/personal/invoices', getPersonalInvoices);
+router.get('/personal/invoices/next-number', getNextPersonalInvoiceNumber);
 router.post('/personal/invoices', createPersonalInvoice);
 router.put('/personal/invoices/:id', updatePersonalInvoice);
+router.patch('/personal/invoices/:id', patchPersonalInvoice);
+router.post('/personal/invoices/:id/reserve-taxes', reservePersonalTaxes);
+router.post('/personal/invoices/:id/duplicate', duplicatePersonalInvoice);
 router.delete('/personal/invoices/:id', deletePersonalInvoice);
 
 // Personal recurring invoices

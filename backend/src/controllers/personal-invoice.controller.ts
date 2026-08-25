@@ -315,6 +315,72 @@ export const deletePersonalRecurringInvoice = async (req: AuthRequest, res: Resp
   }
 };
 
+// Next invoice number (PERS/anno/n)
+export const getNextPersonalInvoiceNumber = async (req: AuthRequest, res: Response) => {
+  const userId = await requireDeveloper(req, res);
+  if (userId === null) return;
+  try {
+    const year = new Date().getFullYear();
+    const existing = await prisma.personalInvoice.findMany({ select: { invoiceNumber: true } });
+    return res.json({ success: true, data: { invoiceNumber: nextInvoiceNumber(year, existing.map(i => i.invoiceNumber)) } });
+  } catch (e: any) { return res.status(500).json({ success: false, message: e.message }); }
+};
+
+// Reserve taxes with a percentage
+export const reservePersonalTaxes = async (req: AuthRequest, res: Response) => {
+  const userId = await requireDeveloper(req, res);
+  if (userId === null) return;
+  try {
+    const id = parseInt(req.params.id);
+    const pct = req.body.taxPercentage ?? 28;
+    const inv = await prisma.personalInvoice.findUnique({ where: { id } });
+    if (!inv) return res.status(404).json({ success: false, message: 'Fattura non trovata' });
+    const amount = inv.total * (pct / 100);
+    await prisma.personalInvoice.update({ where: { id }, data: { taxReserved: true, taxAmount: amount } });
+    return res.json({ success: true, message: 'Tasse accantonate' });
+  } catch (e: any) { return res.status(500).json({ success: false, message: e.message }); }
+};
+
+// Patch a single field (electronicInvoiceNumber)
+export const patchPersonalInvoice = async (req: AuthRequest, res: Response) => {
+  const userId = await requireDeveloper(req, res);
+  if (userId === null) return;
+  try {
+    const id = parseInt(req.params.id);
+    const data: any = {};
+    if (req.body.electronicInvoiceNumber !== undefined) data.electronicInvoiceNumber = req.body.electronicInvoiceNumber;
+    await prisma.personalInvoice.update({ where: { id }, data });
+    return res.json({ success: true });
+  } catch (e: any) { return res.status(500).json({ success: false, message: e.message }); }
+};
+
+// Duplicate a personal invoice
+export const duplicatePersonalInvoice = async (req: AuthRequest, res: Response) => {
+  const userId = await requireDeveloper(req, res);
+  if (userId === null) return;
+  try {
+    const id = parseInt(req.params.id);
+    const src = await prisma.personalInvoice.findUnique({ where: { id } });
+    if (!src) return res.status(404).json({ success: false, message: 'Fattura non trovata' });
+    const year = new Date().getFullYear();
+    const existing = await prisma.personalInvoice.findMany({ select: { invoiceNumber: true } });
+    const invoiceNumber = nextInvoiceNumber(year, existing.map(i => i.invoiceNumber));
+    const copy = await prisma.personalInvoice.create({
+      data: {
+        invoiceNumber,
+        clientName: src.clientName, clientAddress: src.clientAddress, clientPIva: src.clientPIva, clientCF: src.clientCF,
+        subject: src.subject, description: src.description,
+        quantity: src.quantity, unitPrice: src.unitPrice, subtotal: src.subtotal,
+        vatPercentage: src.vatPercentage, vatAmount: src.vatAmount, total: src.total,
+        issueDate: new Date(), dueDate: new Date(Date.now() + src.paymentDays * 86400000),
+        paymentDays: src.paymentDays, status: 'DRAFT', fiscalNotes: src.fiscalNotes,
+        createdBy: userId,
+      },
+    });
+    return res.status(201).json({ success: true, data: copy });
+  } catch (e: any) { return res.status(500).json({ success: false, message: e.message }); }
+};
+
 // Generate a PersonalInvoice from a recurring template
 export const generatePersonalRecurringInvoice = async (req: AuthRequest, res: Response) => {
   const userId = await requireDeveloper(req, res);
