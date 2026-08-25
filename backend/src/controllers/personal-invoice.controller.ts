@@ -230,3 +230,131 @@ export const getComparison = async (req: AuthRequest, res: Response) => {
     return res.status(500).json({ success: false, message: e.message });
   }
 };
+
+// === Personal Recurring Invoices ===
+
+export const getPersonalRecurringInvoices = async (req: AuthRequest, res: Response) => {
+  const userId = await requireDeveloper(req, res);
+  if (userId === null) return;
+  try {
+    const list = await prisma.personalRecurringInvoice.findMany({
+      include: { personalClient: true },
+      orderBy: { createdAt: 'desc' },
+    });
+    return res.json({ success: true, data: list });
+  } catch (e: any) {
+    return res.status(500).json({ success: false, message: e.message });
+  }
+};
+
+export const createPersonalRecurringInvoice = async (req: AuthRequest, res: Response) => {
+  const userId = await requireDeveloper(req, res);
+  if (userId === null) return;
+  try {
+    const b = req.body;
+    const rec = await prisma.personalRecurringInvoice.create({
+      data: {
+        personalClientId: parseInt(b.personalClientId),
+        clientName: b.clientName || '',
+        clientAddress: b.clientAddress || null,
+        clientPIva: b.clientPIva || null,
+        clientCF: b.clientCF || null,
+        subjectTemplate: b.subjectTemplate || '',
+        description: b.description || null,
+        quantity: b.quantity ?? 1,
+        unitPrice: b.unitPrice ?? 0,
+        subtotal: b.subtotal ?? 0,
+        vatPercentage: b.vatPercentage ?? 0,
+        vatAmount: b.vatAmount ?? 0,
+        total: b.total ?? 0,
+        paymentDays: b.paymentDays ?? 30,
+        generationDay: b.generationDay ?? 10,
+        fiscalNotes: b.fiscalNotes || null,
+        isActive: b.isActive !== false,
+        createdBy: userId,
+      },
+      include: { personalClient: true },
+    });
+    return res.status(201).json({ success: true, data: rec });
+  } catch (e: any) {
+    return res.status(500).json({ success: false, message: e.message });
+  }
+};
+
+export const updatePersonalRecurringInvoice = async (req: AuthRequest, res: Response) => {
+  const userId = await requireDeveloper(req, res);
+  if (userId === null) return;
+  try {
+    const id = parseInt(req.params.id);
+    const b = req.body;
+    const data: any = {};
+    for (const f of ['clientName', 'clientAddress', 'clientPIva', 'clientCF', 'subjectTemplate', 'description', 'fiscalNotes']) {
+      if (b[f] !== undefined) data[f] = b[f];
+    }
+    for (const f of ['quantity', 'unitPrice', 'subtotal', 'vatPercentage', 'vatAmount', 'total', 'paymentDays', 'generationDay']) {
+      if (b[f] !== undefined) data[f] = Number(b[f]);
+    }
+    if (b.personalClientId !== undefined) data.personalClientId = parseInt(b.personalClientId);
+    if (b.isActive !== undefined) data.isActive = b.isActive === true || b.isActive === 'true';
+    const rec = await prisma.personalRecurringInvoice.update({ where: { id }, data, include: { personalClient: true } });
+    return res.json({ success: true, data: rec });
+  } catch (e: any) {
+    return res.status(500).json({ success: false, message: e.message });
+  }
+};
+
+export const deletePersonalRecurringInvoice = async (req: AuthRequest, res: Response) => {
+  const userId = await requireDeveloper(req, res);
+  if (userId === null) return;
+  try {
+    const id = parseInt(req.params.id);
+    await prisma.personalRecurringInvoice.delete({ where: { id } });
+    return res.json({ success: true });
+  } catch (e: any) {
+    return res.status(500).json({ success: false, message: e.message });
+  }
+};
+
+// Generate a PersonalInvoice from a recurring template
+export const generatePersonalRecurringInvoice = async (req: AuthRequest, res: Response) => {
+  const userId = await requireDeveloper(req, res);
+  if (userId === null) return;
+  try {
+    const id = parseInt(req.params.id);
+    const rec = await prisma.personalRecurringInvoice.findUnique({ where: { id } });
+    if (!rec) return res.status(404).json({ success: false, message: 'Template non trovato' });
+
+    const now = new Date();
+    const year = now.getFullYear();
+    const existing = await prisma.personalInvoice.findMany({ select: { invoiceNumber: true } });
+    const invoiceNumber = nextInvoiceNumber(year, existing.map(i => i.invoiceNumber));
+
+    const invoice = await prisma.personalInvoice.create({
+      data: {
+        invoiceNumber,
+        personalClientId: rec.personalClientId,
+        clientName: rec.clientName,
+        clientAddress: rec.clientAddress,
+        clientPIva: rec.clientPIva,
+        clientCF: rec.clientCF,
+        subject: rec.subjectTemplate,
+        description: rec.description,
+        quantity: rec.quantity,
+        unitPrice: rec.unitPrice,
+        subtotal: rec.subtotal,
+        vatPercentage: rec.vatPercentage,
+        vatAmount: rec.vatAmount,
+        total: rec.total,
+        issueDate: now,
+        dueDate: new Date(now.getTime() + rec.paymentDays * 86400000),
+        paymentDays: rec.paymentDays,
+        status: 'DRAFT',
+        fiscalNotes: rec.fiscalNotes,
+        createdBy: userId,
+      },
+    });
+    return res.status(201).json({ success: true, data: invoice });
+  } catch (e: any) {
+    return res.status(500).json({ success: false, message: e.message });
+  }
+};

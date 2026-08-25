@@ -81,4 +81,10 @@ export const personalAPI = {
     request<{ success: boolean; data: Array<{ period: string; davide: number; stefano: number }> }>(
       `/developer/personal/comparison?granularity=${granularity}`
     ),
+
+  getRecurring: () => request<{ success: boolean; data: any[] }>('/developer/personal/recurring'),
+  createRecurring: (data: any) => request<{ success: boolean; data: any }>('/developer/personal/recurring', { method: 'POST', body: JSON.stringify(data) }),
+  updateRecurring: (id: number, data: any) => request<{ success: boolean; data: any }>(`/developer/personal/recurring/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteRecurring: (id: number) => request<{ success: boolean }>(`/developer/personal/recurring/${id}`, { method: 'DELETE' }),
+  generateRecurring: (id: number) => request<{ success: boolean; data: any }>(`/developer/personal/recurring/${id}/generate`, { method: 'POST' }),
 };

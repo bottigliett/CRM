@@ -65,6 +65,7 @@ model User {
   createdInvoices          Invoice[]               @relation("InvoiceCreator") // Invoices created by this user
   createdRecurringInvoices RecurringInvoice[]      @relation("RecurringInvoiceCreator") // Recurring invoice templates created by this user
   createdPersonalInvoices  PersonalInvoice[]       @relation("PersonalInvoiceCreator") // Personal invoices created by this user
+  createdPersonalRecurring PersonalRecurringInvoice[] @relation("PersonalRecurringInvoiceCreator") // Personal recurring invoice templates
   createdProjects          Project[]               @relation("ProjectCreator") // Projects created by this user
   completedProjectTasks    ProjectTask[]           @relation("TaskCompletedBy") // Project tasks completed by this user
   completedClientTasks     ClientProjectTask[]     @relation("ClientTaskCompletedBy") // Client project tasks completed by this user
@@ -785,6 +786,7 @@ model PersonalClient {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   invoices PersonalInvoice[]
+  recurringInvoices PersonalRecurringInvoice[]
 
   @@index([name])
   @@map("personal_clients")
@@ -841,6 +843,43 @@ model PersonalInvoice {
   @@index([status])
   @@index([personalClientId])
   @@map("personal_invoices")
+}
+
+model PersonalRecurringInvoice {
+  id Int @id @default(autoincrement())
+
+  personalClientId Int @map("personal_client_id")
+  clientName       String @map("client_name")
+  clientAddress    String? @map("client_address")
+  clientPIva       String? @map("client_piva")
+  clientCF         String? @map("client_cf")
+
+  subjectTemplate String  @map("subject_template")
+  description     String? @db.Text // JSON services array
+
+  quantity      Float @default(1.00)
+  unitPrice     Float @map("unit_price")
+  subtotal      Float
+  vatPercentage Float @default(0) @map("vat_percentage")
+  vatAmount     Float @map("vat_amount")
+  total         Float
+
+  paymentDays  Int  @default(30) @map("payment_days")
+  generationDay Int @default(10) @map("generation_day") // 9, 10, 11
+  fiscalNotes  String? @map("fiscal_notes") @db.Text
+  isActive     Boolean @default(true) @map("is_active")
+
+  createdBy Int      @map("created_by")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  personalClient PersonalClient @relation(fields: [personalClientId], references: [id], onDelete: Cascade)
+  creator        User           @relation("PersonalRecurringInvoiceCreator", fields: [createdBy], references: [id])
+
+  @@index([personalClientId])
+  @@index([isActive])
+  @@index([createdBy])
+  @@map("personal_recurring_invoices")
 }
 
 enum InvoiceStatus {

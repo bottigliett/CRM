@@ -18,7 +18,7 @@ import { PaymentEntitySettings } from "@/components/payment-entity-settings"
 import { contactsAPI, type Contact } from "@/lib/contacts-api"
 import { toast } from "sonner"
 import { format } from "date-fns"
-import { Lock, Plus, Trash2, FileText, Pencil, BarChart3, Loader2, MoreHorizontal, Download, Landmark, TrendingUp, Clock, AlertCircle } from "lucide-react"
+import { Lock, Plus, Trash2, FileText, Pencil, BarChart3, Loader2, MoreHorizontal, Download, Landmark, TrendingUp, Clock, AlertCircle, CalendarCheck } from "lucide-react"
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, CartesianGrid } from "recharts"
 
 const UNLOCK_CODE = "1212"
@@ -237,6 +237,33 @@ function InvoicesSection({ invoices, clients, onRefresh }: { invoices: PersonalI
   const [clientSel, setClientSel] = useState("")
   const [previewOpen, setPreviewOpen] = useState(false)
   const [previewHtml, setPreviewHtml] = useState("")
+  const [recurringOpen, setRecurringOpen] = useState(false)
+  const [recurring, setRecurring] = useState<any[]>([])
+  const [recForm, setRecForm] = useState({ personalClientId: "", clientName: "", subjectTemplate: "", total: "", paymentDays: "30", generationDay: "10" })
+
+  const loadRecurring = () => { personalAPI.getRecurring().then(r => setRecurring(r.data)).catch(() => {}) }
+  useEffect(() => { loadRecurring() }, [])
+
+  const addRecurring = async () => {
+    const total = parseFloat(recForm.total) || 0
+    try {
+      await personalAPI.createRecurring({ ...recForm, subtotal: total, total, vatPercentage: 0, vatAmount: 0, quantity: 1, unitPrice: total, personalClientId: recForm.personalClientId || null })
+      toast.success("Template ricorrente creato")
+      setRecForm({ personalClientId: "", clientName: "", subjectTemplate: "", total: "", paymentDays: "30", generationDay: "10" })
+      loadRecurring()
+    } catch (e: any) { toast.error(e.message) }
+  }
+
+  const genRecurring = async (id: number) => {
+    try { await personalAPI.generateRecurring(id); toast.success("Fattura generata"); onRefresh(); loadRecurring() }
+    catch (e: any) { toast.error(e.message) }
+  }
+
+  const delRecurring = async (id: number) => {
+    if (!confirm("Eliminare il template ricorrente?")) return
+    try { await personalAPI.deleteRecurring(id); toast.success("Eliminato"); loadRecurring() }
+    catch (e: any) { toast.error(e.message) }
+  }
 
   useEffect(() => {
     contactsAPI.getContacts({ limit: 1000 }).then(r => { if (r.success) setContacts(r.data.contacts) }).catch(() => {})
@@ -393,6 +420,7 @@ function InvoicesSection({ invoices, clients, onRefresh }: { invoices: PersonalI
             </div>
             <div className="flex items-center gap-2">
               <PaymentEntitySettings />
+              <Button onClick={() => setRecurringOpen(true)} variant="outline"><CalendarCheck className="mr-2 h-4 w-4" /> Fatture Ricorrenti</Button>
               <Button onClick={openCreate} className="bg-primary hover:bg-primary/90"><Plus className="mr-2 h-4 w-4" /> Nuova Fattura</Button>
             </div>
           </div>
@@ -631,6 +659,53 @@ function InvoicesSection({ invoices, clients, onRefresh }: { invoices: PersonalI
             <DialogDescription>Visualizzazione della fattura</DialogDescription>
           </DialogHeader>
           <iframe title="Anteprima fattura" srcDoc={previewHtml} className="w-full h-[72vh] border rounded" />
+        </DialogContent>
+      </Dialog>
+
+      {/* Recurring invoices dialog */}
+      <Dialog open={recurringOpen} onOpenChange={setRecurringOpen}>
+        <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><CalendarCheck className="h-5 w-5" /> Fatture Ricorrenti</DialogTitle>
+            <DialogDescription>Template di fatture personali ricorrenti</DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            {recurring.length > 0 && (
+              <div className="rounded-md border divide-y">
+                {recurring.map(r => (
+                  <div key={r.id} className="flex items-center justify-between px-3 py-2">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium truncate">{r.clientName} — {r.subjectTemplate}</p>
+                      <p className="text-xs text-muted-foreground">€ {r.total.toLocaleString("it-IT")} · giorno {r.generationDay} · {r.paymentDays}gg {r.isActive ? "" : "· disattivato"}</p>
+                    </div>
+                    <div className="flex gap-1 shrink-0">
+                      <Button variant="outline" size="sm" onClick={() => genRecurring(r.id)}>Genera</Button>
+                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-destructive" onClick={() => delRecurring(r.id)}><Trash2 className="h-4 w-4" /></Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="border-t pt-3 space-y-2">
+              <h4 className="text-sm font-semibold">Nuovo template</h4>
+              <div className="space-y-1">
+                <Label>Cliente</Label>
+                <select className="w-full h-9 rounded-md border px-2 text-sm" value={recForm.personalClientId} onChange={e => { const c = clients.find(x => String(x.id) === e.target.value); setRecForm(f => ({ ...f, personalClientId: e.target.value, clientName: c?.name || "" })) }}>
+                  <option value="">— Seleziona —</option>
+                  {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+              </div>
+              <div className="space-y-1"><Label>Oggetto</Label><Input value={recForm.subjectTemplate} onChange={e => setRecForm(f => ({ ...f, subjectTemplate: e.target.value }))} placeholder="Social Media Management" /></div>
+              <div className="grid grid-cols-3 gap-2">
+                <div className="space-y-1"><Label>Totale €</Label><Input type="number" value={recForm.total} onChange={e => setRecForm(f => ({ ...f, total: e.target.value }))} /></div>
+                <div className="space-y-1"><Label>Giorni pag.</Label><Input type="number" value={recForm.paymentDays} onChange={e => setRecForm(f => ({ ...f, paymentDays: e.target.value }))} /></div>
+                <div className="space-y-1"><Label>Giorno gen.</Label><Input type="number" min="1" max="31" value={recForm.generationDay} onChange={e => setRecForm(f => ({ ...f, generationDay: e.target.value }))} /></div>
+              </div>
+              <Button size="sm" onClick={addRecurring} disabled={!recForm.clientName.trim() || !recForm.total}><Plus className="h-4 w-4 mr-1" /> Aggiungi template</Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </>
