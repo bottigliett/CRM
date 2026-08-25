@@ -64,6 +64,7 @@ model User {
   notificationPreference   NotificationPreference?
   createdInvoices          Invoice[]               @relation("InvoiceCreator") // Invoices created by this user
   createdRecurringInvoices RecurringInvoice[]      @relation("RecurringInvoiceCreator") // Recurring invoice templates created by this user
+  createdPersonalInvoices  PersonalInvoice[]       @relation("PersonalInvoiceCreator") // Personal invoices created by this user
   createdProjects          Project[]               @relation("ProjectCreator") // Projects created by this user
   completedProjectTasks    ProjectTask[]           @relation("TaskCompletedBy") // Project tasks completed by this user
   completedClientTasks     ClientProjectTask[]     @relation("ClientTaskCompletedBy") // Client project tasks completed by this user
@@ -768,6 +769,78 @@ model InvoiceItem {
   @@index([invoiceId])
   @@index([invoiceId, order])
   @@map("invoice_items")
+}
+
+// ===================================
+// PERSONAL (Davide) — clienti + fatture personali, separate dal CRM
+// ===================================
+
+model PersonalClient {
+  id        Int     @id @default(autoincrement())
+  name      String  @map("name")
+  address   String? @map("address")
+  piva      String? @map("piva")
+  cf        String? @map("cf")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  invoices PersonalInvoice[]
+
+  @@index([name])
+  @@map("personal_clients")
+}
+
+model PersonalInvoice {
+  id            Int     @id @default(autoincrement())
+  invoiceNumber String  @unique @map("invoice_number") // es. PERS/2025/001
+
+  personalClientId Int? @map("personal_client_id")
+  clientName       String @map("client_name")
+  clientAddress    String? @map("client_address")
+  clientPIva       String? @map("client_piva")
+  clientCF         String? @map("client_cf")
+
+  subject     String  @map("subject")
+  description String? @db.Text // JSON array of services
+
+  quantity      Float @default(1.00)
+  unitPrice     Float @map("unit_price")
+  subtotal      Float
+  vatPercentage Float @default(0) @map("vat_percentage")
+  vatAmount     Float @map("vat_amount")
+  total         Float
+
+  issueDate   DateTime @map("issue_date")
+  dueDate     DateTime @map("due_date")
+  paymentDays Int      @default(30) @map("payment_days")
+
+  status        InvoiceStatus @default(DRAFT)
+  paymentDate   DateTime?     @map("payment_date")
+  paymentMethod String?       @map("payment_method")
+  paymentNotes  String?       @map("payment_notes")
+
+  taxReserved Boolean @default(false) @map("tax_reserved")
+  taxAmount   Float?  @map("tax_amount")
+
+  electronicInvoiceNumber String? @map("electronic_invoice_number")
+
+  fiscalNotes String? @map("fiscal_notes") @db.Text
+
+  pdfPath        String?   @map("pdf_path")
+  pdfGeneratedAt DateTime? @map("pdf_generated_at")
+
+  createdBy Int      @map("created_by")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  personalClient PersonalClient? @relation(fields: [personalClientId], references: [id], onDelete: SetNull)
+  creator        User            @relation("PersonalInvoiceCreator", fields: [createdBy], references: [id])
+
+  @@index([invoiceNumber])
+  @@index([issueDate])
+  @@index([status])
+  @@index([personalClientId])
+  @@map("personal_invoices")
 }
 
 enum InvoiceStatus {

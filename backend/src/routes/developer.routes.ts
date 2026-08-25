@@ -11,6 +11,17 @@ import {
   updateModuleSettings,
   getEnabledModules,
 } from '../controllers/developer.controller';
+import {
+  getPersonalClients,
+  createPersonalClient,
+  updatePersonalClient,
+  deletePersonalClient,
+  getPersonalInvoices,
+  createPersonalInvoice,
+  updatePersonalInvoice,
+  deletePersonalInvoice,
+  getComparison,
+} from '../controllers/personal-invoice.controller';
 
 const router = Router();
 
@@ -43,5 +54,22 @@ router.get('/modules/enabled', getEnabledModules);
 
 // PUT /api/developer/modules/:moduleName - Toggle module visibility (DEVELOPER only)
 router.put('/modules/:moduleName', updateModuleSettings);
+
+// --- Personal (Davide) — pagina segreta ---
+
+// GET /api/developer/personal/comparison - Confronto fatturato Davide vs Stefano
+router.get('/personal/comparison', getComparison);
+
+// Personal clients
+router.get('/personal/clients', getPersonalClients);
+router.post('/personal/clients', createPersonalClient);
+router.put('/personal/clients/:id', updatePersonalClient);
+router.delete('/personal/clients/:id', deletePersonalClient);
+
+// Personal invoices
+router.get('/personal/invoices', getPersonalInvoices);
+router.post('/personal/invoices', createPersonalInvoice);
+router.put('/personal/invoices/:id', updatePersonalInvoice);
+router.delete('/personal/invoices/:id', deletePersonalInvoice);
 
 export default router;

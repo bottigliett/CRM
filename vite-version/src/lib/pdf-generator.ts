@@ -31,6 +31,8 @@ interface InvoicePDFData {
   paymentBank?: string;
   paymentBic?: string;
   paymentSdi?: string;
+  // Personal invoice (Davide Marangoni header instead of MISMO)
+  personal?: boolean;
 }
 
 export async function generateInvoicePDF(invoiceId: number, data: InvoicePDFData): Promise<void> {
@@ -102,7 +104,7 @@ export async function generateInvoicePDF(invoiceId: number, data: InvoicePDFData
 function getInvoiceHTML(data: InvoicePDFData): string {
   const paymentBank = data.paymentBank || 'REVOLUT BANK UAB';
   const paymentIban = data.paymentIban || 'LT95 3250 0482 6617 5203';
-  const paymentBeneficiary = data.paymentBeneficiary || 'STEFANO COSTATO E DAVIDE MARANGONI';
+  const paymentBeneficiary = data.paymentBeneficiary || (data.personal ? 'DAVIDE MARANGONI' : 'STEFANO COSTATO E DAVIDE MARANGONI');
   const paymentBic = data.paymentBic || 'REVOLT21';
   const paymentSdi = data.paymentSdi || 'JI3TXCE';
   const isImmediate = data.paymentDays === 0;
@@ -215,6 +217,13 @@ function getInvoiceHTML(data: InvoicePDFData): string {
         <div class="content">
             <header class="top">
                 <div>
+                    ${data.personal ? `
+                    <span class="block">DAVIDE MARANGONI</span>
+                    <span class="block">IT05052740239</span>
+                    <span class="block">marangonidavide05@gmail.com</span>
+                    <span class="block">+39 3275995680</span>
+                    <span class="block">Via Dossobuono 16, Sommacampagna Verona</span>
+                    ` : `
                     <span class="block">MISMO®STUDIO</span>
                     <span class="block">di Stefano Costato e Davide Marangoni</span>
                     <span class="block">P.IVA IT04904900232 / IT05052740239</span>
@@ -222,6 +231,7 @@ function getInvoiceHTML(data: InvoicePDFData): string {
                     <span class="block">(+39) 375 620 9885</span>
                     <span class="block">Via Madonna 14 - 37026</span>
                     <span class="block">Pescantina / Verona - IT</span>
+                    `}
                 </div>
                 <div class="meta">
                     <div class="meta-row">

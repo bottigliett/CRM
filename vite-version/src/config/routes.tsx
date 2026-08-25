@@ -97,6 +97,7 @@ const ConnectionSettings = lazy(() => import('@/app/settings/connections/page'))
 // Developer pages
 const DeveloperAnnouncements = lazy(() => import('@/app/developer/announcements/page'))
 const DeveloperSandbox = lazy(() => import('@/app/developer/sandbox/page'))
+const DeveloperPersonale = lazy(() => import('@/app/developer/personale/page'))
 
 export interface RouteConfig {
   path: string
@@ -265,6 +266,10 @@ export const routes: RouteConfig[] = [
   {
     path: "/developer/sandbox",
     element: <ProtectedRoute><DeveloperSandbox /></ProtectedRoute>
+  },
+  {
+    path: "/developer/personale",
+    element: <ProtectedRoute><DeveloperPersonale /></ProtectedRoute>
   },
 
   // Authentication Routes
