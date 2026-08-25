@@ -79,7 +79,7 @@ export const getPersonalInvoices = async (req: AuthRequest, res: Response) => {
   if (userId === null) return;
   try {
     const invoices = await prisma.personalInvoice.findMany({
-      include: { personalClient: true },
+      include: { personalClient: true, paymentEntity: true },
       orderBy: { issueDate: 'desc' },
     });
     return res.json({ success: true, data: invoices });
@@ -112,6 +112,7 @@ export const createPersonalInvoice = async (req: AuthRequest, res: Response) => 
       data: {
         invoiceNumber,
         personalClientId: body.personalClientId ? parseInt(body.personalClientId) : null,
+        paymentEntityId: body.paymentEntityId ? parseInt(body.paymentEntityId) : null,
         clientName: body.clientName || '',
         clientAddress: body.clientAddress || null,
         clientPIva: body.clientPIva || null,
@@ -136,7 +137,7 @@ export const createPersonalInvoice = async (req: AuthRequest, res: Response) => 
         fiscalNotes: body.fiscalNotes || null,
         createdBy: userId,
       },
-      include: { personalClient: true },
+      include: { personalClient: true, paymentEntity: true },
     });
     return res.status(201).json({ success: true, data: invoice });
   } catch (e: any) {
@@ -156,12 +157,13 @@ export const updatePersonalInvoice = async (req: AuthRequest, res: Response) => 
     const numFields = ['quantity', 'unitPrice', 'subtotal', 'vatPercentage', 'vatAmount', 'total', 'taxAmount', 'paymentDays'];
     for (const f of numFields) if (body[f] !== undefined) data[f] = Number(body[f]);
     if (body.personalClientId !== undefined) data.personalClientId = body.personalClientId ? parseInt(body.personalClientId) : null;
+    if (body.paymentEntityId !== undefined) data.paymentEntityId = body.paymentEntityId ? parseInt(body.paymentEntityId) : null;
     if (body.issueDate) data.issueDate = new Date(body.issueDate);
     if (body.dueDate) data.dueDate = new Date(body.dueDate);
     if (body.paymentDate) data.paymentDate = new Date(body.paymentDate);
     if (body.taxReserved !== undefined) data.taxReserved = body.taxReserved === true || body.taxReserved === 'true';
 
-    const invoice = await prisma.personalInvoice.update({ where: { id }, data, include: { personalClient: true } });
+    const invoice = await prisma.personalInvoice.update({ where: { id }, data, include: { personalClient: true, paymentEntity: true } });
     return res.json({ success: true, data: invoice });
   } catch (e: any) {
     return res.status(500).json({ success: false, message: e.message });

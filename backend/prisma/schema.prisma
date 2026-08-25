@@ -662,6 +662,7 @@ model PaymentEntity {
   // Relations
   invoices          Invoice[]
   recurringInvoices RecurringInvoice[]
+  personalInvoices  PersonalInvoice[]
 
   @@map("payment_entities")
 }
@@ -831,17 +832,21 @@ model PersonalInvoice {
   pdfPath        String?   @map("pdf_path")
   pdfGeneratedAt DateTime? @map("pdf_generated_at")
 
+  paymentEntityId Int? @map("payment_entity_id")
+
   createdBy Int      @map("created_by")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
   personalClient PersonalClient? @relation(fields: [personalClientId], references: [id], onDelete: SetNull)
+  paymentEntity  PaymentEntity?  @relation(fields: [paymentEntityId], references: [id], onDelete: SetNull)
   creator        User            @relation("PersonalInvoiceCreator", fields: [createdBy], references: [id])
 
   @@index([invoiceNumber])
   @@index([issueDate])
   @@index([status])
   @@index([personalClientId])
+  @@index([paymentEntityId])
   @@map("personal_invoices")
 }
 
