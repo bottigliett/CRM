@@ -124,7 +124,9 @@ export const handleOAuthCallback = async (req: Request, res: Response) => {
           metadata: data.metadata,
         },
         update: {
-          contactId,
+          // Keep the existing client association when reconnecting globally (contactId null);
+          // only overwrite it when connecting from a specific client page.
+          ...(contactId !== null ? { contactId } : {}),
           platformName: data.platformName,
           accessToken: data.accessToken,
           refreshToken: data.refreshToken,
