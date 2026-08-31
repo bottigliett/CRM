@@ -32,6 +32,10 @@ export default function Page() {
             Primo accesso? Attiva il tuo account con username e codice di attivazione
           </p>
         </div>
+        <div className="flex items-center justify-center gap-4 text-xs text-muted-foreground">
+          <a href="/privacy" target="_blank" rel="noopener" className="underline hover:text-foreground">Privacy Policy</a>
+          <a href="/terms" target="_blank" rel="noopener" className="underline hover:text-foreground">Terms of Service</a>
+        </div>
       </div>
     </div>
   )
