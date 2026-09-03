@@ -191,6 +191,18 @@ export async function publishToInstagram(accessToken: string, igAccountId: strin
       return data.id;
     }));
 
+    // Instagram needs time to process each carousel item container before the
+    // CAROUSEL container can reference them, otherwise it returns "Media ID is not
+    // available". Poll each item until it is FINISHED (with a safety timeout).
+    for (const itemId of itemIds) {
+      for (let attempt = 0; attempt < 10; attempt++) {
+        const st = await fetchAuthed(`${GRAPH_API_BASE}/${itemId}?fields=status_code`, accessToken);
+        if (st?.status_code === 'FINISHED') break;
+        if (st?.error) throw new Error(st.error.message || 'Instagram item status failed');
+        await new Promise(r => setTimeout(r, 1500));
+      }
+    }
+
     const container = await fetchAuthed(`${GRAPH_API_BASE}/${igAccountId}/media`, accessToken, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
