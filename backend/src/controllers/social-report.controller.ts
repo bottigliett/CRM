@@ -118,7 +118,7 @@ export const getDashboard = async (req: Request, res: Response) => {
     const now = new Date();
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
-    const [contacts, scheduledCount, publishedThisWeek, failedCount, expiringTokens, accounts, postCounts, projects, configs] = await Promise.all([
+    const [contacts, scheduledCount, publishedThisWeek, failedCount, expiringTokens, accounts, postCounts, projects, configs, failedPosts] = await Promise.all([
       prisma.contact.findMany({
         where: { id: { in: contactIds } },
         select: { id: true, name: true, email: true },
@@ -168,6 +168,15 @@ export const getDashboard = async (req: Request, res: Response) => {
         where: { contactId: { in: contactIds } },
         select: { contactId: true, folder: true },
       }),
+      prisma.socialPost.findMany({
+        where: { status: 'FAILED' },
+        include: {
+          contact: { select: { id: true, name: true } },
+          targets: { include: { socialAccount: { select: { platform: true, platformName: true } } } },
+        },
+        orderBy: { updatedAt: 'desc' },
+        take: 20,
+      }),
     ]);
 
     const clients = contacts.map(c => {
@@ -190,6 +199,7 @@ export const getDashboard = async (req: Request, res: Response) => {
       data: {
         clients,
         stats: { scheduledCount, publishedThisWeek, failedCount, expiringTokens },
+        failedPosts,
       },
     });
   } catch (error: any) {

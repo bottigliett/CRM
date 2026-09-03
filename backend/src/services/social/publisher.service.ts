@@ -194,7 +194,18 @@ export async function publishPost(postId: number): Promise<void> {
           message: err.message,
         },
       });
+      // All-or-nothing: stop publishing to the remaining channels on first failure.
+      break;
     }
+  }
+
+  // If a target failed, mark any remaining (not yet attempted) targets as FAILED
+  // so no channel is left stuck in PUBLISHING and no partial publish is ambiguous.
+  if (!allSuccess) {
+    await prisma.socialPostTarget.updateMany({
+      where: { postId, status: 'PUBLISHING' },
+      data: { status: 'FAILED', errorMessage: 'Non pubblicato: un altro canale è fallito' },
+    });
   }
 
   // Update post status

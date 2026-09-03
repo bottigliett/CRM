@@ -314,6 +314,30 @@ export default function SocialDashboard() {
           </div>
         ) : (
           <>
+            {/* Failed posts alert */}
+            {data?.failedPosts?.length > 0 && (
+              <Card className="border-red-200 dark:border-red-800 bg-red-50/60 dark:bg-red-950/20">
+                <CardHeader className="pb-2">
+                  <CardTitle className="flex items-center gap-2 text-red-700 dark:text-red-400">
+                    <AlertTriangle className="h-5 w-5" /> Post non pubblicati ({data.failedPosts.length})
+                  </CardTitle>
+                  <CardDescription>Clicca per aprire il cliente e correggere/ripubblicare.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-1.5">
+                  {data.failedPosts.map((p: any) => {
+                    const err = p.targets?.map((t: any) => t.errorMessage).filter(Boolean)[0]
+                    return (
+                      <button key={p.id} onClick={() => navigate(`/social/${p.contactId}`)} className="flex flex-wrap items-center gap-2 text-sm text-left hover:underline w-full">
+                        <span className="font-medium truncate max-w-[300px]">{p.content}</span>
+                        <span className="text-muted-foreground shrink-0">— {p.contact?.name || "Cliente"}</span>
+                        {err && <span className="text-red-600 dark:text-red-400 shrink-0 truncate max-w-[240px]">({err})</span>}
+                      </button>
+                    )
+                  })}
+                </CardContent>
+              </Card>
+            )}
+
             {/* Toolbar */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="flex items-center gap-2">
