@@ -21,6 +21,7 @@ export async function publishPost(postId: number): Promise<void> {
     where: { id: postId },
     include: {
       targets: { include: { socialAccount: true } },
+      hashtags: true,
     },
   });
 
@@ -44,11 +45,15 @@ export async function publishPost(postId: number): Promise<void> {
   // Get platform-specific content overrides
   const platformContent = (post.platformContent as Record<string, string> | null) || {};
 
+  // Append hashtags to the caption (they are stored separately and must go in the description)
+  const hashtagStr = (post.hashtags || []).map(h => h.hashtag).filter(Boolean).join(' ');
+  const withHashtags = (text: string) => (text && hashtagStr ? `${text}\n\n${hashtagStr}` : (text || hashtagStr));
+
   let allSuccess = true;
 
   for (const target of post.targets) {
     const account = target.socialAccount;
-    const content = platformContent[account.platform.toLowerCase()] || post.content;
+    const content = withHashtags(platformContent[account.platform.toLowerCase()] || post.content);
 
     // Per-platform media override: different video/cover per social (e.g. IG vs FB reel)
     const platformMediaOverride = (postMeta.platformMedia as any)?.[account.platform];
