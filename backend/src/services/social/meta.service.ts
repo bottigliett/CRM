@@ -150,15 +150,17 @@ export async function publishToFacebook(pageAccessToken: string, pageId: string,
       return data.id;
     }));
 
-    const attached = photoIds.reduce((acc: any, id: string, i: number) => {
-      acc[`attached_media[${i}]`] = JSON.stringify({ media_fbid: id });
-      return acc;
-    }, {});
+    // attached_media must be sent form-encoded (not JSON), otherwise Facebook
+    // silently ignores it and publishes a text-only post.
+    const form = new URLSearchParams({ message: content });
+    photoIds.forEach((id: string, i: number) => {
+      form.append(`attached_media[${i}]`, JSON.stringify({ media_fbid: id }));
+    });
 
     const data = await fetchAuthed(`${GRAPH_API_BASE}/${pageId}/feed`, pageAccessToken, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: content, ...attached }),
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: form.toString(),
     });
     if (data.error) throw new Error(data.error.message);
     return { id: data.id };
