@@ -82,7 +82,15 @@ export async function publishPost(postId: number): Promise<void> {
   let allSuccess = true;
   const publishedTargets: Array<{ targetId: number; account: any; platform: SocialPlatform; platformPostId: string }> = [];
 
-  for (const target of post.targets) {
+  // Publish the riskiest platforms FIRST (TikTok is audit-blocked, Instagram video
+  // can fail transiently). If one of them fails, the reliable channels (Facebook/
+  // LinkedIn) are never touched, so there is no visible partial publish window.
+  const riskOrder: Record<string, number> = { TIKTOK: 0, INSTAGRAM: 1, FACEBOOK: 2, LINKEDIN: 3 };
+  const targets = [...post.targets].sort(
+    (a, b) => (riskOrder[a.socialAccount.platform] ?? 9) - (riskOrder[b.socialAccount.platform] ?? 9)
+  );
+
+  for (const target of targets) {
     const account = target.socialAccount;
     // On retry, skip targets that already published successfully (avoid duplicates).
     if (target.status === 'PUBLISHED') continue;
