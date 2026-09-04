@@ -262,6 +262,15 @@ export async function publishToInstagram(accessToken: string, igAccountId: strin
   });
   if (container.error) throw new Error(container.error.message);
 
+  // Also for single media (especially REEL/video), the container must reach
+  // FINISHED before media_publish, otherwise "Media ID is not available".
+  for (let attempt = 0; attempt < 20; attempt++) {
+    const st = await fetchAuthed(`${GRAPH_API_BASE}/${container.id}?fields=status_code`, accessToken);
+    if (st?.status_code === 'FINISHED') break;
+    if (st?.error) throw new Error(st.error.message || 'Instagram container status failed');
+    await new Promise(r => setTimeout(r, 2000));
+  }
+
   const pub = await fetchAuthed(`${GRAPH_API_BASE}/${igAccountId}/media_publish`, accessToken, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
