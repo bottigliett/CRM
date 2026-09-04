@@ -187,7 +187,7 @@ export async function publishToFacebook(pageAccessToken: string, pageId: string,
   return { id: data.id };
 }
 
-export async function publishToInstagram(accessToken: string, igAccountId: string, content: string, mediaUrls: string[], postType: string = 'POST'): Promise<{ id: string }> {
+export async function publishToInstagram(accessToken: string, igAccountId: string, content: string, mediaUrls: string[], postType: string = 'POST', coverUrl?: string): Promise<{ id: string }> {
   if (!mediaUrls.length) throw new Error('Instagram requires at least one media');
 
   if (postType === 'CAROUSEL' && mediaUrls.length > 1) {
@@ -258,6 +258,7 @@ export async function publishToInstagram(accessToken: string, igAccountId: strin
       [isVideo ? 'video_url' : 'image_url']: url,
       caption: content,
       ...(mediaType && { media_type: mediaType }),
+      ...(coverUrl && mediaType === 'REELS' && { cover_url: coverUrl }),
     }),
   });
   if (container.error) throw new Error(container.error.message);

@@ -119,12 +119,14 @@ export async function publishPost(postId: number): Promise<void> {
             }
             case SocialPlatform.INSTAGRAM: {
               const igAccountId = accountMeta.instagramAccountId || account.platformId;
+              const coverUrl = (postMeta.platformMedia as any)?.[account.platform]?.coverImageUrl || (post.coverImageUrl as string | null) || undefined;
               const result = await meta.publishToInstagram(
                 account.accessToken,
                 igAccountId,
                 content,
                 targetMediaUrls,
-                post.postType
+                post.postType,
+                coverUrl
               );
               platformPostId = result.id;
               break;
