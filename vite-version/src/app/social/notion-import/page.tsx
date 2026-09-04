@@ -42,7 +42,7 @@ export default function NotionImportPage() {
     try {
       const res = await socialAPI.notionImport()
       setResult(res.data)
-      toast.success(`Import completato: ${res.data.imported} idee create`)
+      toast.success(`Import completato: ${res.data.imported} create, ${res.data.skipped} aggiornate`)
     } catch (err: any) { toast.error(err.message) }
     finally { setImporting(false) }
   }
@@ -140,7 +140,7 @@ export default function NotionImportPage() {
             <CardContent className="space-y-3">
               <div className="grid gap-3 sm:grid-cols-3">
                 <div className="rounded-lg border p-3 text-center"><div className="text-2xl font-bold text-emerald-600">{result.imported}</div><div className="text-xs text-muted-foreground">Idee create</div></div>
-                <div className="rounded-lg border p-3 text-center"><div className="text-2xl font-bold">{result.skipped}</div><div className="text-xs text-muted-foreground">Già presenti (saltate)</div></div>
+                <div className="rounded-lg border p-3 text-center"><div className="text-2xl font-bold">{result.skipped}</div><div className="text-xs text-muted-foreground">Aggiornate (già presenti)</div></div>
                 <div className="rounded-lg border p-3 text-center"><div className="text-2xl font-bold">{result.total}</div><div className="text-xs text-muted-foreground">Totale esaminato</div></div>
               </div>
 
