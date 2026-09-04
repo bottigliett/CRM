@@ -49,10 +49,42 @@ export async function publishPost(postId: number): Promise<void> {
   const hashtagStr = (post.hashtags || []).map(h => h.hashtag).filter(Boolean).join(' ');
   const withHashtags = (text: string) => (text && hashtagStr ? `${text}\n\n${hashtagStr}` : (text || hashtagStr));
 
+  // Pre-flight validation: verify every target is ready BEFORE publishing anything.
+  // All-or-nothing: if any target would fail, nothing goes out on any channel.
+  const preflightErrors: string[] = [];
+  for (const target of post.targets) {
+    const account = target.socialAccount;
+    const accountMeta = (account.metadata as any) || {};
+    const browserOnly = accountMeta.browserOnly === true;
+    const platformMediaOverride = (postMeta.platformMedia as any)?.[account.platform];
+    const targetMedia = platformMediaOverride?.mediaUrls?.length ? platformMediaOverride.mediaUrls : mediaUrls;
+    if (!browserOnly && !account.accessToken) {
+      preflightErrors.push(`${account.platform}: account non collegato (nessun token)`);
+    }
+    if (account.platform === 'INSTAGRAM' || account.platform === 'TIKTOK') {
+      if (!targetMedia.length) preflightErrors.push(`${account.platform}: nessun media caricato`);
+    }
+  }
+  if (preflightErrors.length) {
+    await prisma.socialPostTarget.updateMany({
+      where: { postId },
+      data: { status: 'FAILED', errorMessage: preflightErrors[0] },
+    });
+    await prisma.socialPost.update({ where: { id: postId }, data: { status: 'FAILED' } });
+    if (post.targets[0]) {
+      await prisma.publishLog.create({
+        data: { postId, socialAccountId: post.targets[0].socialAccountId, action: 'FAIL', message: `Pre-flight fallito: ${preflightErrors.join('; ')}` },
+      });
+    }
+    throw new Error(`Pre-flight failed: ${preflightErrors.join('; ')}`);
+  }
+
   let allSuccess = true;
 
   for (const target of post.targets) {
     const account = target.socialAccount;
+    // On retry, skip targets that already published successfully (avoid duplicates).
+    if (target.status === 'PUBLISHED') continue;
     const content = withHashtags(platformContent[account.platform.toLowerCase()] || post.content);
 
     // Per-platform media override: different video/cover per social (e.g. IG vs FB reel)

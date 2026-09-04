@@ -205,6 +205,9 @@ export const socialAPI = {
   publishNow: (id: number) =>
     request(`/social/posts/${id}/publish`, { method: 'POST' }),
 
+  retryPost: (id: number) =>
+    request(`/social/posts/${id}/retry`, { method: 'POST' }),
+
   duplicatePost: (id: number, targetContactId?: number) =>
     request(`/social/posts/${id}/duplicate`, {
       method: 'POST',

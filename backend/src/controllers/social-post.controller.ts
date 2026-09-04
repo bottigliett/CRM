@@ -587,6 +587,34 @@ export const publishNow = async (req: AuthRequest, res: Response) => {
 };
 
 /**
+ * POST /api/social/posts/:id/retry
+ * Riprova a pubblicare un post fallito: rimette in coda solo i target non ancora
+ * pubblicati (i target PUBLISHED vengono saltati, niente duplicati).
+ */
+export const retryPost = async (req: AuthRequest, res: Response) => {
+  try {
+    const id = parseInt(req.params.id);
+    const post = await prisma.socialPost.findUnique({ where: { id } });
+    if (!post) return res.status(404).json({ success: false, message: 'Post non trovato' });
+
+    // Reset failed targets back to SCHEDULED (PUBLISHED targets stay as-is)
+    await prisma.socialPostTarget.updateMany({
+      where: { postId: id, status: 'FAILED' },
+      data: { status: 'SCHEDULED', errorMessage: null },
+    });
+    await prisma.socialPost.update({ where: { id }, data: { status: 'PUBLISHING' } });
+
+    const { publishQueue } = await import('../queues');
+    await publishQueue.add('publish', { postId: id });
+
+    return res.json({ success: true, message: 'Ripubblicazione avviata' });
+  } catch (error: any) {
+    console.error('[social-post]', error);
+    return res.status(500).json({ success: false, message: 'Errore interno' });
+  }
+};
+
+/**
  * POST /api/social/posts/:id/duplicate
  */
 export const duplicatePost = async (req: AuthRequest, res: Response) => {

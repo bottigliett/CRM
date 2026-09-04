@@ -326,12 +326,23 @@ export default function SocialDashboard() {
                 <CardContent className="space-y-1.5">
                   {data.failedPosts.map((p: any) => {
                     const err = p.targets?.map((t: any) => t.errorMessage).filter(Boolean)[0]
+                    const retry = async (e: any) => {
+                      e.stopPropagation()
+                      try {
+                        await socialAPI.retryPost(p.id)
+                        toast.success("Ripubblicazione avviata")
+                        fetchData()
+                      } catch (err: any) { toast.error(err.message) }
+                    }
                     return (
-                      <button key={p.id} onClick={() => navigate(`/social/${p.contactId}`)} className="flex flex-wrap items-center gap-2 text-sm text-left hover:underline w-full">
-                        <span className="font-medium truncate max-w-[300px]">{p.content}</span>
-                        <span className="text-muted-foreground shrink-0">— {p.contact?.name || "Cliente"}</span>
-                        {err && <span className="text-red-600 dark:text-red-400 shrink-0 truncate max-w-[240px]">({err})</span>}
-                      </button>
+                      <div key={p.id} className="flex flex-wrap items-center gap-2 text-sm">
+                        <button onClick={() => navigate(`/social/${p.contactId}`)} className="flex flex-wrap items-center gap-2 text-left hover:underline flex-1 min-w-0">
+                          <span className="font-medium truncate max-w-[300px]">{p.content}</span>
+                          <span className="text-muted-foreground shrink-0">— {p.contact?.name || "Cliente"}</span>
+                          {err && <span className="text-red-600 dark:text-red-400 shrink-0 truncate max-w-[240px]">({err})</span>}
+                        </button>
+                        <Button size="sm" variant="outline" className="shrink-0" onClick={retry}>Riprova</Button>
+                      </div>
                     )
                   })}
                 </CardContent>
