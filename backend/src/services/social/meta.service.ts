@@ -131,10 +131,22 @@ export async function refreshMetaToken(accessToken: string): Promise<{
 export async function publishToFacebook(pageAccessToken: string, pageId: string, content: string, mediaUrls?: string[]): Promise<{ id: string }> {
   if (mediaUrls && mediaUrls.length > 0) {
     if (mediaUrls.length === 1) {
+      // Video (REEL) → publish via /videos; photo → /photos
+      const url = mediaUrls[0];
+      const isVideo = /\.(mp4|mov|webm)$/i.test(url);
+      if (isVideo) {
+        const data = await fetchAuthed(`${GRAPH_API_BASE}/${pageId}/videos`, pageAccessToken, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ file_url: url, description: content }),
+        });
+        if (data.error) throw new Error(data.error.message);
+        return { id: data.id };
+      }
       const data = await fetchAuthed(`${GRAPH_API_BASE}/${pageId}/photos`, pageAccessToken, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: mediaUrls[0], message: content }),
+        body: JSON.stringify({ url, message: content }),
       });
       if (data.error) throw new Error(data.error.message);
       return { id: data.post_id || data.id };
@@ -215,6 +227,15 @@ export async function publishToInstagram(accessToken: string, igAccountId: strin
       }),
     });
     if (container.error) throw new Error(container.error.message);
+
+    // The CAROUSEL container itself must also reach FINISHED before media_publish,
+    // otherwise Instagram returns "Media ID is not available".
+    for (let attempt = 0; attempt < 10; attempt++) {
+      const st = await fetchAuthed(`${GRAPH_API_BASE}/${container.id}?fields=status_code`, accessToken);
+      if (st?.status_code === 'FINISHED') break;
+      if (st?.error) throw new Error(st.error.message || 'Instagram container status failed');
+      await new Promise(r => setTimeout(r, 1500));
+    }
 
     const pub = await fetchAuthed(`${GRAPH_API_BASE}/${igAccountId}/media_publish`, accessToken, {
       method: 'POST',
