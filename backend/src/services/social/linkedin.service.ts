@@ -204,6 +204,16 @@ export async function publishToLinkedIn(accessToken: string, authorUrn: string, 
   return { id: postId };
 }
 
+/** Best-effort delete of a LinkedIn UGC post — used for all-or-nothing rollback. */
+export async function deleteLinkedInPost(accessToken: string, id: string): Promise<void> {
+  const urn = id.startsWith('urn:li:') ? id : `urn:li:share:${id}`;
+  const res = await fetch(`${LINKEDIN_API}/ugcPosts/${encodeURIComponent(urn)}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!res.ok && res.status !== 404) throw new Error(`LinkedIn delete failed: ${res.status}`);
+}
+
 // === Analytics ===
 
 export async function getLinkedInShareStats(accessToken: string, shareUrn: string): Promise<{

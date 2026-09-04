@@ -291,6 +291,19 @@ export async function publishToInstagram(accessToken: string, igAccountId: strin
   return publishInstagramContainer(accessToken, igAccountId, container.id);
 }
 
+/** Best-effort delete of a Facebook post/video/photo — used for all-or-nothing
+ *  rollback when another channel fails. Code 100 = object already gone. */
+export async function deleteFacebookPost(accessToken: string, id: string): Promise<void> {
+  const data = await fetchAuthed(`${GRAPH_API_BASE}/${id}`, accessToken, { method: 'DELETE' });
+  if (data.error && data.error.code !== 100) throw new Error(data.error.message);
+}
+
+/** Best-effort delete of an Instagram media — used for all-or-nothing rollback. */
+export async function deleteInstagramMedia(accessToken: string, mediaId: string): Promise<void> {
+  const data = await fetchAuthed(`${GRAPH_API_BASE}/${mediaId}`, accessToken, { method: 'DELETE' });
+  if (data.error && data.error.code !== 100) throw new Error(data.error.message);
+}
+
 // === Analytics ===
 
 export async function getInstagramInsights(accessToken: string, igAccountId: string, since: number, until: number): Promise<any> {

@@ -80,6 +80,7 @@ export async function publishPost(postId: number): Promise<void> {
   }
 
   let allSuccess = true;
+  const publishedTargets: Array<{ targetId: number; account: any; platform: SocialPlatform; platformPostId: string }> = [];
 
   for (const target of post.targets) {
     const account = target.socialAccount;
@@ -219,6 +220,8 @@ export async function publishPost(postId: number): Promise<void> {
           message: `Published as ${platformPostId}`,
         },
       });
+
+      publishedTargets.push({ targetId: target.id, account, platform: account.platform, platformPostId: platformPostId! });
     } catch (err: any) {
       allSuccess = false;
       await prisma.socialPostTarget.update({
@@ -233,7 +236,10 @@ export async function publishPost(postId: number): Promise<void> {
           message: err.message,
         },
       });
-      // All-or-nothing: stop publishing to the remaining channels on first failure.
+
+      // All-or-nothing: remove any post already published on the other channels,
+      // so a partial publish never stays live. Then stop on first failure.
+      await rollbackPublishedTargets(postId, publishedTargets);
       break;
     }
   }
@@ -288,6 +294,45 @@ export async function publishPost(postId: number): Promise<void> {
       }
     } catch (err: any) {
       console.error(`[publisher] Failed to enqueue metrics for post ${postId}:`, err.message);
+    }
+  }
+}
+
+// --- All-or-nothing rollback helper ---
+
+/**
+ * Remove already-published posts on the OTHER channels when a later channel
+ * fails, so a partially-published post never stays live anywhere. Best-effort:
+ * if the platform delete fails, the leftover is logged loudly for manual cleanup.
+ */
+async function rollbackPublishedTargets(
+  postId: number,
+  published: Array<{ targetId: number; account: any; platform: SocialPlatform; platformPostId: string }>
+): Promise<void> {
+  for (const p of published) {
+    try {
+      if (p.platform === SocialPlatform.FACEBOOK && p.account.accessToken) {
+        await meta.deleteFacebookPost(p.account.accessToken, p.platformPostId);
+      } else if (p.platform === SocialPlatform.INSTAGRAM && p.account.accessToken) {
+        await meta.deleteInstagramMedia(p.account.accessToken, p.platformPostId);
+      } else if (p.platform === SocialPlatform.LINKEDIN && p.account.accessToken) {
+        await linkedin.deleteLinkedInPost(p.account.accessToken, p.platformPostId);
+      } else {
+        console.error(`[publisher] ⚠️ Rollback non supportato per ${p.platform} (${p.platformPostId}) — rimozione manuale necessaria`);
+      }
+
+      await prisma.socialPostTarget.update({
+        where: { id: p.targetId },
+        data: { status: 'FAILED', errorMessage: 'Rimosso: un altro canale è fallito', platformPostId: null, publishedAt: null },
+      });
+      await prisma.publishLog.create({
+        data: { postId, socialAccountId: p.account.id, action: 'ROLLBACK', message: `Rimosso ${p.platform} ${p.platformPostId} (un altro canale è fallito)` },
+      });
+    } catch (rbErr: any) {
+      console.error(`[publisher] ⚠️ ROLLBACK FALLITO per ${p.platform} ${p.platformPostId}: ${rbErr.message}`);
+      await prisma.publishLog.create({
+        data: { postId, socialAccountId: p.account.id, action: 'FAIL', message: `⚠️ Rollback fallito: ${p.platform} ${p.platformPostId} potrebbe essere ancora online (${rbErr.message})` },
+      });
     }
   }
 }
