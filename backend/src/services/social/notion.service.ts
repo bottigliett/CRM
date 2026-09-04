@@ -311,32 +311,37 @@ export async function importNotionCed(): Promise<ImportResult> {
     let imported = 0;
     for (const post of client.posts) {
       result.total++;
-      // Idempotency: skip if already imported (tracked in metadata.notionId)
+      const categories = post.categoria.filter((c: string) => c.trim());
+      const data = {
+        content: post.title,
+        postType: mapPostType(post.formato) as any,
+        ideaCategory: categories.length ? JSON.stringify(categories) : undefined,
+        ideaStatus: mapStatus(post.status),
+        ideaPhase: post.fase || undefined,
+        scheduledAt: parseDate(post.date) || undefined,
+        platformContent: { platforms: mapPlatforms(post.piattaforma || []) },
+        ideaObiettivo: post.obiettivo || undefined,
+        ideaNotes: post.note || undefined,
+        ideaCreativita: post.creativita || undefined,
+      };
+      // Idempotency: if already imported (metadata.notionId), UPDATE it so changes
+      // made in Notion (e.g. date, title, status) are reflected in the portal.
       const existing = await prisma.$queryRawUnsafe(
         `SELECT id FROM social_posts WHERE contact_id = ? AND JSON_UNQUOTE(JSON_EXTRACT(metadata, '$.notionId')) = ? LIMIT 1`,
         match.contactId,
         post.notionId
       ) as Array<{ id: number }>;
       if (existing.length) {
+        await prisma.socialPost.update({ where: { id: existing[0].id }, data });
         result.skipped++;
         continue;
       }
 
-      const categories = post.categoria.filter((c: string) => c.trim());
       await prisma.socialPost.create({
         data: {
           contactId: match.contactId,
-          content: post.title,
-          postType: mapPostType(post.formato) as any,
           stage: 'IDEA',
-          ideaCategory: categories.length ? JSON.stringify(categories) : undefined,
-          ideaStatus: mapStatus(post.status),
-          ideaPhase: post.fase || undefined,
-          scheduledAt: parseDate(post.date) || undefined,
-          platformContent: { platforms: mapPlatforms(post.piattaforma || []) },
-          ideaObiettivo: post.obiettivo || undefined,
-          ideaNotes: post.note || undefined,
-          ideaCreativita: post.creativita || undefined,
+          ...data,
           createdById: 1,
           metadata: { notionId: post.notionId },
         },
