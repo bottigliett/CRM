@@ -187,6 +187,44 @@ export async function publishToFacebook(pageAccessToken: string, pageId: string,
   return { id: data.id };
 }
 
+/** Poll an Instagram media container until it reaches FINISHED (or ERROR), up to a
+ *  safety timeout. Returns the last status_code; throws on ERROR or API failure.
+ *  Video/REEL containers are processed asynchronously and large uploads can take
+ *  well over a minute, so the timeout must be generous. */
+async function waitForInstagramContainer(accessToken: string, containerId: string, maxAttempts: number, delayMs: number): Promise<string> {
+  let status = '';
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    const st = await fetchAuthed(`${GRAPH_API_BASE}/${containerId}?fields=status_code`, accessToken);
+    if (st?.error) throw new Error(st.error.message || 'Instagram container status check failed');
+    status = st?.status_code || '';
+    if (status === 'FINISHED') return status;
+    if (status === 'ERROR') throw new Error('Instagram: elaborazione del media fallita (status ERROR)');
+    await new Promise(r => setTimeout(r, delayMs));
+  }
+  return status;
+}
+
+/** Publish an Instagram container, retrying on the transient "Media ID is not
+ *  available" error that occurs when the container is still finalizing. */
+async function publishInstagramContainer(accessToken: string, igAccountId: string, creationId: string): Promise<{ id: string }> {
+  let lastErr: any = null;
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const pub = await fetchAuthed(`${GRAPH_API_BASE}/${igAccountId}/media_publish`, accessToken, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ creation_id: creationId }),
+    });
+    if (pub?.id) return { id: pub.id };
+    lastErr = pub?.error;
+    if (pub?.error && /Media ID is not available/i.test(pub.error.message)) {
+      await new Promise(r => setTimeout(r, 5000));
+      continue;
+    }
+    throw new Error(pub?.error?.message || 'Instagram publish failed');
+  }
+  throw new Error(lastErr?.message || 'Instagram publish failed: Media ID is not available');
+}
+
 export async function publishToInstagram(accessToken: string, igAccountId: string, content: string, mediaUrls: string[], postType: string = 'POST', coverUrl?: string): Promise<{ id: string }> {
   if (!mediaUrls.length) throw new Error('Instagram requires at least one media');
 
@@ -205,16 +243,11 @@ export async function publishToInstagram(accessToken: string, igAccountId: strin
       return data.id;
     }));
 
-    // Instagram needs time to process each carousel item container before the
-    // CAROUSEL container can reference them, otherwise it returns "Media ID is not
-    // available". Poll each item until it is FINISHED (with a safety timeout).
+    // Each carousel item container must be FINISHED before the CAROUSEL container
+    // can reference it, otherwise Instagram returns "Media ID is not available".
     for (const itemId of itemIds) {
-      for (let attempt = 0; attempt < 10; attempt++) {
-        const st = await fetchAuthed(`${GRAPH_API_BASE}/${itemId}?fields=status_code`, accessToken);
-        if (st?.status_code === 'FINISHED') break;
-        if (st?.error) throw new Error(st.error.message || 'Instagram item status failed');
-        await new Promise(r => setTimeout(r, 1500));
-      }
+      const status = await waitForInstagramContainer(accessToken, itemId, 30, 2000);
+      if (status !== 'FINISHED') throw new Error(`Instagram: carousel item non pronto (${status || 'timeout'})`);
     }
 
     const container = await fetchAuthed(`${GRAPH_API_BASE}/${igAccountId}/media`, accessToken, {
@@ -228,22 +261,10 @@ export async function publishToInstagram(accessToken: string, igAccountId: strin
     });
     if (container.error) throw new Error(container.error.message);
 
-    // The CAROUSEL container itself must also reach FINISHED before media_publish,
-    // otherwise Instagram returns "Media ID is not available".
-    for (let attempt = 0; attempt < 10; attempt++) {
-      const st = await fetchAuthed(`${GRAPH_API_BASE}/${container.id}?fields=status_code`, accessToken);
-      if (st?.status_code === 'FINISHED') break;
-      if (st?.error) throw new Error(st.error.message || 'Instagram container status failed');
-      await new Promise(r => setTimeout(r, 1500));
-    }
+    const cstatus = await waitForInstagramContainer(accessToken, container.id, 30, 2000);
+    if (cstatus !== 'FINISHED') throw new Error(`Instagram: carousel container non pronto (${cstatus || 'timeout'})`);
 
-    const pub = await fetchAuthed(`${GRAPH_API_BASE}/${igAccountId}/media_publish`, accessToken, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ creation_id: container.id }),
-    });
-    if (pub.error) throw new Error(pub.error.message);
-    return { id: pub.id };
+    return publishInstagramContainer(accessToken, igAccountId, container.id);
   }
 
   // Single media
@@ -263,22 +284,11 @@ export async function publishToInstagram(accessToken: string, igAccountId: strin
   });
   if (container.error) throw new Error(container.error.message);
 
-  // Also for single media (especially REEL/video), the container must reach
-  // FINISHED before media_publish, otherwise "Media ID is not available".
-  for (let attempt = 0; attempt < 20; attempt++) {
-    const st = await fetchAuthed(`${GRAPH_API_BASE}/${container.id}?fields=status_code`, accessToken);
-    if (st?.status_code === 'FINISHED') break;
-    if (st?.error) throw new Error(st.error.message || 'Instagram container status failed');
-    await new Promise(r => setTimeout(r, 2000));
-  }
-
-  const pub = await fetchAuthed(`${GRAPH_API_BASE}/${igAccountId}/media_publish`, accessToken, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ creation_id: container.id }),
-  });
-  if (pub.error) throw new Error(pub.error.message);
-  return { id: pub.id };
+  // Single media (especially REEL/video) must reach FINISHED before media_publish.
+  // Wait up to ~120s; publishInstagramContainer still retries on the transient
+  // "Media ID is not available" if the container is not quite ready.
+  await waitForInstagramContainer(accessToken, container.id, 60, 2000);
+  return publishInstagramContainer(accessToken, igAccountId, container.id);
 }
 
 // === Analytics ===
