@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
-import { ArrowLeft, Plus, Pencil, Trash2, Save, X, Settings2, User } from "lucide-react"
+import { ArrowLeft, Plus, Pencil, Trash2, Save, X, Settings2, User, Apple, Link2, RefreshCw, Copy, Check } from "lucide-react"
 import { toast } from "sonner"
 import { BaseLayout } from "@/components/layouts/base-layout"
 import { Button } from "@/components/ui/button"
@@ -67,10 +67,53 @@ export default function CalendarSettingsPage() {
     hideSidebar: false
   })
 
+  // Apple Calendar sync state
+  const [syncToken, setSyncToken] = useState<string | null>(null)
+  const [syncLoading, setSyncLoading] = useState(false)
+  const [copied, setCopied] = useState(false)
+
   useEffect(() => {
     loadCategories()
     loadUserPreferences()
+    loadSyncToken()
   }, [])
+
+  const loadSyncToken = async () => {
+    try {
+      const res = await eventsAPI.getCalendarSyncInfo()
+      setSyncToken(res.data.token)
+    } catch (error: any) {
+      console.error("Errore nel caricamento token sync:", error)
+    }
+  }
+
+  const handleRegenerateToken = async () => {
+    try {
+      setSyncLoading(true)
+      const res = await eventsAPI.regenerateCalendarToken()
+      setSyncToken(res.data.token)
+      toast.success("Link rigenerato", {
+        description: "Ricorda di aggiornare l'iscrizione su Calendario con il nuovo link"
+      })
+    } catch (error: any) {
+      toast.error("Errore", { description: error.message || "Impossibile rigenerare il link" })
+    } finally {
+      setSyncLoading(false)
+    }
+  }
+
+  const feedUrl = syncToken ? `${window.location.origin}/api/calendar/feed.ics?token=${syncToken}` : ""
+
+  const handleCopy = async () => {
+    if (!feedUrl) return
+    try {
+      await navigator.clipboard.writeText(feedUrl)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      toast.error("Copia non riuscita", { description: "Seleziona e copia il link manualmente" })
+    }
+  }
 
   const loadCategories = async () => {
     try {
@@ -237,7 +280,7 @@ export default function CalendarSettingsPage() {
         </div>
 
         <Tabs defaultValue="categories" className="space-y-6">
-          <TabsList className="grid w-full max-w-md grid-cols-2">
+          <TabsList className="grid w-full max-w-2xl grid-cols-3">
             <TabsTrigger value="categories" className="gap-2">
               <Settings2 className="w-4 h-4" />
               Categorie
@@ -245,6 +288,10 @@ export default function CalendarSettingsPage() {
             <TabsTrigger value="preferences" className="gap-2">
               <User className="w-4 h-4" />
               Preferenze Utente
+            </TabsTrigger>
+            <TabsTrigger value="sync" className="gap-2">
+              <Apple className="w-4 h-4" />
+              Apple Calendar
             </TabsTrigger>
           </TabsList>
 
@@ -486,6 +533,63 @@ export default function CalendarSettingsPage() {
                 Salva Preferenze
               </Button>
             </div>
+          </TabsContent>
+
+          {/* Apple Calendar sync tab */}
+          <TabsContent value="sync" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Apple className="w-5 h-5" />
+                  Sincronizza con Calendario (Mac / iPhone)
+                </CardTitle>
+                <CardDescription>
+                  Gli eventi dell'agenda compaiono in automatico sul tuo Calendario Apple.
+                  Aggiorni solo il CRM: il calendario si aggiorna da solo a ogni refresh.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <ol className="list-decimal list-inside space-y-2 text-sm text-muted-foreground">
+                  <li>Copia il link qui sotto.</li>
+                  <li>Su Mac apri <strong>Calendario</strong> → <strong>File</strong> → <strong>Nuova iscrizione calendario…</strong>.</li>
+                  <li>Incolla il link e conferma. Scegli la frequenza di aggiornamento (es. ogni ora).</li>
+                  <li>Su iPhone: <strong>Impostazioni → Calendario → Account → Aggiungi account → Altro → Aggiungi calendario iscritto</strong> e incolla lo stesso link.</li>
+                </ol>
+
+                {syncToken ? (
+                  <div className="space-y-2">
+                    <Label>Link di iscrizione</Label>
+                    <div className="flex items-center gap-2">
+                      <Input value={feedUrl} readOnly className="font-mono text-xs" />
+                      <Button onClick={handleCopy} variant="outline" className="shrink-0 cursor-pointer">
+                        {copied ? <Check className="w-4 h-4 mr-1 text-emerald-600" /> : <Copy className="w-4 h-4 mr-1" />}
+                        {copied ? "Copiato" : "Copia"}
+                      </Button>
+                    </div>
+                    <div className="flex items-center justify-between pt-2">
+                      <p className="text-xs text-muted-foreground">
+                        Il link è privato: chi lo possiede può vedere la tua agenda. Non condividerlo.
+                      </p>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleRegenerateToken}
+                        disabled={syncLoading}
+                        className="cursor-pointer text-muted-foreground"
+                      >
+                        <RefreshCw className="w-4 h-4 mr-1" />
+                        Rigenera link
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Link2 className="w-4 h-4" />
+                    Caricamento link…
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </div>

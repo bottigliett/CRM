@@ -287,6 +287,23 @@ class EventsAPI {
       method: 'DELETE',
     });
   }
+
+  // Apple Calendar sync (ICS feed)
+  async getCalendarSyncInfo(): Promise<{
+    success: boolean;
+    data: { token: string };
+  }> {
+    return this.request<any>('/calendar/sync-token');
+  }
+
+  async regenerateCalendarToken(): Promise<{
+    success: boolean;
+    data: { token: string };
+  }> {
+    return this.request<any>('/calendar/sync-token/regenerate', {
+      method: 'POST',
+    });
+  }
 }
 
 export const eventsAPI = new EventsAPI();

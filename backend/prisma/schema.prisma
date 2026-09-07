@@ -27,6 +27,9 @@ model User {
   profileImage String?   @map("profile_image")
   lastLogin    DateTime? @map("last_login")
 
+  // Apple Calendar subscription token (ICS feed)
+  calendarToken String? @unique @map("calendar_token")
+
   // User preferences
   theme    String? @default("system") // "light", "dark", "system"
   language String? @default("it") // "it", "en"
