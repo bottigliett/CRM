@@ -36,6 +36,15 @@ function icsZonedDate(date: Date): string {
   return `${get('year')}${get('month')}${get('day')}`;
 }
 
+/** Add `days` to a YYYYMMDD string and return the result as YYYYMMDD. */
+function addDaysToYmd(ymd: string, days: number): string {
+  const y = parseInt(ymd.slice(0, 4), 10);
+  const m = parseInt(ymd.slice(4, 6), 10);
+  const d = parseInt(ymd.slice(6, 8), 10);
+  const dt = new Date(Date.UTC(y, m - 1, d + days));
+  return dt.toISOString().slice(0, 10).replace(/-/g, '');
+}
+
 /** Fold a line to <= 75 octets per RFC 5545 (continuation lines start with a space). */
 function foldLine(line: string): string {
   const encoder = new TextEncoder();
@@ -80,13 +89,8 @@ function buildVEvent(e: FeedEvent): string {
   if (e.isAllDay) {
     // All-day: VALUE=DATE, DTEND is exclusive (day after the last day).
     lines.push(`DTSTART;VALUE=DATE:${icsZonedDate(e.startDateTime)}`);
-    const end = new Date(e.endDateTime);
-    const endYmd = icsZonedDate(end);
-    // Add one day to the zoned end date for the exclusive DTEND.
-    const [y, m, d] = endYmd.match(/\d{4}|\d{2}/g)!.map(Number);
-    const exclusive = new Date(Date.UTC(y, m - 1, d + 1));
-    const exYmd = exclusive.toISOString().slice(0, 10).replace(/-/g, '');
-    lines.push(`DTEND;VALUE=DATE:${exYmd}`);
+    const endYmd = icsZonedDate(e.endDateTime);
+    lines.push(`DTEND;VALUE=DATE:${addDaysToYmd(endYmd, 1)}`);
   } else {
     lines.push(`DTSTART:${icsUtc(e.startDateTime)}`);
     lines.push(`DTEND:${icsUtc(e.endDateTime)}`);
