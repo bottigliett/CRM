@@ -96,11 +96,15 @@ app.use('/api/client/attachments', clientAttachmentRouter);
 app.use('/api/social', socialRoutes);
 
 app.use('/api/auth', authRoutes);
+
+// Calendar feed — mounted before the broad /api router so the public ICS endpoint
+// (token in query string, no Bearer header) is not blocked by authenticate.
+app.use('/api/calendar', calendarFeedRoutes);
+
 app.use('/api', userRoutes);
 app.use('/api/contacts', contactRoutes);
 app.use('/api/leads', leadRoutes);
 app.use('/api/events', eventRoutes);
-app.use('/api/calendar', calendarFeedRoutes);
 app.use('/api', taskRoutes);
 app.use('/api', projectRoutes);
 app.use('/api/user-preferences', userPreferenceRoutes);
