@@ -17,7 +17,10 @@ export const getCalendarFeed = async (req: Request, res: Response) => {
     const user = await prisma.user.findFirst({ where: { calendarToken: token } });
     if (!user) return res.status(401).send('Token non valido');
 
-    const ics = await generateCalendarIcs();
+    const categoryIdRaw = (req.query.categoryId as string) || '';
+    const categoryId = categoryIdRaw ? parseInt(categoryIdRaw, 10) : undefined;
+
+    const ics = await generateCalendarIcs(categoryId && !isNaN(categoryId) ? { categoryId } : undefined);
     res.setHeader('Content-Type', 'text/calendar; charset=utf-8');
     res.setHeader('Content-Disposition', 'inline; filename="mismo-agenda.ics"');
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');

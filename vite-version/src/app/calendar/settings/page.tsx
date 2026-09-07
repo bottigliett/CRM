@@ -71,6 +71,8 @@ export default function CalendarSettingsPage() {
   const [syncToken, setSyncToken] = useState<string | null>(null)
   const [syncLoading, setSyncLoading] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [categoryFeedId, setCategoryFeedId] = useState<string>("")
+  const [categoryCopied, setCategoryCopied] = useState(false)
 
   useEffect(() => {
     loadCategories()
@@ -103,6 +105,9 @@ export default function CalendarSettingsPage() {
   }
 
   const feedUrl = syncToken ? `${window.location.origin}/api/calendar/feed.ics?token=${syncToken}` : ""
+  const categoryFeedUrl = syncToken && categoryFeedId
+    ? `${window.location.origin}/api/calendar/feed.ics?token=${syncToken}&categoryId=${categoryFeedId}`
+    : ""
 
   const handleCopy = async () => {
     if (!feedUrl) return
@@ -110,6 +115,17 @@ export default function CalendarSettingsPage() {
       await navigator.clipboard.writeText(feedUrl)
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
+    } catch {
+      toast.error("Copia non riuscita", { description: "Seleziona e copia il link manualmente" })
+    }
+  }
+
+  const handleCopyCategory = async () => {
+    if (!categoryFeedUrl) return
+    try {
+      await navigator.clipboard.writeText(categoryFeedUrl)
+      setCategoryCopied(true)
+      setTimeout(() => setCategoryCopied(false), 2000)
     } catch {
       toast.error("Copia non riuscita", { description: "Seleziona e copia il link manualmente" })
     }
@@ -586,6 +602,53 @@ export default function CalendarSettingsPage() {
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Link2 className="w-4 h-4" />
                     Caricamento link…
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Apple className="w-5 h-5" />
+                  Calendario separato per categoria
+                </CardTitle>
+                <CardDescription>
+                  Vuoi vedere una sola categoria (es. "Video") su un calendario Apple a parte, con un
+                  colore diverso? Scegli la categoria e iscriviti con questo secondo link.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Categoria</Label>
+                  <Select value={categoryFeedId} onValueChange={setCategoryFeedId}>
+                    <SelectTrigger className="w-full max-w-sm">
+                      <SelectValue placeholder="Seleziona una categoria…" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categories.map((c) => (
+                        <SelectItem key={c.id} value={String(c.id)}>
+                          {c.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {categoryFeedId && (
+                  <div className="space-y-2">
+                    <Label>Link del calendario "{categories.find(c => String(c.id) === categoryFeedId)?.name || ""}"</Label>
+                    <div className="flex items-center gap-2">
+                      <Input value={categoryFeedUrl} readOnly className="font-mono text-xs" />
+                      <Button onClick={handleCopyCategory} variant="outline" className="shrink-0 cursor-pointer">
+                        {categoryCopied ? <Check className="w-4 h-4 mr-1 text-emerald-600" /> : <Copy className="w-4 h-4 mr-1" />}
+                        {categoryCopied ? "Copiato" : "Copia"}
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Aggiungilo su Calendario come <strong>seconda iscrizione</strong> e assegnagli un colore
+                      diverso (tasto destro sul calendario → Colore).
+                    </p>
                   </div>
                 )}
               </CardContent>

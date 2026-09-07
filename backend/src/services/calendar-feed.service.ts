@@ -111,13 +111,23 @@ function buildVEvent(e: FeedEvent): string {
   return lines.map(foldLine).join('\r\n');
 }
 
-/** Generate the complete iCalendar feed for the CRM agenda. */
-export async function generateCalendarIcs(): Promise<string> {
+/** Generate the complete iCalendar feed for the CRM agenda.
+ *  When `categoryId` is provided, only events of that category are included and
+ *  the calendar is named after the category (so it shows as a separate calendar). */
+export async function generateCalendarIcs(opts?: { categoryId?: number }): Promise<string> {
   const since = new Date(Date.now() - 60 * 24 * 3600 * 1000); // last 60 days
+  let calName = CAL_NAME;
+
+  if (opts?.categoryId) {
+    const cat = await prisma.eventCategory.findUnique({ where: { id: opts.categoryId } });
+    calName = cat?.name ? `Mismo - ${cat.name}` : `Mismo - Categoria ${opts.categoryId}`;
+  }
+
   const events = await prisma.event.findMany({
     where: {
       status: { not: 'cancelled' },
       endDateTime: { gte: since },
+      ...(opts?.categoryId ? { categoryId: opts.categoryId } : {}),
     },
     include: {
       category: { select: { name: true, color: true } },
@@ -132,7 +142,7 @@ export async function generateCalendarIcs(): Promise<string> {
     'PRODID:-//Mismo Studio//Agenda//IT',
     'CALSCALE:GREGORIAN',
     'METHOD:PUBLISH',
-    `X-WR-CALNAME:${icsText(CAL_NAME)}`,
+    `X-WR-CALNAME:${icsText(calName)}`,
     `X-WR-TIMEZONE:${TZ}`,
   ].map(foldLine).join('\r\n');
 
