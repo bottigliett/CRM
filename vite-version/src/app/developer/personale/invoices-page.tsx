@@ -68,7 +68,6 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog"
 import { RecurringInvoicesTab } from "./components/recurring-invoices-tab"
-import { ComparisonChart } from "./comparison-chart"
 
 export default function InvoicesPage() {
   const [pinDialogOpen, setPinDialogOpen] = useState(false)
@@ -851,10 +850,9 @@ export default function InvoicesPage() {
   return (
     <BaseLayout
       title="Area personale"
-      description="Fatture personali e confronto fatturato"
+      description="Fatture personali"
     >
       <div className="space-y-4">
-        <ComparisonChart />
         {pageContent}
       </div>
 
