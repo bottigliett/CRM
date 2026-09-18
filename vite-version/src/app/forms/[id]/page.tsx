@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { ArrowLeft, Eye, UserPlus, Trash2, Pencil, Send, Copy, GitBranch, Download, Inbox, RotateCcw, Ban, CheckCircle2 } from "lucide-react"
-import { formsAPI, type Form, type Submission } from "@/lib/forms-api"
+import { formsAPI, FIELD_TYPES, type Form, type Submission } from "@/lib/forms-api"
 import { contactsAPI, type Contact } from "@/lib/contacts-api"
 import { format } from "date-fns"
 import { it } from "date-fns/locale"
@@ -58,7 +58,7 @@ export default function FormDetailPage() {
     return () => clearTimeout(t)
   }, [contactSearch, assigning])
 
-  const fields = ((form?.schema as any)?.fields as Array<{ id: string; label: string }>) || []
+  const fields = ((form?.schema as any)?.fields as Array<{ id: string; label: string; type: string; requiredIf?: any }>) || []
   const connections = fields.filter((f: any) => f.requiredIf)
 
   const filtered = useMemo(() => {
@@ -224,18 +224,46 @@ export default function FormDetailPage() {
                     Nessun collegamento. Vai in "Costruzione" e imposta la logica condizionale su un campo.
                   </p>
                 ) : (
-                  <div className="space-y-2">
-                    {connections.map((f: any) => {
-                      const src = fields.find(x => x.id === f.requiredIf.fieldId)
-                      return (
-                        <div key={f.id} className="flex items-center gap-2 rounded-lg border px-3 py-2 text-sm">
-                          <span className="font-medium">{src?.label || '(campo)'}</span>
-                          <span className="text-muted-foreground">→</span>
-                          <span className="font-medium">{f.label}</span>
-                          <span className="text-xs text-muted-foreground">({f.requiredIf.operator === 'filled' ? 'obbligatorio se compilato' : 'obbligatorio se vuoto'})</span>
-                        </div>
-                      )
-                    })}
+                  <div className="relative">
+                    {fields.length > 0 && (
+                      <svg className="absolute left-0 top-0 z-0" width="130" height={fields.length * 76} style={{ pointerEvents: 'none' }}>
+                        <defs>
+                          <marker id="arrowhead" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+                            <path d="M0,0 L8,4 L0,8 Z" fill="#94a3b8" />
+                          </marker>
+                        </defs>
+                        {connections.map((c: any, i) => {
+                          const si = fields.findIndex(x => x.id === c.requiredIf.fieldId)
+                          const ti = fields.findIndex(x => x.id === c.id)
+                          if (si < 0 || ti < 0) return null
+                          const y1 = si * 76 + 38
+                          const y2 = ti * 76 + 38
+                          const path = `M 36 ${y1} C 14 ${y1}, 14 ${y2}, 36 ${y2}`
+                          return <path key={i} d={path} fill="none" stroke="#94a3b8" strokeWidth="2" markerEnd="url(#arrowhead)" />
+                        })}
+                      </svg>
+                    )}
+                    <div className="space-y-3 relative z-10">
+                      {fields.map((f: any, i) => {
+                        const typeLabel = FIELD_TYPES.find(t => t.value === f.type)?.label || f.type
+                        const isSource = connections.some((c: any) => c.requiredIf?.fieldId === f.id)
+                        const conn = connections.find((c: any) => c.id === f.id)
+                        return (
+                          <div key={f.id} className="flex items-center pl-16" style={{ minHeight: 76 }}>
+                            <div className={`flex-1 rounded-lg border p-3 bg-background ${isSource ? 'border-muted-foreground/40' : ''}`}>
+                              <div className="flex items-center justify-between gap-2 flex-wrap">
+                                <div className="font-medium text-sm">{f.label || '(senza titolo)'}</div>
+                                <div className="flex items-center gap-1.5">
+                                  {isSource && <span className="text-xs rounded bg-muted px-1.5 py-0.5 text-muted-foreground">sorgente</span>}
+                                  {conn && <span className="text-xs rounded bg-amber-100 dark:bg-amber-950/40 px-1.5 py-0.5 text-amber-700 dark:text-amber-400">obbligatorio se {conn.requiredIf.operator === 'filled' ? 'compilato' : 'vuoto'}</span>}
+                                </div>
+                              </div>
+                              <div className="text-xs text-muted-foreground mt-0.5">{typeLabel}</div>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
                   </div>
                 )}
               </CardContent>
