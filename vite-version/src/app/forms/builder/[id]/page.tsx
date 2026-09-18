@@ -170,6 +170,7 @@ export default function FormBuilderPage() {
   const [aiLoading, setAiLoading] = useState(false)
   const [showMap, setShowMap] = useState(false)
   const [draggedId, setDraggedId] = useState<string | null>(null)
+  const [connectingId, setConnectingId] = useState<string | null>(null)
   const [mode, setMode] = useState<'edit' | 'preview' | 'map'>('edit')
   const loadedRef = useRef(false)
   const dirtyRef = useRef(false)
@@ -283,6 +284,12 @@ export default function FormBuilderPage() {
     updateSchema({ fields: schema.fields.map((f: any) => f.id === targetId ? { ...f, requiredIf: undefined } : f) })
   }
 
+  const toggleConnect = (fid: string) => {
+    if (connectingId === null) setConnectingId(fid)
+    else if (connectingId === fid) setConnectingId(null)
+    else { setConnectionLocal(connectingId, fid); setConnectingId(null) }
+  }
+
   const fieldLabel = (fid: string) => schema.fields.find(f => f.id === fid)?.label || '(campo)'
 
   return (
@@ -319,6 +326,14 @@ export default function FormBuilderPage() {
             <Save className="h-4 w-4 mr-1" /> Salva
           </Button>
         </div>
+
+        {connectingId && (
+          <div className="rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-950/30 px-3 py-2 text-sm text-amber-700 dark:text-amber-400 flex items-center gap-2">
+            <Link2 className="h-4 w-4" />
+            Collega da "{fieldLabel(connectingId)}" — clicca l'icona 🔗 del campo di destinazione (o di nuovo per annullare).
+            <Button variant="ghost" size="sm" onClick={() => setConnectingId(null)} className="ml-auto h-7 text-xs cursor-pointer">Annulla</Button>
+          </div>
+        )}
 
         {mode === 'edit' && (
         <div className="grid gap-4 lg:grid-cols-[220px_1fr]">
@@ -383,6 +398,7 @@ export default function FormBuilderPage() {
                               {f.helpText && <span className="rounded bg-muted px-1.5 py-0.5">aiuto</span>}
                             </div>
                           </div>
+                          <Button variant="ghost" size="icon" className={`h-8 w-8 cursor-pointer ${connectingId === f.id ? 'text-amber-500' : ''}`} onClick={() => toggleConnect(f.id)} title="Collega"><Link2 className="h-4 w-4" /></Button>
                           <Button variant="ghost" size="icon" className="h-8 w-8 cursor-pointer" onClick={() => setEditField(f)} title="Opzioni avanzate"><Settings className="h-4 w-4" /></Button>
                           <Button variant="ghost" size="icon" className="h-8 w-8 cursor-pointer text-destructive" onClick={() => removeField(f.id)}><Trash2 className="h-4 w-4" /></Button>
                         </div>
@@ -397,13 +413,29 @@ export default function FormBuilderPage() {
         )}
 
         {mode === 'preview' && (
-          <FormFillView
-            name={form.name}
-            description={form.description || ""}
-            schema={schema}
-            preview
-            onEditField={(fid) => { const f = schema.fields.find(x => x.id === fid); if (f) setEditField(f) }}
-          />
+          <div className="grid gap-4 lg:grid-cols-[200px_1fr]">
+            <div className="space-y-1">
+              <div className="text-xs font-medium text-muted-foreground mb-1">Trascina un campo</div>
+              {FIELD_TYPES.map(ft => (
+                <div key={ft.value} draggable
+                  onDragStart={e => e.dataTransfer.setData('application/x-add-field', ft.value)}
+                  className="rounded-md border px-2 py-1.5 text-xs cursor-grab active:cursor-grabbing hover:bg-muted">
+                  {ft.label}
+                </div>
+              ))}
+            </div>
+            <div onDragOver={e => e.preventDefault()}
+              onDrop={e => { e.preventDefault(); const t = e.dataTransfer.getData('application/x-add-field') as FieldType; if (t) addField(t, 0) }}>
+              <FormFillView
+                name={form.name}
+                description={form.description || ""}
+                schema={schema}
+                preview
+                onEditField={(fid) => { const f = schema.fields.find(x => x.id === fid); if (f) setEditField(f) }}
+                onConnectClick={(fid) => toggleConnect(fid)}
+              />
+            </div>
+          </div>
         )}
 
         {mode === 'map' && (

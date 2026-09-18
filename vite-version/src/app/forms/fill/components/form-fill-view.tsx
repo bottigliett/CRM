@@ -8,7 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import { ChevronLeft, ChevronRight, CheckCircle2, ArrowLeft, Eye, Pencil } from "lucide-react"
+import { ChevronLeft, ChevronRight, CheckCircle2, ArrowLeft, Eye, Pencil, Link2 } from "lucide-react"
 import type { FormSchema, FormField } from "@/lib/forms-api"
 
 export function FormFillView({
@@ -19,6 +19,7 @@ export function FormFillView({
   onBack,
   onSubmitted,
   onEditField,
+  onConnectClick,
 }: {
   name: string
   description: string
@@ -27,6 +28,7 @@ export function FormFillView({
   onBack?: () => void
   onSubmitted?: (answers: Record<string, any>) => Promise<void>
   onEditField?: (fieldId: string) => void
+  onConnectClick?: (fieldId: string) => void
 }) {
   const [answers, setAnswers] = useState<Record<string, any>>({})
   const [page, setPage] = useState(0)
@@ -177,6 +179,15 @@ export function FormFillView({
                         title="Modifica campo"
                       >
                         <Pencil className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                    {onConnectClick && (
+                      <button
+                        onClick={() => onConnectClick(f.id)}
+                        className="opacity-0 group-hover/fill:opacity-100 transition-opacity text-muted-foreground hover:text-foreground cursor-pointer"
+                        title="Collega"
+                      >
+                        <Link2 className="h-3.5 w-3.5" />
                       </button>
                     )}
                   </div>
