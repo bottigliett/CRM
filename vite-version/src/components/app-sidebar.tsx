@@ -144,7 +144,7 @@ const allNavGroups: NavGroup[] = [
       },
       {
         title: "Liinks",
-        url: "/liinks",
+        url: "https://www.liinks.it/mismo",
         icon: Link2,
         moduleName: "liinks",
       },

@@ -40,7 +40,10 @@ export function NavMain({
 }) {
   const location = useLocation()
 
+  const isExternal = (url: string) => /^https?:\/\//.test(url)
+
   const isPathActive = (url: string) => {
+    if (isExternal(url)) return false
     return location.pathname === url || location.pathname.startsWith(url + '/')
   }
 
@@ -92,15 +95,22 @@ export function NavMain({
                 </>
               ) : (
                 <SidebarMenuButton asChild tooltip={item.title} className="cursor-pointer" isActive={isPathActive(item.url)}>
-                  <Link to={item.url}>
-                    {item.icon && <item.icon />}
-                    <span>{item.title}</span>
-                    {item.badge && item.badge > 0 && (
-                      <SidebarMenuBadge className="bg-red-500 text-white">
-                        {item.badge > 99 ? '99+' : item.badge}
-                      </SidebarMenuBadge>
-                    )}
-                  </Link>
+                  {isExternal(item.url) ? (
+                    <a href={item.url} target="_blank" rel="noopener noreferrer">
+                      {item.icon && <item.icon />}
+                      <span>{item.title}</span>
+                    </a>
+                  ) : (
+                    <Link to={item.url}>
+                      {item.icon && <item.icon />}
+                      <span>{item.title}</span>
+                      {item.badge && item.badge > 0 && (
+                        <SidebarMenuBadge className="bg-red-500 text-white">
+                          {item.badge > 99 ? '99+' : item.badge}
+                        </SidebarMenuBadge>
+                      )}
+                    </Link>
+                  )}
                 </SidebarMenuButton>
               )}
             </SidebarMenuItem>
