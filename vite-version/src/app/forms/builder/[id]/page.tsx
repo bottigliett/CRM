@@ -126,7 +126,7 @@ export default function FormBuilderPage() {
           <Button variant="outline" size="sm" onClick={() => setShowMap(!showMap)} className="cursor-pointer">
             <GitBranch className="h-4 w-4 mr-1" /> Mappa logica
           </Button>
-          <Button variant="outline" size="sm" onClick={() => navigate(`/form/${form.slug}`)} className="cursor-pointer">
+          <Button variant="outline" size="sm" onClick={() => navigate(`/forms/${form.id}/preview`)} className="cursor-pointer">
             <Eye className="h-4 w-4 mr-1" /> Anteprima
           </Button>
           <Button variant="outline" size="sm" onClick={() => setShowSettings(true)} className="cursor-pointer">

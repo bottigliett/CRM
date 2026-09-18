@@ -36,6 +36,7 @@ const OnDuty = lazy(() => import('@/app/on-duty/page'))
 const Monitoring = lazy(() => import('@/app/monitoring/page'))
 const FormsPage = lazy(() => import('@/app/forms/page'))
 const FormDetailPage = lazy(() => import('@/app/forms/[id]/page'))
+const FormPreviewPage = lazy(() => import('@/app/forms/[id]/preview/page'))
 const FormBuilderPage = lazy(() => import('@/app/forms/builder/[id]/page'))
 const FormFillPage = lazy(() => import('@/app/forms/fill/[slug]/page'))
 
@@ -211,6 +212,10 @@ export const routes: RouteConfig[] = [
   {
     path: "/forms/builder/:id",
     element: <ProtectedRoute><ModuleProtectedRoute moduleName="forms"><FormBuilderPage /></ModuleProtectedRoute></ProtectedRoute>
+  },
+  {
+    path: "/forms/:id/preview",
+    element: <ProtectedRoute><ModuleProtectedRoute moduleName="forms"><FormPreviewPage /></ModuleProtectedRoute></ProtectedRoute>
   },
   {
     path: "/form/:slug",

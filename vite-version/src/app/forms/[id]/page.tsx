@@ -131,7 +131,7 @@ export default function FormDetailPage() {
           </Badge>
           <div className="flex-1" />
           <Button size="sm" onClick={() => navigate(`/forms/builder/${form.id}`)} className="cursor-pointer"><Pencil className="h-4 w-4 mr-1" /> Costruzione</Button>
-          <Button size="sm" variant="outline" onClick={() => navigate(`/form/${form.slug}`)} className="cursor-pointer"><Eye className="h-4 w-4 mr-1" /> Anteprima</Button>
+          <Button size="sm" variant="outline" onClick={() => navigate(`/forms/${form.id}/preview`)} className="cursor-pointer"><Eye className="h-4 w-4 mr-1" /> Anteprima</Button>
           <Button size="sm" variant="outline" onClick={copyUrl} className="cursor-pointer"><Copy className="h-4 w-4 mr-1" /> Copia link</Button>
           {form.status === 'PUBLISHED' && (
             <Button size="sm" variant="outline" onClick={() => setStatus('DISABLED')} className="cursor-pointer"><Ban className="h-4 w-4 mr-1" /> Disabilita</Button>

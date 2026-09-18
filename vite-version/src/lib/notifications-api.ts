@@ -5,7 +5,7 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 export interface Notification {
   id: number;
   userId: number;
-  type: 'EVENT_REMINDER' | 'EVENT_ASSIGNED' | 'TASK_ASSIGNED' | 'TASK_DUE_SOON' | 'TASK_OVERDUE' | 'SYSTEM';
+  type: 'EVENT_REMINDER' | 'EVENT_ASSIGNED' | 'TASK_ASSIGNED' | 'TASK_DUE_SOON' | 'TASK_OVERDUE' | 'FORM_SUBMISSION' | 'SYSTEM';
   title: string;
   message: string;
   link?: string;

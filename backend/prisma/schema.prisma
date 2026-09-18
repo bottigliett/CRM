@@ -1065,6 +1065,7 @@ enum NotificationType {
   TASK_ASSIGNED // Assigned to a task
   TASK_DUE_SOON // Task deadline approaching
   TASK_OVERDUE // Task is overdue
+  FORM_SUBMISSION // New form submission
   SYSTEM // System notifications
 }
 

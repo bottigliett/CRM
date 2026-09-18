@@ -7,6 +7,7 @@ import {
   CheckSquare,
   Clock,
   AlertTriangle,
+  ClipboardList,
   Info,
   Check,
   CheckCheck,
@@ -37,6 +38,7 @@ const notificationTypeInfo: Record<string, { label: string; Icon: any }> = {
   TASK_ASSIGNED: { label: "Task", Icon: CheckSquare },
   TASK_DUE_SOON: { label: "Scadenza", Icon: Clock },
   TASK_OVERDUE: { label: "Ritardo", Icon: AlertTriangle },
+  FORM_SUBMISSION: { label: "Form", Icon: ClipboardList },
   SYSTEM: { label: "Sistema", Icon: Info },
 }
 

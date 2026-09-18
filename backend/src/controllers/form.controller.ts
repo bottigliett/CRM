@@ -3,6 +3,7 @@ import prisma from '../config/database';
 import { AuthRequest } from '../middleware/auth';
 import { sendEmail } from '../services/email.service';
 import { generateFormSchema } from '../services/social/ai.service';
+import { createNotification } from './notification.controller';
 
 const FRONTEND_URL = () => process.env.FRONTEND_URL || 'https://studiomismo.com/';
 
@@ -31,7 +32,7 @@ async function notifySubmission(form: any, submission: any) {
   try {
     const recipients = await prisma.user.findMany({
       where: { role: { in: ['SUPER_ADMIN', 'DEVELOPER'] }, isActive: true },
-      select: { email: true },
+      select: { id: true, email: true },
     });
 
     const settings = (form.schema as any)?.settings || {};
@@ -40,6 +41,24 @@ async function notifySubmission(form: any, submission: any) {
       ...recipients.map(r => r.email).filter(Boolean) as string[],
       ...extra.filter(Boolean) as string[],
     ]);
+
+    // In-portal notification (persists until read) for each role recipient
+    for (const r of recipients) {
+      try {
+        await createNotification(
+          r.id,
+          'FORM_SUBMISSION',
+          `Nuovo invio: ${form.name}`,
+          'È arrivata una nuova risposta al form',
+          `/forms/${form.id}`,
+          undefined,
+          undefined,
+          { submissionId: submission.id }
+        );
+      } catch (e: any) {
+        console.error('[forms] notification error:', e.message);
+      }
+    }
 
     const data = (submission.data as Record<string, any>) || {};
     const fields = (form.schema as any)?.fields || [];
