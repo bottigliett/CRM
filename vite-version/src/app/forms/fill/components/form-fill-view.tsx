@@ -171,11 +171,20 @@ export function FormFillView({
             {fields.map(f => {
               if (!isFieldVisible(f)) return null
               if (f.type === 'spacer') {
-                return <div key={f.id} style={{ height: f.spacerHeight || 24 }} className="group/fill relative">
-                  {onEditField && (
-                    <button onClick={() => onEditField(f.id)} className="absolute -top-1 right-0 opacity-0 group-hover/fill:opacity-100 text-muted-foreground hover:text-foreground cursor-pointer" title="Modifica spazio"><Pencil className="h-3.5 w-3.5" /></button>
-                  )}
-                </div>
+                return (
+                  <div key={f.id} className="group/fill relative" style={{ height: f.spacerHeight || 24 }}>
+                    {preview ? (
+                      <div className="w-full h-full rounded border border-dashed border-muted-foreground/30 flex items-center justify-center text-[10px] text-muted-foreground/50">
+                        Spazio
+                      </div>
+                    ) : (
+                      <div className="w-full h-full" />
+                    )}
+                    {onEditField && (
+                      <button onClick={() => onEditField(f.id)} className="absolute -top-2 right-0 opacity-0 group-hover/fill:opacity-100 text-muted-foreground hover:text-foreground cursor-pointer bg-background rounded-full border p-0.5" title="Modifica spazio"><Pencil className="h-3.5 w-3.5" /></button>
+                    )}
+                  </div>
+                )
               }
               const req = isFieldRequired(f)
               return (

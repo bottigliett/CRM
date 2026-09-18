@@ -384,20 +384,27 @@ export default function FormBuilderPage() {
                           onDragEnd={() => setDraggedId(null)}
                           className={`flex items-center gap-2 rounded-md border p-3 group cursor-grab active:cursor-grabbing ${draggedId === f.id ? 'opacity-40' : ''}`}>
                           <GripVertical className="h-4 w-4 text-muted-foreground/40 shrink-0" />
-                          <div className="flex-1 min-w-0 space-y-1.5">
-                            <Input
-                              value={f.label}
-                              onChange={e => updateSchema({ fields: schema.fields.map(x => x.id === f.id ? { ...x, label: e.target.value } : x) })}
-                              placeholder="Testo campo"
-                              className="h-8 text-sm font-medium"
-                            />
-                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground flex-wrap">
-                              <span className="rounded bg-muted px-1.5 py-0.5">{typeLabel}</span>
-                              {f.required && <span className="rounded bg-muted px-1.5 py-0.5">obbligatorio</span>}
-                              {f.requiredIf && <span className="rounded bg-muted px-1.5 py-0.5">logica</span>}
-                              {f.helpText && <span className="rounded bg-muted px-1.5 py-0.5">aiuto</span>}
+                          {f.type === 'spacer' ? (
+                            <div className="flex-1 min-w-0 rounded border border-dashed border-muted-foreground/40 px-3 py-2 text-xs text-muted-foreground flex items-center gap-2">
+                              <span>Spazio</span>
+                              <span className="text-muted-foreground/50">({f.spacerHeight || 24}px)</span>
                             </div>
-                          </div>
+                          ) : (
+                            <div className="flex-1 min-w-0 space-y-1.5">
+                              <Input
+                                value={f.label}
+                                onChange={e => updateSchema({ fields: schema.fields.map(x => x.id === f.id ? { ...x, label: e.target.value } : x) })}
+                                placeholder="Testo campo"
+                                className="h-8 text-sm font-medium"
+                              />
+                              <div className="flex items-center gap-1.5 text-xs text-muted-foreground flex-wrap">
+                                <span className="rounded bg-muted px-1.5 py-0.5">{typeLabel}</span>
+                                {f.required && <span className="rounded bg-muted px-1.5 py-0.5">obbligatorio</span>}
+                                {f.requiredIf && <span className="rounded bg-muted px-1.5 py-0.5">logica</span>}
+                                {f.helpText && <span className="rounded bg-muted px-1.5 py-0.5">aiuto</span>}
+                              </div>
+                            </div>
+                          )}
                           <Button variant="ghost" size="icon" className={`h-8 w-8 cursor-pointer ${connectingId === f.id ? 'text-amber-500' : ''}`} onClick={() => toggleConnect(f.id)} title="Collega"><Link2 className="h-4 w-4" /></Button>
                           <Button variant="ghost" size="icon" className="h-8 w-8 cursor-pointer" onClick={() => setEditField(f)} title="Opzioni avanzate"><Settings className="h-4 w-4" /></Button>
                           <Button variant="ghost" size="icon" className="h-8 w-8 cursor-pointer text-destructive" onClick={() => removeField(f.id)}><Trash2 className="h-4 w-4" /></Button>
