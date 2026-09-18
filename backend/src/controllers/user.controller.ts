@@ -19,6 +19,7 @@ export const AVAILABLE_MODULES = [
   { name: 'social_media', label: 'Social Media', description: 'Gestione social media' },
   { name: 'monitoring', label: 'Monitoraggio', description: 'Monitoraggio uptime siti' },
   { name: 'liinks', label: 'Liinks', description: 'Link in bio Instagram' },
+  { name: 'forms', label: 'Form', description: 'Creazione e gestione form' },
 ];
 
 // Get all users (SUPER_ADMIN and DEVELOPER)

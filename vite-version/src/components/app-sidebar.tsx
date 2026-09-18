@@ -21,6 +21,7 @@ import {
   Lock,
   Activity,
   Link2,
+  ClipboardList,
 } from "lucide-react"
 import { Link } from "react-router-dom"
 import { Logo } from "@/components/logo"
@@ -146,6 +147,12 @@ const allNavGroups: NavGroup[] = [
         url: "/liinks",
         icon: Link2,
         moduleName: "liinks",
+      },
+      {
+        title: "Form",
+        url: "/forms",
+        icon: ClipboardList,
+        moduleName: "forms",
       },
       {
         title: "Social Media",

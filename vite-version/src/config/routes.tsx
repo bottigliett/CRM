@@ -35,6 +35,10 @@ const ProjectDetail = lazy(() => import('@/app/projects/[id]/page'))
 const OnDuty = lazy(() => import('@/app/on-duty/page'))
 const Monitoring = lazy(() => import('@/app/monitoring/page'))
 const Liinks = lazy(() => import('@/app/liinks/page'))
+const FormsPage = lazy(() => import('@/app/forms/page'))
+const FormBuilderPage = lazy(() => import('@/app/forms/builder/[id]/page'))
+const FormFillPage = lazy(() => import('@/app/forms/fill/[slug]/page'))
+const FormSubmissionsPage = lazy(() => import('@/app/forms/submissions/page'))
 
 // Social Media pages
 const SocialDashboard = lazy(() => import('@/app/social/page'))
@@ -203,6 +207,28 @@ export const routes: RouteConfig[] = [
   {
     path: "/liinks",
     element: <ProtectedRoute><ModuleProtectedRoute moduleName="liinks"><Liinks /></ModuleProtectedRoute></ProtectedRoute>
+  },
+
+  // Forms
+  {
+    path: "/forms",
+    element: <ProtectedRoute><ModuleProtectedRoute moduleName="forms"><FormsPage /></ModuleProtectedRoute></ProtectedRoute>
+  },
+  {
+    path: "/forms/builder/:id",
+    element: <ProtectedRoute><ModuleProtectedRoute moduleName="forms"><FormBuilderPage /></ModuleProtectedRoute></ProtectedRoute>
+  },
+  {
+    path: "/forms/fill/:slug",
+    element: <FormFillPage />
+  },
+  {
+    path: "/forms/submissions",
+    element: <ProtectedRoute><ModuleProtectedRoute moduleName="forms"><FormSubmissionsPage /></ModuleProtectedRoute></ProtectedRoute>
+  },
+  {
+    path: "/forms/:id/submissions",
+    element: <ProtectedRoute><ModuleProtectedRoute moduleName="forms"><FormSubmissionsPage /></ModuleProtectedRoute></ProtectedRoute>
   },
 
   // Social Media Routes
