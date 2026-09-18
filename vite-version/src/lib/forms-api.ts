@@ -1,6 +1,6 @@
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api'
 
-export type FieldType = 'text' | 'email' | 'number' | 'textarea' | 'select' | 'radio' | 'checkbox' | 'date' | 'url' | 'tel' | 'spacer'
+export type FieldType = 'text' | 'email' | 'number' | 'textarea' | 'select' | 'radio' | 'checkbox' | 'date' | 'url' | 'tel' | 'spacer' | 'heading'
 
 export interface FormField {
   id: string
@@ -104,4 +104,5 @@ export const FIELD_TYPES: { value: FieldType; label: string }[] = [
   { value: 'radio', label: 'Scelta singola' },
   { value: 'checkbox', label: 'Checkbox' },
   { value: 'spacer', label: 'Spazio' },
+  { value: 'heading', label: 'Sezione (titolo)' },
 ]

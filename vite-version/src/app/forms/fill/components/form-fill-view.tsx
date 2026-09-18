@@ -186,6 +186,17 @@ export function FormFillView({
                   </div>
                 )
               }
+              if (f.type === 'heading') {
+                return (
+                  <div key={f.id} className="pt-6 pb-2 border-b group/fill relative">
+                    <h2 className="text-xl font-bold">{f.label || 'Sezione'}</h2>
+                    {f.subtitle && <p className="text-muted-foreground text-sm mt-1">{f.subtitle}</p>}
+                    {onEditField && (
+                      <button onClick={() => onEditField(f.id)} className="absolute -top-1 right-0 opacity-0 group-hover/fill:opacity-100 text-muted-foreground hover:text-foreground cursor-pointer bg-background rounded-full border p-0.5" title="Modifica sezione"><Pencil className="h-3.5 w-3.5" /></button>
+                    )}
+                  </div>
+                )
+              }
               const req = isFieldRequired(f)
               return (
                 <div key={f.id} className="space-y-2 group/fill" title={f.hover || undefined}>

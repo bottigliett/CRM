@@ -73,8 +73,9 @@ function LogicMap({
             <div className="text-xs font-medium text-muted-foreground mb-1">Trascina un campo sulla tavola</div>
             {FIELD_TYPES.map(ft => (
               <div key={ft.value} draggable
+                onClick={() => onAddFieldAt(ft.value, 40 + (fields.length % 4) * 240, 40 + Math.floor(fields.length / 4) * 130)}
                 onDragStart={e => e.dataTransfer.setData('application/x-add-field', ft.value)}
-                className="rounded-md border px-2 py-1.5 text-xs cursor-grab active:cursor-grabbing hover:bg-muted">
+                className="rounded-md border px-2 py-1.5 text-xs cursor-pointer hover:bg-muted">
                 {ft.label}
               </div>
             ))}
@@ -389,6 +390,11 @@ export default function FormBuilderPage() {
                               <span>Spazio</span>
                               <span className="text-muted-foreground/50">({f.spacerHeight || 24}px)</span>
                             </div>
+                          ) : f.type === 'heading' ? (
+                            <div className="flex-1 min-w-0 rounded border px-3 py-2 text-sm">
+                              <div className="font-bold">{f.label || 'Sezione'}</div>
+                              {f.subtitle && <div className="text-xs text-muted-foreground">{f.subtitle}</div>}
+                            </div>
                           ) : (
                             <div className="flex-1 min-w-0 space-y-1.5">
                               <Input
@@ -422,11 +428,12 @@ export default function FormBuilderPage() {
         {mode === 'preview' && (
           <div className="grid gap-4 lg:grid-cols-[200px_1fr]">
             <div className="space-y-1">
-              <div className="text-xs font-medium text-muted-foreground mb-1">Trascina un campo</div>
+              <div className="text-xs font-medium text-muted-foreground mb-1">Trascina o clicca un campo</div>
               {FIELD_TYPES.map(ft => (
                 <div key={ft.value} draggable
+                  onClick={() => addField(ft.value, 0)}
                   onDragStart={e => e.dataTransfer.setData('application/x-add-field', ft.value)}
-                  className="rounded-md border px-2 py-1.5 text-xs cursor-grab active:cursor-grabbing hover:bg-muted">
+                  className="rounded-md border px-2 py-1.5 text-xs cursor-pointer hover:bg-muted">
                   {ft.label}
                 </div>
               ))}
@@ -472,8 +479,11 @@ export default function FormBuilderPage() {
                 </Select>
               </div>
               {editField.type === 'spacer' && (
-                <div className="space-y-1"><Label>Altezza (px)</Label>
-                  <Input type="number" value={editField.spacerHeight || 24} onChange={e => setEditField({ ...editField, spacerHeight: parseInt(e.target.value) || 24 })} />
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between"><Label>Altezza (px)</Label><span className="text-sm font-mono">{editField.spacerHeight || 24}px</span></div>
+                  <input type="range" min={8} max={200} step={4} value={editField.spacerHeight || 24}
+                    onChange={e => setEditField({ ...editField, spacerHeight: parseInt(e.target.value) })}
+                    className="w-full" />
                 </div>
               )}
               <div className="space-y-1"><Label>Testo campo</Label>
