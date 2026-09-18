@@ -37,6 +37,7 @@ export default function FormDetailPage() {
   const [assigning, setAssigning] = useState<Submission | null>(null)
   const [contactSearch, setContactSearch] = useState("")
   const [contacts, setContacts] = useState<Contact[]>([])
+  const [connectingFromId, setConnectingFromId] = useState<string | null>(null)
 
   const formId = id ? parseInt(id) : NaN
 
@@ -168,8 +169,6 @@ export default function FormDetailPage() {
     if (!confirm(`Eliminare il form "${form.name}" e tutti i suoi invii?`)) return
     try { await formsAPI.remove(form.id); toast.success('Form eliminato'); navigate('/forms') } catch (e: any) { toast.error(e.message) }
   }
-
-  const [connectingFromId, setConnectingFromId] = useState<string | null>(null)
 
   const setConnection = async (sourceId: string, targetId: string) => {
     if (!form || sourceId === targetId) return
