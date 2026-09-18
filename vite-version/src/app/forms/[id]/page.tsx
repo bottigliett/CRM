@@ -10,7 +10,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { ArrowLeft, Eye, UserPlus, Trash2, Pencil, Send, Copy, GitBranch, Download, Inbox, Filter } from "lucide-react"
+import { ArrowLeft, Eye, UserPlus, Trash2, Pencil, Send, Copy, GitBranch, Download, Inbox, Filter, Ban, CheckCircle2 } from "lucide-react"
 import { formsAPI, type Form, type Submission } from "@/lib/forms-api"
 import { contactsAPI, type Contact } from "@/lib/contacts-api"
 import { format } from "date-fns"
@@ -93,16 +93,16 @@ export default function FormDetailPage() {
     URL.revokeObjectURL(url)
   }
 
-  const handlePublish = async () => {
+  const setStatus = async (status: 'DRAFT' | 'PUBLISHED' | 'DISABLED') => {
     try {
-      await formsAPI.update(form.id, { status: form.status === 'PUBLISHED' ? 'DRAFT' : 'PUBLISHED' })
-      toast.success(form.status === 'PUBLISHED' ? 'Form messo in bozza' : 'Form pubblicato')
+      await formsAPI.update(form.id, { status })
+      toast.success(status === 'PUBLISHED' ? 'Form pubblicato' : status === 'DISABLED' ? 'Form disabilitato' : 'Form messo in bozza')
       load()
     } catch (e: any) { toast.error(e.message) }
   }
 
   const copyUrl = () => {
-    navigator.clipboard.writeText(`${window.location.origin}/forms/fill/${form.slug}`)
+    navigator.clipboard.writeText(`${window.location.origin}/form/${form.slug}`)
     toast.success('Link pubblico copiato')
   }
 
@@ -126,12 +126,22 @@ export default function FormDetailPage() {
       <div className="px-4 lg:px-6 space-y-4">
         <div className="flex items-center gap-2 flex-wrap">
           <Button variant="ghost" size="sm" onClick={() => navigate('/forms')} className="cursor-pointer"><ArrowLeft className="h-4 w-4 mr-1" /> Form</Button>
-          <Badge variant={form.status === 'PUBLISHED' ? 'default' : 'secondary'}>{form.status === 'PUBLISHED' ? 'Pubblicato' : 'Bozza'}</Badge>
+          <Badge variant={form.status === 'PUBLISHED' ? 'default' : form.status === 'DISABLED' ? 'outline' : 'secondary'}>
+            {form.status === 'PUBLISHED' ? 'Pubblicato' : form.status === 'DISABLED' ? 'Disabilitato' : 'Bozza'}
+          </Badge>
           <div className="flex-1" />
           <Button size="sm" onClick={() => navigate(`/forms/builder/${form.id}`)} className="cursor-pointer"><Pencil className="h-4 w-4 mr-1" /> Costruzione</Button>
-          <Button size="sm" variant="outline" onClick={() => navigate(`/forms/fill/${form.slug}`)} className="cursor-pointer"><Eye className="h-4 w-4 mr-1" /> Anteprima</Button>
+          <Button size="sm" variant="outline" onClick={() => navigate(`/form/${form.slug}`)} className="cursor-pointer"><Eye className="h-4 w-4 mr-1" /> Anteprima</Button>
           <Button size="sm" variant="outline" onClick={copyUrl} className="cursor-pointer"><Copy className="h-4 w-4 mr-1" /> Copia link</Button>
-          <Button size="sm" variant="outline" onClick={handlePublish} className="cursor-pointer"><Send className="h-4 w-4 mr-1" /> {form.status === 'PUBLISHED' ? 'Metti in bozza' : 'Pubblica'}</Button>
+          {form.status === 'PUBLISHED' && (
+            <Button size="sm" variant="outline" onClick={() => setStatus('DISABLED')} className="cursor-pointer"><Ban className="h-4 w-4 mr-1" /> Disabilita</Button>
+          )}
+          {form.status === 'DISABLED' && (
+            <Button size="sm" onClick={() => setStatus('PUBLISHED')} className="cursor-pointer"><CheckCircle2 className="h-4 w-4 mr-1" /> Riabilita</Button>
+          )}
+          {form.status === 'DRAFT' && (
+            <Button size="sm" onClick={() => setStatus('PUBLISHED')} className="cursor-pointer"><Send className="h-4 w-4 mr-1" /> Pubblica</Button>
+          )}
           <Button size="sm" variant="ghost" onClick={doDeleteForm} className="cursor-pointer text-destructive"><Trash2 className="h-4 w-4" /></Button>
         </div>
 

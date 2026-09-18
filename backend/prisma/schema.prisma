@@ -2046,6 +2046,7 @@ enum ReportFrequency {
 enum FormStatus {
   DRAFT
   PUBLISHED
+  DISABLED
   ARCHIVED
 }
 

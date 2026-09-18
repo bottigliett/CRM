@@ -26,7 +26,7 @@ export interface Form {
   slug: string
   description?: string
   schema: FormSchema
-  status: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED'
+  status: 'DRAFT' | 'PUBLISHED' | 'DISABLED' | 'ARCHIVED'
   createdAt: string
   updatedAt: string
   _count?: { submissions: number }
@@ -63,7 +63,7 @@ export const formsAPI = {
   get: (id: number) => request<{ success: boolean; data: Form }>(`/forms/${id}`),
   create: (data: { name: string; description?: string; schema?: FormSchema }) =>
     request<{ success: boolean; data: Form }>('/forms', { method: 'POST', body: JSON.stringify(data) }),
-  update: (id: number, data: Partial<{ name: string; description?: string; schema: FormSchema; status: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED' }>) =>
+  update: (id: number, data: Partial<{ name: string; description?: string; schema: FormSchema; status: 'DRAFT' | 'PUBLISHED' | 'DISABLED' | 'ARCHIVED'; slug: string }>) =>
     request<{ success: boolean; data: Form }>(`/forms/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   remove: (id: number) => request<{ success: boolean }>(`/forms/${id}`, { method: 'DELETE' }),
 

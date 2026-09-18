@@ -213,7 +213,7 @@ export const routes: RouteConfig[] = [
     element: <ProtectedRoute><ModuleProtectedRoute moduleName="forms"><FormBuilderPage /></ModuleProtectedRoute></ProtectedRoute>
   },
   {
-    path: "/forms/fill/:slug",
+    path: "/form/:slug",
     element: <FormFillPage />
   },
   {

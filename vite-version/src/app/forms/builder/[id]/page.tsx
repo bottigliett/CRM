@@ -44,7 +44,7 @@ export default function FormBuilderPage() {
   const save = async (next: Form = form) => {
     try {
       setSaving(true)
-      await formsAPI.update(form.id, { name: next.name, description: next.description, schema: next.schema })
+      await formsAPI.update(form.id, { name: next.name, description: next.description, schema: next.schema, slug: next.slug })
       setForm(next)
       toast.success('Salvato')
     } catch (e: any) { toast.error(e.message) } finally { setSaving(false) }
@@ -126,7 +126,7 @@ export default function FormBuilderPage() {
           <Button variant="outline" size="sm" onClick={() => setShowMap(!showMap)} className="cursor-pointer">
             <GitBranch className="h-4 w-4 mr-1" /> Mappa logica
           </Button>
-          <Button variant="outline" size="sm" onClick={() => navigate(`/forms/fill/${form.slug}`)} className="cursor-pointer">
+          <Button variant="outline" size="sm" onClick={() => navigate(`/form/${form.slug}`)} className="cursor-pointer">
             <Eye className="h-4 w-4 mr-1" /> Anteprima
           </Button>
           <Button variant="outline" size="sm" onClick={() => setShowSettings(true)} className="cursor-pointer">
@@ -309,6 +309,12 @@ export default function FormBuilderPage() {
           <div className="space-y-3 py-2">
             <div className="space-y-1"><Label>Nome form</Label>
               <Input value={form.name} onChange={e => update({ name: e.target.value })} />
+            </div>
+            <div className="space-y-1"><Label>URL pubblico</Label>
+              <div className="flex items-center gap-1">
+                <span className="text-sm text-muted-foreground whitespace-nowrap">/form/</span>
+                <Input value={form.slug} onChange={e => update({ slug: e.target.value })} />
+              </div>
             </div>
             <div className="flex items-center justify-between"><Label>Riepilogo prima dell'invio</Label>
               <Switch checked={schema.settings.reviewBeforeSubmit} onCheckedChange={c => updateSchema({ settings: { ...schema.settings, reviewBeforeSubmit: c } })} />

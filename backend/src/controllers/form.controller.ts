@@ -92,9 +92,9 @@ export const getForm = async (req: AuthRequest, res: Response) => {
 
 export const createForm = async (req: AuthRequest, res: Response) => {
   try {
-    const { name, description, schema } = req.body;
+    const { name, description, schema, slug: slugInput } = req.body;
     if (!name) return res.status(400).json({ success: false, message: 'Nome obbligatorio' });
-    const slug = await uniqueSlug(name);
+    const slug = await uniqueSlug(slugInput?.trim() ? slugInput : name);
     const form = await prisma.form.create({
       data: {
         name,
@@ -113,14 +113,30 @@ export const createForm = async (req: AuthRequest, res: Response) => {
 
 export const updateForm = async (req: AuthRequest, res: Response) => {
   try {
-    const { name, description, schema, status } = req.body;
+    const id = parseInt(req.params.id);
+    const { name, description, schema, status, slug: slugInput } = req.body;
+    let slug: string | undefined;
+    if (slugInput !== undefined) {
+      const current = await prisma.form.findUnique({ where: { id }, select: { slug: true } });
+      const wanted = slugify(slugInput.trim() ? slugInput : (name || current?.slug || 'form'));
+      if (wanted && wanted !== current?.slug) {
+        // ensure uniqueness excluding this form itself
+        let s = wanted;
+        let i = 2;
+        while (await prisma.form.findFirst({ where: { slug: s, id: { not: id } } })) {
+          s = `${wanted}-${i++}`;
+        }
+        slug = s;
+      }
+    }
     const form = await prisma.form.update({
-      where: { id: parseInt(req.params.id) },
+      where: { id },
       data: {
         ...(name !== undefined && { name }),
         ...(description !== undefined && { description }),
         ...(schema !== undefined && { schema }),
         ...(status !== undefined && { status }),
+        ...(slug !== undefined && { slug }),
       },
     });
     res.json({ success: true, data: form });
@@ -156,8 +172,11 @@ export const aiGenerateForm = async (req: AuthRequest, res: Response) => {
 export const getPublicForm = async (req: Request, res: Response) => {
   try {
     const form = await prisma.form.findUnique({ where: { slug: req.params.slug } });
-    if (!form || form.status !== 'PUBLISHED') {
+    if (!form || form.status === 'DRAFT' || form.status === 'ARCHIVED') {
       return res.status(404).json({ success: false, message: 'Form non trovato' });
+    }
+    if (form.status === 'DISABLED') {
+      return res.status(410).json({ success: false, message: 'Questo form è momentaneamente disabilitato' });
     }
     res.json({ success: true, data: { id: form.id, name: form.name, description: form.description, schema: form.schema } });
   } catch (e: any) {
@@ -168,8 +187,11 @@ export const getPublicForm = async (req: Request, res: Response) => {
 export const submitPublicForm = async (req: Request, res: Response) => {
   try {
     const form = await prisma.form.findUnique({ where: { slug: req.params.slug } });
-    if (!form || form.status !== 'PUBLISHED') {
+    if (!form || form.status === 'DRAFT' || form.status === 'ARCHIVED') {
       return res.status(404).json({ success: false, message: 'Form non trovato' });
+    }
+    if (form.status === 'DISABLED') {
+      return res.status(410).json({ success: false, message: 'Questo form è momentaneamente disabilitato' });
     }
     const { data } = req.body;
     if (!data || typeof data !== 'object') {
