@@ -10,7 +10,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { ArrowLeft, Eye, UserPlus, Trash2, Pencil, Send, Copy, GitBranch, Download, Inbox, Filter, Ban, CheckCircle2 } from "lucide-react"
+import { ArrowLeft, Eye, UserPlus, Trash2, Pencil, Send, Copy, GitBranch, Download, Inbox, RotateCcw, Ban, CheckCircle2 } from "lucide-react"
 import { formsAPI, type Form, type Submission } from "@/lib/forms-api"
 import { contactsAPI, type Contact } from "@/lib/contacts-api"
 import { format } from "date-fns"
@@ -152,21 +152,9 @@ export default function FormDetailPage() {
           </TabsList>
 
           <TabsContent value="risposte" className="space-y-4">
-            {/* Filtri per campo */}
-            <Card>
-              <CardContent className="pt-4">
-                <div className="flex items-center gap-2 mb-3 text-sm font-medium"><Filter className="h-4 w-4" /> Filtri</div>
-                <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                  {fields.map(f => (
-                    <Input key={f.id} placeholder={f.label} value={filters[f.id] || ''}
-                      onChange={e => setFilters(prev => ({ ...prev, [f.id]: e.target.value }))} />
-                  ))}
-                </div>
-                <div className="flex justify-end pt-3">
-                  <Button size="sm" variant="outline" onClick={exportCsv} className="cursor-pointer"><Download className="h-4 w-4 mr-1" /> Esporta CSV</Button>
-                </div>
-              </CardContent>
-            </Card>
+            <div className="flex justify-end">
+              <Button size="sm" variant="outline" onClick={exportCsv} className="cursor-pointer"><Download className="h-4 w-4 mr-1" /> Esporta CSV</Button>
+            </div>
 
             {filtered.length === 0 ? (
               <p className="text-muted-foreground py-12 text-center">Nessuna risposta.</p>
@@ -180,6 +168,23 @@ export default function FormDetailPage() {
                         <TableHead>Data</TableHead>
                         <TableHead>Cliente</TableHead>
                         <TableHead className="text-right">Azioni</TableHead>
+                      </TableRow>
+                      <TableRow>
+                        {fields.map(f => (
+                          <TableHead key={`f-${f.id}`} className="p-1">
+                            <Input className="h-8 text-xs" placeholder={f.label} value={filters[f.id] || ''}
+                              onChange={e => setFilters(prev => ({ ...prev, [f.id]: e.target.value }))} />
+                          </TableHead>
+                        ))}
+                        <TableHead className="p-1"></TableHead>
+                        <TableHead className="p-1"></TableHead>
+                        <TableHead className="p-1 text-right">
+                          {Object.values(filters).some(v => v) && (
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setFilters({})} title="Reset filtri">
+                              <RotateCcw className="h-3.5 w-3.5" />
+                            </Button>
+                          )}
+                        </TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>

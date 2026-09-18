@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { ClipboardList, Plus, MoreHorizontal, Trash2, Pencil, Send, Eye, Copy, Search, Ban, CheckCircle2 } from "lucide-react"
+import { ClipboardList, Plus, MoreHorizontal, Trash2, Pencil, Send, Eye, Copy, RotateCcw, Ban, CheckCircle2 } from "lucide-react"
 import { formsAPI, type Form } from "@/lib/forms-api"
 import { format } from "date-fns"
 import { it } from "date-fns/locale"
@@ -21,7 +21,8 @@ export default function FormsPage() {
   const navigate = useNavigate()
   const [forms, setForms] = useState<Form[]>([])
   const [loading, setLoading] = useState(true)
-  const [search, setSearch] = useState("")
+  const [nameSearch, setNameSearch] = useState("")
+  const [slugSearch, setSlugSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
   const [createOpen, setCreateOpen] = useState(false)
   const [name, setName] = useState("")
@@ -36,9 +37,10 @@ export default function FormsPage() {
   const filtered = useMemo(() => {
     let f = forms
     if (statusFilter !== 'all') f = f.filter(x => x.status === statusFilter)
-    if (search) { const q = search.toLowerCase(); f = f.filter(x => x.name.toLowerCase().includes(q) || x.slug.toLowerCase().includes(q)) }
+    if (nameSearch) { const q = nameSearch.toLowerCase(); f = f.filter(x => x.name.toLowerCase().includes(q)) }
+    if (slugSearch) { const q = slugSearch.toLowerCase(); f = f.filter(x => x.slug.toLowerCase().includes(q)) }
     return f
-  }, [forms, search, statusFilter])
+  }, [forms, nameSearch, slugSearch, statusFilter])
 
   const handleCreate = async () => {
     if (!name.trim()) return
@@ -73,22 +75,8 @@ export default function FormsPage() {
   return (
     <BaseLayout title="Form" description="Crea e gestisci i form personalizzati">
       <div className="px-4 lg:px-6 space-y-4">
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-2">
           <Button onClick={() => setCreateOpen(true)} className="cursor-pointer"><Plus className="h-4 w-4 mr-2" /> Nuovo Form</Button>
-          <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Cerca per nome o URL…" className="pl-8" />
-          </div>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[160px]"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Tutti gli stati</SelectItem>
-              <SelectItem value="PUBLISHED">Pubblicati</SelectItem>
-              <SelectItem value="DISABLED">Disabilitati</SelectItem>
-              <SelectItem value="DRAFT">Bozze</SelectItem>
-              <SelectItem value="ARCHIVED">Archiviati</SelectItem>
-            </SelectContent>
-          </Select>
         </div>
 
         {loading ? (
@@ -110,6 +98,35 @@ export default function FormsPage() {
                     <TableHead className="text-right">Invii</TableHead>
                     <TableHead>Aggiornato</TableHead>
                     <TableHead className="text-right">Azioni</TableHead>
+                  </TableRow>
+                  <TableRow>
+                    <TableHead className="p-1">
+                      <Input className="h-8 text-xs" placeholder="Nome…" value={nameSearch} onChange={e => setNameSearch(e.target.value)} />
+                    </TableHead>
+                    <TableHead className="p-1">
+                      <Input className="h-8 text-xs" placeholder="URL…" value={slugSearch} onChange={e => setSlugSearch(e.target.value)} />
+                    </TableHead>
+                    <TableHead className="p-1">
+                      <Select value={statusFilter} onValueChange={setStatusFilter}>
+                        <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Stato" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Tutti</SelectItem>
+                          <SelectItem value="PUBLISHED">Pubblicati</SelectItem>
+                          <SelectItem value="DISABLED">Disabilitati</SelectItem>
+                          <SelectItem value="DRAFT">Bozze</SelectItem>
+                          <SelectItem value="ARCHIVED">Archiviati</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </TableHead>
+                    <TableHead className="p-1"></TableHead>
+                    <TableHead className="p-1"></TableHead>
+                    <TableHead className="p-1 text-right">
+                      {(nameSearch || slugSearch || statusFilter !== 'all') && (
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setNameSearch(''); setSlugSearch(''); setStatusFilter('all') }} title="Reset filtri">
+                          <RotateCcw className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
