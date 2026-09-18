@@ -35,6 +35,7 @@ import paymentEntityRoutes from './routes/payment-entity.routes';
 import recurringInvoiceRoutes from './routes/recurring-invoice.routes';
 import socialRoutes from './routes/social.routes';
 import calendarFeedRoutes from './routes/calendar-feed.routes';
+import formRoutes from './routes/form.routes';
 import { errorHandler, notFound } from './middleware/errorHandler';
 import { globalApiLimiter } from './middleware/security';
 import { initializeUploadsDirectory, UPLOADS_DIR } from './utils/file-upload';
@@ -100,6 +101,10 @@ app.use('/api/auth', authRoutes);
 // Calendar feed — mounted before the broad /api router so the public ICS endpoint
 // (token in query string, no Bearer header) is not blocked by authenticate.
 app.use('/api/calendar', calendarFeedRoutes);
+
+// Forms — mounted before the broad /api router so the public fill endpoints
+// (no Bearer header) are not blocked by authenticate.
+app.use('/api/forms', formRoutes);
 
 app.use('/api', userRoutes);
 app.use('/api/contacts', contactRoutes);

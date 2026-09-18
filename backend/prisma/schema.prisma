@@ -79,6 +79,9 @@ model User {
   socialPostsCreated  SocialPost[] @relation("SocialPostCreatedBy")
   socialPostsApproved SocialPost[] @relation("SocialPostApprovedBy")
 
+  // Form builder
+  forms Form[] @relation("FormCreator")
+
   @@map("users")
 }
 
@@ -244,6 +247,9 @@ model Contact {
   socialTemplates    SocialTemplate[]
   socialReports      SocialReport[]
   socialClientBrief  SocialClientBrief?
+
+  // Form builder
+  formSubmissions FormSubmission[] @relation("SubmissionContact")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -2033,4 +2039,48 @@ enum ReportFrequency {
   WEEKLY
   BIWEEKLY
   MONTHLY
+}
+
+// === Form builder ===
+
+enum FormStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+model Form {
+  id          Int        @id @default(autoincrement())
+  name        String
+  slug        String     @unique
+  description String?    @db.Text
+  schema      Json       // { fields: [...], pages: [...], settings: {...} }
+  status      FormStatus @default(DRAFT)
+  createdBy   Int        @map("created_by")
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @updatedAt @map("updated_at")
+
+  creator     User             @relation("FormCreator", fields: [createdBy], references: [id], onDelete: Cascade)
+  submissions FormSubmission[]
+
+  @@index([status])
+  @@index([createdBy])
+  @@map("forms")
+}
+
+model FormSubmission {
+  id          Int      @id @default(autoincrement())
+  formId      Int      @map("form_id")
+  data        Json     // { fieldId: answer } (answers indexed by field id)
+  contactId   Int?     @map("contact_id") // manual association to a CRM contact (ragione sociale)
+  submittedAt DateTime @default(now()) @map("submitted_at")
+  readAt      DateTime? @map("read_at")
+
+  form    Form     @relation(fields: [formId], references: [id], onDelete: Cascade)
+  contact Contact? @relation("SubmissionContact", fields: [contactId], references: [id], onDelete: SetNull)
+
+  @@index([formId])
+  @@index([contactId])
+  @@index([submittedAt])
+  @@map("form_submissions")
 }
