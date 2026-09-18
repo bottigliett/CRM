@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { ArrowLeft, Eye, UserPlus, Trash2, Pencil, Send, Copy, GitBranch, Download, Inbox, RotateCcw, Ban, CheckCircle2, Plus } from "lucide-react"
 import { formsAPI, FIELD_TYPES, type Form, type Submission } from "@/lib/forms-api"
+import { ColumnToggle, type ColumnDef as ToggleColumnDef } from "@/components/ui/column-toggle"
 import { contactsAPI, type Contact } from "@/lib/contacts-api"
 import { format } from "date-fns"
 import { it } from "date-fns/locale"
@@ -72,6 +73,53 @@ export default function FormDetailPage() {
       return true
     })
   }, [submissions, filters])
+
+  const allCols: ToggleColumnDef[] = useMemo(() => [
+    ...fields.map(f => ({ id: f.id, label: f.label })),
+    { id: 'submittedAt', label: 'Data' },
+    { id: 'contact', label: 'Cliente' },
+  ], [fields])
+
+  const [columns, setColumns] = useState<ToggleColumnDef[]>([])
+  const [visibleColumnsMap, setVisibleColumnsMap] = useState<Record<string, boolean>>({})
+
+  useEffect(() => {
+    if (!form || allCols.length === 0) return
+    const key = `form_resp_col_${form.id}`
+    try {
+      const savedOrder = localStorage.getItem(`${key}_order`)
+      const savedVis = localStorage.getItem(`${key}_vis`)
+      let cols = allCols
+      if (savedOrder) {
+        const order = JSON.parse(savedOrder) as string[]
+        cols = [...order.map(id => allCols.find(c => c.id === id)).filter(Boolean) as ToggleColumnDef[], ...allCols.filter(c => !order.includes(c.id))]
+      }
+      setColumns(cols)
+      setVisibleColumnsMap(savedVis ? { ...Object.fromEntries(allCols.map(c => [c.id, true])), ...JSON.parse(savedVis) } : Object.fromEntries(allCols.map(c => [c.id, true])))
+    } catch {
+      setColumns(allCols)
+      setVisibleColumnsMap(Object.fromEntries(allCols.map(c => [c.id, true])))
+    }
+  }, [allCols, form?.id])
+
+  const persistRespPrefs = (cols: ToggleColumnDef[], vis: Record<string, boolean>) => {
+    if (!form) return
+    const key = `form_resp_col_${form.id}`
+    localStorage.setItem(`${key}_order`, JSON.stringify(cols.map(c => c.id)))
+    localStorage.setItem(`${key}_vis`, JSON.stringify(vis))
+  }
+
+  const toggleColumn = (id: string) => {
+    setVisibleColumnsMap(prev => { const next = { ...prev, [id]: !prev[id] }; persistRespPrefs(columns, next); return next })
+  }
+
+  const handleReorder = (newOrder: string[]) => {
+    const reordered = [...newOrder.map(id => columns.find(c => c.id === id)).filter(Boolean) as ToggleColumnDef[], ...columns.filter(c => !newOrder.includes(c.id))]
+    setColumns(reordered)
+    persistRespPrefs(reordered, visibleColumnsMap)
+  }
+
+  const visibleCols = columns.filter(c => visibleColumnsMap[c.id] !== false)
 
   if (isNaN(formId) || !form) {
     return <BaseLayout title="Form"><div className="px-4 lg:px-6">Caricamento…</div></BaseLayout>
@@ -180,7 +228,8 @@ export default function FormDetailPage() {
           </TabsList>
 
           <TabsContent value="risposte" className="space-y-4">
-            <div className="flex justify-end">
+            <div className="flex items-center justify-end gap-2">
+              <ColumnToggle columns={columns} visibleColumns={visibleColumnsMap} onToggle={toggleColumn} onReorder={handleReorder} />
               <Button size="sm" variant="outline" onClick={exportCsv} className="cursor-pointer"><Download className="h-4 w-4 mr-1" /> Esporta CSV</Button>
             </div>
 
@@ -192,20 +241,19 @@ export default function FormDetailPage() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        {fields.map(f => <TableHead key={f.id}>{f.label}</TableHead>)}
-                        <TableHead>Data</TableHead>
-                        <TableHead>Cliente</TableHead>
+                        {visibleCols.map(col => <TableHead key={col.id}>{col.label}</TableHead>)}
                         <TableHead className="text-right">Azioni</TableHead>
                       </TableRow>
                       <TableRow>
-                        {fields.map(f => (
-                          <TableHead key={`f-${f.id}`} className="p-1">
-                            <Input className="h-8 text-xs" placeholder={f.label} value={filters[f.id] || ''}
-                              onChange={e => setFilters(prev => ({ ...prev, [f.id]: e.target.value }))} />
-                          </TableHead>
-                        ))}
-                        <TableHead className="p-1"></TableHead>
-                        <TableHead className="p-1"></TableHead>
+                        {visibleCols.map(col => {
+                          if (col.id === 'submittedAt' || col.id === 'contact') return <TableHead key={`f-${col.id}`} className="p-1"></TableHead>
+                          return (
+                            <TableHead key={`f-${col.id}`} className="p-1">
+                              <Input className="h-8 text-xs" placeholder={col.label} value={filters[col.id] || ''}
+                                onChange={e => setFilters(prev => ({ ...prev, [col.id]: e.target.value }))} />
+                            </TableHead>
+                          )
+                        })}
                         <TableHead className="p-1 text-right">
                           {Object.values(filters).some(v => v) && (
                             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setFilters({})} title="Reset filtri">
@@ -220,16 +268,24 @@ export default function FormDetailPage() {
                         const d = (s.data as any) || {}
                         return (
                           <TableRow key={s.id} className={s.readAt ? "" : "bg-muted/40"}>
-                            {fields.map(f => (
-                              <TableCell key={f.id} className="max-w-[220px] truncate">
-                                {Array.isArray(d[f.id]) ? (d[f.id] as any[]).join('; ') : (d[f.id] ?? '—')}
-                              </TableCell>
-                            ))}
-                            <TableCell className="whitespace-nowrap">{format(new Date(s.submittedAt), "dd MMM HH:mm", { locale: it })}</TableCell>
-                            <TableCell>
-                              {s.contact ? <Badge variant="outline">{s.contact.name}</Badge> :
-                                <Button size="sm" variant="outline" onClick={() => setAssigning(s)} className="cursor-pointer"><UserPlus className="h-3.5 w-3.5 mr-1" /> Associa</Button>}
-                            </TableCell>
+                            {visibleCols.map(col => {
+                              if (col.id === 'submittedAt') {
+                                return <TableCell key={col.id} className="whitespace-nowrap">{format(new Date(s.submittedAt), "dd MMM HH:mm", { locale: it })}</TableCell>
+                              }
+                              if (col.id === 'contact') {
+                                return (
+                                  <TableCell key={col.id}>
+                                    {s.contact ? <Badge variant="outline">{s.contact.name}</Badge> :
+                                      <Button size="sm" variant="outline" onClick={() => setAssigning(s)} className="cursor-pointer"><UserPlus className="h-3.5 w-3.5 mr-1" /> Associa</Button>}
+                                  </TableCell>
+                                )
+                              }
+                              return (
+                                <TableCell key={col.id} className="max-w-[220px] truncate">
+                                  {Array.isArray(d[col.id]) ? (d[col.id] as any[]).join('; ') : (d[col.id] ?? '—')}
+                                </TableCell>
+                              )
+                            })}
                             <TableCell className="text-right whitespace-nowrap">
                               <Button size="sm" variant="ghost" onClick={() => setViewing(s)} className="cursor-pointer"><Eye className="h-4 w-4" /></Button>
                               <Button size="sm" variant="ghost" onClick={() => doDelete(s)} className="cursor-pointer text-destructive"><Trash2 className="h-4 w-4" /></Button>
