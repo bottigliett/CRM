@@ -1,12 +1,13 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useNavigate, useParams } from "react-router-dom"
 import { BaseLayout } from "@/components/layouts/base-layout"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -32,10 +33,37 @@ export default function FormBuilderPage() {
   const [aiLoading, setAiLoading] = useState(false)
   const [showMap, setShowMap] = useState(false)
   const [draggedId, setDraggedId] = useState<string | null>(null)
+  const loadedRef = useRef(false)
+  const dirtyRef = useRef(false)
+  const saveTimer = useRef<any>(null)
 
   useEffect(() => {
-    if (id) formsAPI.get(parseInt(id)).then(r => setForm(r.data)).catch(e => toast.error(e.message))
+    if (id) formsAPI.get(parseInt(id)).then(r => { setForm(r.data); loadedRef.current = true }).catch(e => toast.error(e.message))
   }, [id])
+
+  // Auto-save (debounced) whenever the form changes after the initial load
+  useEffect(() => {
+    if (!form || !loadedRef.current) return
+    dirtyRef.current = true
+    if (saveTimer.current) clearTimeout(saveTimer.current)
+    saveTimer.current = setTimeout(async () => {
+      try {
+        await formsAPI.update(form.id, { name: form.name, description: form.description, schema: form.schema, slug: form.slug })
+        dirtyRef.current = false
+      } catch (e: any) {
+        toast.error('Salvataggio automatico non riuscito')
+      }
+    }, 1200)
+  }, [form])
+
+  // Warn before leaving if there are unsaved changes
+  useEffect(() => {
+    const handler = (e: BeforeUnloadEvent) => {
+      if (dirtyRef.current) { e.preventDefault(); e.returnValue = '' }
+    }
+    window.addEventListener('beforeunload', handler)
+    return () => window.removeEventListener('beforeunload', handler)
+  }, [])
 
   if (!form) return <BaseLayout title="Form Builder"><div className="px-4 lg:px-6">Caricamento…</div></BaseLayout>
 
@@ -44,10 +72,17 @@ export default function FormBuilderPage() {
   const save = async (next: Form = form) => {
     try {
       setSaving(true)
+      if (saveTimer.current) { clearTimeout(saveTimer.current); saveTimer.current = null }
       await formsAPI.update(form.id, { name: next.name, description: next.description, schema: next.schema, slug: next.slug })
       setForm(next)
+      dirtyRef.current = false
       toast.success('Salvato')
     } catch (e: any) { toast.error(e.message) } finally { setSaving(false) }
+  }
+
+  const goPreview = async () => {
+    await save()
+    navigate(`/forms/${form.id}/preview`)
   }
 
   const update = (patch: Partial<Form>) => setForm({ ...form, ...patch })
@@ -117,7 +152,7 @@ export default function FormBuilderPage() {
           <Button variant="outline" size="sm" onClick={() => setShowMap(!showMap)} className="cursor-pointer">
             <GitBranch className="h-4 w-4 mr-1" /> Mappa logica
           </Button>
-          <Button variant="outline" size="sm" onClick={() => navigate(`/forms/${form.id}/preview`)} className="cursor-pointer">
+          <Button variant="outline" size="sm" onClick={goPreview} className="cursor-pointer">
             <Eye className="h-4 w-4 mr-1" /> Anteprima
           </Button>
           <Button variant="outline" size="sm" onClick={() => setShowSettings(true)} className="cursor-pointer">
@@ -323,10 +358,32 @@ export default function FormBuilderPage() {
             <div className="flex items-center justify-between"><Label>Riepilogo prima dell'invio</Label>
               <Switch checked={schema.settings.reviewBeforeSubmit} onCheckedChange={c => updateSchema({ settings: { ...schema.settings, reviewBeforeSubmit: c } })} />
             </div>
-            <div className="space-y-1"><Label>Email destinatari extra (una per riga)</Label>
-              <textarea value={(schema.settings.emailRecipients || []).join('\n')} onChange={e => updateSchema({ settings: { ...schema.settings, emailRecipients: e.target.value.split('\n').filter(Boolean) } })}
-                className="w-full rounded-md border p-2 text-sm min-h-[80px]" />
-              <p className="text-xs text-muted-foreground">Le email vanno sempre a SUPER_ADMIN e DEVELOPER. Qui puoi aggiungere altri destinatari.</p>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label>Notifica ai ruoli</Label>
+                <Button type="button" variant="ghost" size="sm" onClick={() => updateSchema({ settings: { ...schema.settings, notifyRoles: ['ADMIN', 'SUPER_ADMIN', 'DEVELOPER'] } })} className="cursor-pointer h-7 text-xs">Tutti</Button>
+              </div>
+              {[
+                { value: 'ADMIN', label: 'Admin' },
+                { value: 'SUPER_ADMIN', label: 'Super Admin' },
+                { value: 'DEVELOPER', label: 'Developer' },
+              ].map(r => {
+                const roles = schema.settings.notifyRoles || ['SUPER_ADMIN', 'DEVELOPER']
+                const checked = roles.includes(r.value)
+                return (
+                  <label key={r.value} className="flex items-center gap-2 text-sm cursor-pointer">
+                    <Checkbox
+                      checked={checked}
+                      onCheckedChange={c => {
+                        const next = c ? [...new Set([...roles, r.value])] : roles.filter(x => x !== r.value)
+                        updateSchema({ settings: { ...schema.settings, notifyRoles: next.length ? next : ['SUPER_ADMIN', 'DEVELOPER'] } })
+                      }}
+                    />
+                    {r.label}
+                  </label>
+                )
+              })}
+              <p className="text-xs text-muted-foreground">Questi ruoli riceveranno email e notifica per ogni nuovo invio.</p>
             </div>
           </div>
           <DialogFooter><Button onClick={() => { setShowSettings(false); save() }} disabled={saving}>Salva</Button></DialogFooter>

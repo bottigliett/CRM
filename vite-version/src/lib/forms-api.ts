@@ -19,7 +19,7 @@ export interface FormField {
 export interface FormSchema {
   fields: FormField[]
   pages: { title: string }[]
-  settings: { reviewBeforeSubmit: boolean; emailRecipients: string[] }
+  settings: { reviewBeforeSubmit: boolean; notifyRoles: string[] }
 }
 
 export interface Form {

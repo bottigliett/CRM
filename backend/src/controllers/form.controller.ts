@@ -30,17 +30,17 @@ async function uniqueSlug(name: string): Promise<string> {
 /** Email notification on submission → SUPER_ADMIN + DEVELOPER + per-form extra recipients. */
 async function notifySubmission(form: any, submission: any) {
   try {
+    const settings = (form.schema as any)?.settings || {};
+    const roles: any[] = Array.isArray(settings.notifyRoles) && settings.notifyRoles.length
+      ? settings.notifyRoles
+      : ['SUPER_ADMIN', 'DEVELOPER'];
+
     const recipients = await prisma.user.findMany({
-      where: { role: { in: ['SUPER_ADMIN', 'DEVELOPER'] }, isActive: true },
+      where: { role: { in: roles }, isActive: true },
       select: { id: true, email: true },
     });
 
-    const settings = (form.schema as any)?.settings || {};
-    const extra = Array.isArray(settings.emailRecipients) ? settings.emailRecipients : [];
-    const emails = new Set<string>([
-      ...recipients.map(r => r.email).filter(Boolean) as string[],
-      ...extra.filter(Boolean) as string[],
-    ]);
+    const emails = new Set<string>(recipients.map(r => r.email).filter(Boolean) as string[]);
 
     // In-portal notification (persists until read) for each role recipient
     for (const r of recipients) {

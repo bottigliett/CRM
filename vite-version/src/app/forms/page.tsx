@@ -104,7 +104,7 @@ export default function FormsPage() {
   const handleCreate = async () => {
     if (!name.trim()) return
     try {
-      const res = await formsAPI.create({ name, slug: slug.trim() || undefined, description, schema: { fields: [], pages: [{ title: "Pagina 1" }], settings: { reviewBeforeSubmit: false, emailRecipients: [] } } })
+      const res = await formsAPI.create({ name, slug: slug.trim() || undefined, description, schema: { fields: [], pages: [{ title: "Pagina 1" }], settings: { reviewBeforeSubmit: false, notifyRoles: ['SUPER_ADMIN', 'DEVELOPER'] } } })
       setCreateOpen(false); setName(""); setSlug(""); setDescription("")
       navigate(`/forms/builder/${res.data.id}`)
     } catch (e: any) { toast.error(e.message) }
