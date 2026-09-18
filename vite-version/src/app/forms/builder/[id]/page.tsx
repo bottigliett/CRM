@@ -386,9 +386,12 @@ export default function FormBuilderPage() {
                           className={`flex items-center gap-2 rounded-md border p-3 group cursor-grab active:cursor-grabbing ${draggedId === f.id ? 'opacity-40' : ''}`}>
                           <GripVertical className="h-4 w-4 text-muted-foreground/40 shrink-0" />
                           {f.type === 'spacer' ? (
-                            <div className="flex-1 min-w-0 rounded border border-dashed border-muted-foreground/40 px-3 py-2 text-xs text-muted-foreground flex items-center gap-2">
-                              <span>Spazio</span>
-                              <span className="text-muted-foreground/50">({f.spacerHeight || 24}px)</span>
+                            <div className="flex-1 min-w-0 rounded-md border px-3 py-2.5 flex items-center gap-3">
+                              <span className="text-sm font-medium shrink-0">Spazio</span>
+                              <input type="range" min={8} max={200} step={4} value={f.spacerHeight || 24}
+                                onChange={e => updateSchema({ fields: schema.fields.map(x => x.id === f.id ? { ...x, spacerHeight: parseInt(e.target.value) } : x) })}
+                                className="flex-1" />
+                              <span className="text-xs font-mono shrink-0 w-10 text-right">{f.spacerHeight || 24}px</span>
                             </div>
                           ) : f.type === 'heading' ? (
                             <div className="flex-1 min-w-0 rounded border px-3 py-2 text-sm">
@@ -557,7 +560,7 @@ export default function FormBuilderPage() {
 
       {/* Settings dialog */}
       <Dialog open={showSettings} onOpenChange={setShowSettings}>
-        <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Impostazioni form</DialogTitle></DialogHeader>
           <div className="space-y-3 py-2">
             <div className="space-y-1"><Label>Nome form</Label>
@@ -618,6 +621,32 @@ export default function FormBuilderPage() {
                     className="w-8 h-8 rounded border cursor-pointer" />
                   <span className="text-xs font-mono">{schema.settings.style?.backgroundColor || '#ffffff'}</span>
                 </div>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm">Mostra intestazione (titolo + descrizione)</span>
+                <Switch checked={schema.settings.style?.showBanner !== false} onCheckedChange={c => updateSchema({ settings: { ...schema.settings, style: { ...schema.settings.style, showBanner: c } } })} />
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm">Allineamento form</span>
+                <Select value={schema.settings.style?.alignment || 'center'} onValueChange={(v: any) => updateSchema({ settings: { ...schema.settings, style: { ...schema.settings.style, alignment: v } } })}>
+                  <SelectTrigger className="w-40 h-8 text-xs"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="center">Centro</SelectItem>
+                    <SelectItem value="left">Sinistra</SelectItem>
+                    <SelectItem value="right">Destra</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm">Dimensione input</span>
+                <Select value={schema.settings.style?.inputSize || 'md'} onValueChange={(v: any) => updateSchema({ settings: { ...schema.settings, style: { ...schema.settings.style, inputSize: v } } })}>
+                  <SelectTrigger className="w-40 h-8 text-xs"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="sm">Piccoli</SelectItem>
+                    <SelectItem value="md">Medi</SelectItem>
+                    <SelectItem value="lg">Grandi</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           </div>

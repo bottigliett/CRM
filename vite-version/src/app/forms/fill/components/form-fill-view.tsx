@@ -101,7 +101,7 @@ export function FormFillView({
 
   const renderField = (f: FormField) => {
     const v = answers[f.id]
-    const base = "w-full"
+    const base = `w-full ${inputH}`
     switch (f.type) {
       case 'textarea': return <Textarea value={v || ''} onChange={e => setAnswer(f.id, e.target.value)} placeholder={f.placeholder} className={base} />
       case 'select': return (
@@ -128,6 +128,12 @@ export function FormFillView({
 
   const primaryColor = schema.settings.style?.primaryColor
   const backgroundColor = schema.settings.style?.backgroundColor
+  const alignment = schema.settings.style?.alignment || 'center'
+  const inputSize = schema.settings.style?.inputSize || 'md'
+  const showBanner = schema.settings.style?.showBanner !== false
+
+  const alignClass = alignment === 'left' ? 'mr-auto ml-0' : alignment === 'right' ? 'ml-auto mr-0' : 'mx-auto'
+  const inputH = inputSize === 'sm' ? 'h-8' : inputSize === 'lg' ? 'h-12' : 'h-10'
 
   return (
     <div className="min-h-dvh" style={{ backgroundColor: backgroundColor || undefined }}>
@@ -139,11 +145,13 @@ export function FormFillView({
           </div>
         </div>
       )}
-      <div className="max-w-xl mx-auto px-4 py-8 sm:py-12">
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold">{name}</h1>
-          {description && <p className="text-muted-foreground mt-1">{description}</p>}
-        </div>
+      <div className={`max-w-xl px-4 py-8 sm:py-12 ${alignClass}`}>
+        {showBanner && (
+          <div className="mb-8">
+            <h1 className="text-2xl font-bold">{name}</h1>
+            {description && <p className="text-muted-foreground mt-1">{description}</p>}
+          </div>
+        )}
 
         {review ? (
           <div className="space-y-4">
