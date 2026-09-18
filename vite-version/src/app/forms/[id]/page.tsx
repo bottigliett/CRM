@@ -58,11 +58,7 @@ export default function FormDetailPage() {
     return () => clearTimeout(t)
   }, [contactSearch, assigning])
 
-  if (isNaN(formId) || !form) {
-    return <BaseLayout title="Form"><div className="px-4 lg:px-6">Caricamento…</div></BaseLayout>
-  }
-
-  const fields = (form.schema as any).fields as Array<{ id: string; label: string }>
+  const fields = ((form?.schema as any)?.fields as Array<{ id: string; label: string }>) || []
   const connections = fields.filter((f: any) => f.requiredIf)
 
   const filtered = useMemo(() => {
@@ -76,6 +72,10 @@ export default function FormDetailPage() {
       return true
     })
   }, [submissions, filters])
+
+  if (isNaN(formId) || !form) {
+    return <BaseLayout title="Form"><div className="px-4 lg:px-6">Caricamento…</div></BaseLayout>
+  }
 
   const exportCsv = () => {
     const header = [...fields.map(f => f.label), 'Data', 'Cliente']
