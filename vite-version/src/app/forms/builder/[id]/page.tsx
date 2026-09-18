@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Textarea } from "@/components/ui/textarea"
-import { ArrowLeft, ArrowUp, ArrowDown, Trash2, Plus, Settings, Save, Eye, GripVertical, Sparkles, GitBranch, MoveRight } from "lucide-react"
+import { ArrowLeft, Trash2, Plus, Settings, Save, Eye, GripVertical, Sparkles, GitBranch, MoveRight } from "lucide-react"
 import { formsAPI, FIELD_TYPES, type Form, type FormField, type FieldType } from "@/lib/forms-api"
 import { toast } from "sonner"
 
@@ -59,15 +59,6 @@ export default function FormBuilderPage() {
     // also clear requiredIf pointing to removed field
     const fields = schema.fields.filter(f => f.id !== id).map(f => f.requiredIf?.fieldId === id ? { ...f, requiredIf: undefined } : f)
     updateSchema({ fields })
-  }
-
-  const moveField = (id: string, dir: -1 | 1) => {
-    const arr = [...schema.fields]
-    const i = arr.findIndex(f => f.id === id)
-    const j = i + dir
-    if (i < 0 || j < 0 || j >= arr.length) return
-    ;[arr[i], arr[j]] = [arr[j], arr[i]]
-    updateSchema({ fields: arr })
   }
 
   const moveFieldTo = (fromId: string, toId: string) => {
@@ -207,15 +198,22 @@ export default function FormBuilderPage() {
                           onDragEnd={() => setDraggedId(null)}
                           className={`flex items-center gap-2 rounded-md border p-3 group cursor-grab active:cursor-grabbing ${draggedId === f.id ? 'opacity-40' : ''}`}>
                           <GripVertical className="h-4 w-4 text-muted-foreground/40 shrink-0" />
-                          <button onClick={() => setEditField(f)} className="flex-1 text-left min-w-0">
-                            <div className="font-medium text-sm truncate">{f.label || '(senza titolo)'}</div>
-                            <div className="text-xs text-muted-foreground">
-                              {typeLabel}{f.required ? ' · obbligatorio' : ''}{f.requiredIf ? ` · obbl. se ${f.requiredIf.operator === 'filled' ? 'compilato' : 'vuoto'}` : ''}
+                          <div className="flex-1 min-w-0 space-y-1.5">
+                            <Input
+                              value={f.label}
+                              onChange={e => updateSchema({ fields: schema.fields.map(x => x.id === f.id ? { ...x, label: e.target.value } : x) })}
+                              placeholder="Testo campo"
+                              className="h-8 text-sm font-medium"
+                            />
+                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground flex-wrap">
+                              <span className="rounded bg-muted px-1.5 py-0.5">{typeLabel}</span>
+                              {f.required && <span className="rounded bg-muted px-1.5 py-0.5">obbligatorio</span>}
+                              {f.requiredIf && <span className="rounded bg-muted px-1.5 py-0.5">logica</span>}
+                              {f.helpText && <span className="rounded bg-muted px-1.5 py-0.5">aiuto</span>}
                             </div>
-                          </button>
-                          <Button variant="ghost" size="icon" className="h-7 w-7 cursor-pointer" onClick={() => moveField(f.id, -1)}><ArrowUp className="h-3.5 w-3.5" /></Button>
-                          <Button variant="ghost" size="icon" className="h-7 w-7 cursor-pointer" onClick={() => moveField(f.id, 1)}><ArrowDown className="h-3.5 w-3.5" /></Button>
-                          <Button variant="ghost" size="icon" className="h-7 w-7 cursor-pointer text-destructive" onClick={() => removeField(f.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
+                          </div>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 cursor-pointer" onClick={() => setEditField(f)} title="Opzioni avanzate"><Settings className="h-4 w-4" /></Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 cursor-pointer text-destructive" onClick={() => removeField(f.id)}><Trash2 className="h-4 w-4" /></Button>
                         </div>
                       )
                     })}
