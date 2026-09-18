@@ -102,3 +102,6 @@ backend/.browser-profiles/
 db_dump.sql
 graphify-out/
 SOCIAL_TODO.md
+
+# Backup database locali (non su GitHub)
+backups/
