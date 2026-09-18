@@ -454,7 +454,7 @@ export default function FormBuilderPage() {
 
       {/* Edit field dialog */}
       <Dialog open={!!editField} onOpenChange={o => !o && setEditField(null)}>
-        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Configura campo</DialogTitle></DialogHeader>
           {editField && (
             <div className="space-y-3 py-2">
@@ -535,7 +535,7 @@ export default function FormBuilderPage() {
 
       {/* Settings dialog */}
       <Dialog open={showSettings} onOpenChange={setShowSettings}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Impostazioni form</DialogTitle></DialogHeader>
           <div className="space-y-3 py-2">
             <div className="space-y-1"><Label>Nome form</Label>
@@ -584,10 +584,11 @@ export default function FormBuilderPage() {
 
       {/* AI dialog */}
       <Dialog open={showAi} onOpenChange={setShowAi}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-2xl max-h-[85vh] flex flex-col">
           <DialogHeader><DialogTitle className="flex items-center gap-2"><Sparkles className="h-5 w-5" /> Genera form con AI</DialogTitle></DialogHeader>
-          <div className="space-y-2 py-2">
-            <Textarea value={aiDesc} onChange={e => setAiDesc(e.target.value)} rows={5}
+          <div className="flex-1 min-h-0 space-y-2 py-2">
+            <Textarea value={aiDesc} onChange={e => setAiDesc(e.target.value)} rows={8}
+              className="min-h-[180px] max-h-[40vh]"
               placeholder="Es. Form pre-shooting: chiedi chi sarà presente al video, quali location sono disponibili, le idee del cliente, link dell'annuncio immobiliare…" />
             <p className="text-xs text-muted-foreground">Descrivi il form e l'AI genererà i campi. Potrai poi modificarli.</p>
           </div>
