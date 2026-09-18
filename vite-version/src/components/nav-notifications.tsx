@@ -1,6 +1,17 @@
 "use client"
 
-import { Bell, Check, CheckCheck, Trash2, X } from "lucide-react"
+import {
+  Bell,
+  Calendar,
+  CalendarClock,
+  CheckSquare,
+  Clock,
+  AlertTriangle,
+  Info,
+  Check,
+  CheckCheck,
+  Trash2,
+} from "lucide-react"
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import {
@@ -27,30 +38,32 @@ import { cn } from "@/lib/utils"
 import { formatDistanceToNow } from "date-fns"
 import { it } from "date-fns/locale"
 
-const notificationTypeLabels = {
-  EVENT_REMINDER: { label: "Promemoria", color: "bg-blue-500" },
-  EVENT_ASSIGNED: { label: "Evento", color: "bg-green-500" },
-  TASK_ASSIGNED: { label: "Task", color: "bg-purple-500" },
-  TASK_DUE_SOON: { label: "Scadenza", color: "bg-orange-500" },
-  TASK_OVERDUE: { label: "Ritardo", color: "bg-red-500" },
-  SYSTEM: { label: "Sistema", color: "bg-gray-500" },
+const notificationTypeInfo: Record<string, { label: string; Icon: any }> = {
+  EVENT_REMINDER: { label: "Promemoria", Icon: CalendarClock },
+  EVENT_ASSIGNED: { label: "Evento", Icon: Calendar },
+  TASK_ASSIGNED: { label: "Task", Icon: CheckSquare },
+  TASK_DUE_SOON: { label: "Scadenza", Icon: Clock },
+  TASK_OVERDUE: { label: "Ritardo", Icon: AlertTriangle },
+  SYSTEM: { label: "Sistema", Icon: Info },
 }
+
+type Filter = "all" | "unread"
 
 export function NavNotifications() {
   const [open, setOpen] = useState(false)
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [unreadCount, setUnreadCount] = useState(0)
   const [loading, setLoading] = useState(false)
+  const [filter, setFilter] = useState<Filter>("all")
   const navigate = useNavigate()
 
-  const loadNotifications = async () => {
+  const loadNotifications = async (activeFilter: Filter = filter) => {
     try {
       setLoading(true)
-      const response = await notificationsAPI.getNotifications()
+      const response = await notificationsAPI.getNotifications(activeFilter === "unread")
       setNotifications(response.data.notifications)
       setUnreadCount(response.data.unreadCount)
     } catch (error: any) {
-      // Ignora errori 401 (non autenticato) silenziosamente
       if (error?.response?.status !== 401) {
         console.error('Errore nel caricamento delle notifiche:', error)
       }
@@ -61,18 +74,18 @@ export function NavNotifications() {
 
   useEffect(() => {
     if (open) {
-      loadNotifications()
+      loadNotifications(filter)
     }
-  }, [open])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, filter])
 
   // Poll for new notifications every 30 seconds
   useEffect(() => {
     const interval = setInterval(async () => {
       try {
-        const response = await notificationsAPI.getNotifications()
+        const response = await notificationsAPI.getNotifications(false)
         setUnreadCount(response.data.unreadCount)
       } catch (error: any) {
-        // Ignora errori 401 (non autenticato) silenziosamente
         if (error?.response?.status !== 401) {
           console.error('Errore nel polling delle notifiche:', error)
         }
@@ -85,8 +98,8 @@ export function NavNotifications() {
   const handleMarkAsRead = async (notificationId: number) => {
     try {
       await notificationsAPI.markAsRead(notificationId)
-      await loadNotifications()
-    } catch (error) {
+      await loadNotifications(filter)
+    } catch {
       toast.error('Errore nel segnare la notifica come letta')
     }
   }
@@ -94,9 +107,9 @@ export function NavNotifications() {
   const handleMarkAllAsRead = async () => {
     try {
       await notificationsAPI.markAllAsRead()
-      await loadNotifications()
+      await loadNotifications(filter)
       toast.success('Tutte le notifiche segnate come lette')
-    } catch (error) {
+    } catch {
       toast.error('Errore nel segnare tutte le notifiche come lette')
     }
   }
@@ -104,10 +117,10 @@ export function NavNotifications() {
   const handleDelete = async (notificationId: number) => {
     try {
       await notificationsAPI.deleteNotification(notificationId)
-      await loadNotifications()
+      await loadNotifications(filter)
       toast.success('Notifica eliminata')
-    } catch (error) {
-      toast.error('Errore nell\'eliminazione della notifica')
+    } catch {
+      toast.error("Errore nell'eliminazione della notifica")
     }
   }
 
@@ -122,139 +135,190 @@ export function NavNotifications() {
   }
 
   return (
-    <>
-      <SidebarGroup>
-        <SidebarGroupLabel>Notifiche</SidebarGroupLabel>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <Sheet open={open} onOpenChange={setOpen}>
-              <SheetTrigger asChild>
-                <SidebarMenuButton className="cursor-pointer relative">
-                  <Bell className="h-4 w-4" />
-                  <span>Centro Notifiche</span>
-                  {unreadCount > 0 && (
-                    <Badge
-                      variant="destructive"
-                      className="ml-auto min-w-5 h-5 flex items-center justify-center p-0 text-xs"
-                    >
-                      {unreadCount > 99 ? '99+' : unreadCount}
-                    </Badge>
-                  )}
-                </SidebarMenuButton>
-              </SheetTrigger>
-              <SheetContent side="right" className="w-[400px] sm:w-[540px]">
-                <SheetHeader>
-                  <SheetTitle className="flex items-center justify-between">
-                    <span>Notifiche</span>
-                    {unreadCount > 0 && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={handleMarkAllAsRead}
-                        className="cursor-pointer"
-                      >
-                        <CheckCheck className="h-4 w-4 mr-2" />
-                        Segna tutte lette
-                      </Button>
-                    )}
+    <SidebarGroup>
+      <SidebarGroupLabel>Notifiche</SidebarGroupLabel>
+      <SidebarMenu>
+        <SidebarMenuItem>
+          <Sheet open={open} onOpenChange={setOpen}>
+            <SheetTrigger asChild>
+              <SidebarMenuButton className="cursor-pointer relative">
+                <Bell className="h-4 w-4" />
+                <span>Centro Notifiche</span>
+                {unreadCount > 0 && (
+                  <Badge
+                    variant="destructive"
+                    className="ml-auto min-w-5 h-5 flex items-center justify-center p-0 text-xs"
+                  >
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </Badge>
+                )}
+              </SidebarMenuButton>
+            </SheetTrigger>
+            <SheetContent side="right" className="w-[400px] sm:w-[540px] flex flex-col">
+              <SheetHeader className="border-b pb-4">
+                <div className="flex items-center justify-between">
+                  <SheetTitle className="flex items-center gap-2">
+                    <Bell className="h-5 w-5" />
+                    Notifiche
                   </SheetTitle>
-                  <SheetDescription>
-                    {unreadCount > 0
-                      ? `Hai ${unreadCount} notifica${unreadCount > 1 ? 'he' : ''} non letta${unreadCount > 1 ? 'e' : ''}`
-                      : 'Nessuna notifica non letta'}
-                  </SheetDescription>
-                </SheetHeader>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleMarkAllAsRead}
+                    disabled={unreadCount === 0}
+                    className="cursor-pointer"
+                  >
+                    <CheckCheck className="h-4 w-4 mr-2" />
+                    Segna tutte lette
+                  </Button>
+                </div>
+                <SheetDescription>
+                  {unreadCount > 0
+                    ? `Hai ${unreadCount} notifica${unreadCount === 1 ? '' : 'he'} non letta${unreadCount === 1 ? '' : 'e'}`
+                    : 'Sei al passo con tutto'}
+                </SheetDescription>
 
-                <ScrollArea className="h-[calc(100vh-120px)] mt-6">
-                  {loading ? (
-                    <div className="flex items-center justify-center py-8">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                {/* Filter */}
+                <div className="flex gap-1 bg-muted rounded-lg p-0.5 mt-2">
+                  {([
+                    { key: 'all', label: 'Tutte' },
+                    { key: 'unread', label: 'Non lette' },
+                  ] as const).map((f) => (
+                    <button
+                      key={f.key}
+                      onClick={() => setFilter(f.key)}
+                      className={cn(
+                        "flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition-colors",
+                        filter === f.key
+                          ? "bg-background shadow-sm"
+                          : "text-muted-foreground hover:text-foreground"
+                      )}
+                    >
+                      {f.label}
+                      {f.key === 'unread' && unreadCount > 0 && (
+                        <span className="ml-1 text-muted-foreground">({unreadCount})</span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </SheetHeader>
+
+              <ScrollArea className="flex-1 mt-4">
+                {loading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-foreground"></div>
+                  </div>
+                ) : notifications.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-center">
+                    <div className="rounded-full border p-4 mb-4">
+                      <Bell className="h-8 w-8 text-muted-foreground" />
                     </div>
-                  ) : notifications.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-12 text-center">
-                      <Bell className="h-12 w-12 text-muted-foreground mb-4" />
-                      <p className="text-muted-foreground">Nessuna notifica</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      {notifications.map((notification) => {
-                        const typeInfo = notificationTypeLabels[notification.type]
-                        return (
-                          <div
-                            key={notification.id}
-                            className={cn(
-                              "p-4 rounded-lg border transition-colors",
-                              notification.isRead
-                                ? "bg-background hover:bg-muted/50"
-                                : "bg-muted hover:bg-muted",
-                              notification.link && "cursor-pointer"
-                            )}
-                            onClick={() => handleNotificationClick(notification)}
-                          >
-                            <div className="flex items-start gap-3">
-                              <div className={cn("w-2 h-2 rounded-full mt-2", typeInfo.color)} />
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-start justify-between gap-2 mb-1">
-                                  <div className="flex items-center gap-2 flex-wrap">
-                                    <Badge variant="outline" className="text-xs">
-                                      {typeInfo.label}
-                                    </Badge>
-                                    {!notification.isRead && (
-                                      <Badge variant="default" className="text-xs">
-                                        Nuova
-                                      </Badge>
-                                    )}
-                                  </div>
-                                  <div className="flex items-center gap-1">
-                                    {!notification.isRead && (
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-6 w-6 cursor-pointer"
-                                        onClick={(e) => {
-                                          e.stopPropagation()
-                                          handleMarkAsRead(notification.id)
-                                        }}
-                                      >
-                                        <Check className="h-3 w-3" />
-                                      </Button>
-                                    )}
+                    <p className="font-medium">Nessuna notifica</p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {filter === 'unread'
+                        ? 'Nessuna notifica non letta'
+                        : 'Quando ci saranno novità le troverai qui'}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-1">
+                    {notifications.map((notification) => {
+                      const info = notificationTypeInfo[notification.type] || {
+                        label: notification.type,
+                        Icon: Info,
+                      }
+                      const { Icon } = info
+                      return (
+                        <div
+                          key={notification.id}
+                          className={cn(
+                            "group p-3 rounded-lg border transition-colors",
+                            notification.isRead
+                              ? "bg-background hover:bg-muted/40 border-transparent"
+                              : "bg-muted/60 hover:bg-muted border",
+                            notification.link && "cursor-pointer"
+                          )}
+                          onClick={() => handleNotificationClick(notification)}
+                        >
+                          <div className="flex items-start gap-3">
+                            <div
+                              className={cn(
+                                "w-8 h-8 rounded-md flex items-center justify-center shrink-0 border",
+                                notification.isRead
+                                  ? "bg-background text-muted-foreground"
+                                  : "bg-foreground text-background"
+                              )}
+                            >
+                              <Icon className="h-4 w-4" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="flex items-center gap-2 flex-wrap min-w-0">
+                                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                                    {info.label}
+                                  </span>
+                                  {!notification.isRead && (
+                                    <span className="w-1.5 h-1.5 rounded-full bg-foreground" />
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  {!notification.isRead && (
                                     <Button
                                       variant="ghost"
                                       size="icon"
                                       className="h-6 w-6 cursor-pointer"
                                       onClick={(e) => {
                                         e.stopPropagation()
-                                        handleDelete(notification.id)
+                                        handleMarkAsRead(notification.id)
                                       }}
+                                      title="Segna come letta"
                                     >
-                                      <Trash2 className="h-3 w-3" />
+                                      <Check className="h-3 w-3" />
                                     </Button>
-                                  </div>
+                                  )}
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-6 w-6 cursor-pointer text-muted-foreground hover:text-destructive"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      handleDelete(notification.id)
+                                    }}
+                                    title="Elimina"
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                  </Button>
                                 </div>
-                                <h4 className="font-semibold text-sm mb-1">{notification.title}</h4>
-                                <p className="text-sm text-muted-foreground mb-2">
-                                  {notification.message}
-                                </p>
-                                <p className="text-xs text-muted-foreground">
-                                  {formatDistanceToNow(new Date(notification.createdAt), {
-                                    addSuffix: true,
-                                    locale: it,
-                                  })}
-                                </p>
                               </div>
+                              <h4
+                                className={cn(
+                                  "text-sm mb-0.5",
+                                  notification.isRead ? "font-medium" : "font-semibold"
+                                )}
+                              >
+                                {notification.title}
+                              </h4>
+                              <p className="text-sm text-muted-foreground line-clamp-2">
+                                {notification.message}
+                              </p>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                {formatDistanceToNow(new Date(notification.createdAt), {
+                                  addSuffix: true,
+                                  locale: it,
+                                })}
+                              </p>
                             </div>
                           </div>
-                        )
-                      })}
-                    </div>
-                  )}
-                </ScrollArea>
-              </SheetContent>
-            </Sheet>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarGroup>
-    </>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </ScrollArea>
+            </SheetContent>
+          </Sheet>
+        </SidebarMenuItem>
+      </SidebarMenu>
+    </SidebarGroup>
   )
 }

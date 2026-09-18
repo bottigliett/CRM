@@ -1014,7 +1014,7 @@ export async function sendClientTaskAssignedEmail(
   const subject = `Nuovo Task Assegnato: ${taskTitle}`;
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-      <h2 style="color: #2563eb;">Nuovo Task Assegnato</h2>
+      <h2 style="color: #000000;">Nuovo Task Assegnato</h2>
       <p>Gentile ${clientName},</p>
       <p>Ti è stato assegnato un nuovo task:</p>
       <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
@@ -1043,7 +1043,7 @@ export async function sendClientEventCreatedEmail(
   const subject = `Nuovo Appuntamento: ${eventTitle}`;
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-      <h2 style="color: #2563eb;">Nuovo Appuntamento</h2>
+      <h2 style="color: #000000;">Nuovo Appuntamento</h2>
       <p>Gentile ${clientName},</p>
       <p>È stato creato un nuovo appuntamento:</p>
       <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
@@ -1072,7 +1072,7 @@ export async function sendClientInvoiceCreatedEmail(
   const subject = `Nuova Fattura: ${invoiceNumber}`;
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-      <h2 style="color: #2563eb;">Nuova Fattura Emessa</h2>
+      <h2 style="color: #000000;">Nuova Fattura Emessa</h2>
       <p>Gentile ${clientName},</p>
       <p>È stata emessa una nuova fattura:</p>
       <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
@@ -1100,7 +1100,7 @@ export async function sendClientQuoteSharedEmail(
   const subject = `Nuovo Preventivo: ${quoteNumber}`;
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-      <h2 style="color: #2563eb;">Nuovo Preventivo Disponibile</h2>
+      <h2 style="color: #000000;">Nuovo Preventivo Disponibile</h2>
       <p>Gentile ${clientName},</p>
       <p>È stato preparato un nuovo preventivo per te:</p>
       <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
@@ -1127,7 +1127,7 @@ export async function sendClientTicketReplyEmail(
   const subject = `Risposta al Ticket ${ticketNumber}`;
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-      <h2 style="color: #2563eb;">Nuova Risposta al Tuo Ticket</h2>
+      <h2 style="color: #000000;">Nuova Risposta al Tuo Ticket</h2>
       <p>Gentile ${clientName},</p>
       <p>Il nostro team ha risposto al tuo ticket di supporto:</p>
       <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
@@ -1664,10 +1664,10 @@ export async function sendAdminNewTicketEmail(
           border: 1px solid #e0e0e0;
         }
         .header {
-          background: #2563eb;
+          background: #000000;
           color: white;
           padding: 30px;
-          border-bottom: 3px solid #1e40af;
+          border-bottom: 3px solid #222222;
         }
         .header h1 {
           margin: 0;
@@ -1684,15 +1684,15 @@ export async function sendAdminNewTicketEmail(
           color: #333333;
         }
         .ticket-details {
-          background: #eff6ff;
+          background: #f5f5f5;
           padding: 24px;
           margin: 24px 0;
-          border: 1px solid #bfdbfe;
-          border-left: 4px solid #2563eb;
+          border: 1px solid #d1d1d1;
+          border-left: 4px solid #000000;
         }
         .ticket-details h2 {
           margin: 0 0 16px 0;
-          color: #2563eb;
+          color: #000000;
           font-size: 20px;
           font-weight: 600;
         }
@@ -1717,8 +1717,8 @@ export async function sendAdminNewTicketEmail(
           color: #92400e;
         }
         .badge-priority-low {
-          background: #dbeafe;
-          color: #1e40af;
+          background: #e0e0e0;
+          color: #222222;
         }
         .footer {
           text-align: center;
@@ -1830,7 +1830,7 @@ export async function sendAdminTicketReplyEmail(
           box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
         .header {
-          background: linear-gradient(135deg, #2563eb, #1d4ed8);
+          background: linear-gradient(135deg, #000000, #111111);
           color: white;
           padding: 24px 30px;
           text-align: center;
@@ -1848,7 +1848,7 @@ export async function sendAdminTicketReplyEmail(
           border-radius: 8px;
           padding: 20px;
           margin: 20px 0;
-          border-left: 4px solid #2563eb;
+          border-left: 4px solid #000000;
         }
         .message-box p {
           margin: 0;

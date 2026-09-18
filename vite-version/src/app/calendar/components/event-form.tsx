@@ -82,7 +82,7 @@ export function EventForm({ event, open, onOpenChange, onSave, onDelete }: Event
     allDay: event?.allDay || false,
     reminderEnabled: false,
     reminderType: "MINUTES_15" as "MINUTES_15" | "MINUTES_30" | "HOUR_1" | "DAY_1",
-    reminderEmail: false
+    reminderEmail: true
   })
 
   const [showParticipantsSelect, setShowParticipantsSelect] = useState(false)
@@ -146,7 +146,7 @@ export function EventForm({ event, open, onOpenChange, onSave, onDelete }: Event
         allDay: false,
         reminderEnabled: false,
         reminderType: "MINUTES_15",
-        reminderEmail: false
+        reminderEmail: true
       })
     }
   }, [event, open])

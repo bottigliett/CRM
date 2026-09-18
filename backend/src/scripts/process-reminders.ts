@@ -3,7 +3,7 @@ import dotenv from 'dotenv';
 // IMPORTANT: Load environment variables BEFORE importing services
 dotenv.config();
 
-import { processDueReminders } from '../services/reminder.service';
+import { processDueReminders, processDueTasks } from '../services/reminder.service';
 
 // Process reminders every minute
 const INTERVAL_MS = 60 * 1000; // 1 minute
@@ -11,25 +11,30 @@ const INTERVAL_MS = 60 * 1000; // 1 minute
 console.log('Starting reminder processor...');
 console.log(`Processing interval: ${INTERVAL_MS / 1000} seconds`);
 
-// Process immediately on start
-processDueReminders()
-  .then((count) => {
-    console.log(`Initial processing: ${count} reminders processed`);
-  })
-  .catch((error) => {
-    console.error('Error in initial processing:', error);
-  });
-
-// Then process every minute
-setInterval(async () => {
+async function run() {
   try {
-    const count = await processDueReminders();
-    if (count > 0) {
-      console.log(`[${new Date().toISOString()}] Processed ${count} reminders`);
+    const reminders = await processDueReminders();
+    if (reminders > 0) {
+      console.log(`[${new Date().toISOString()}] Processed ${reminders} reminders`);
     }
   } catch (error) {
     console.error(`[${new Date().toISOString()}] Error processing reminders:`, error);
   }
-}, INTERVAL_MS);
+
+  try {
+    const tasks = await processDueTasks();
+    if (tasks > 0) {
+      console.log(`[${new Date().toISOString()}] Processed ${tasks} task due/overdue emails`);
+    }
+  } catch (error) {
+    console.error(`[${new Date().toISOString()}] Error processing tasks:`, error);
+  }
+}
+
+// Process immediately on start
+run();
+
+// Then process every minute
+setInterval(run, INTERVAL_MS);
 
 console.log('Reminder processor is running... Press Ctrl+C to stop.');
