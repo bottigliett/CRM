@@ -464,6 +464,11 @@ export default function FormBuilderPage() {
                   <SelectContent>{FIELD_TYPES.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
+              {editField.type === 'spacer' && (
+                <div className="space-y-1"><Label>Altezza (px)</Label>
+                  <Input type="number" value={editField.spacerHeight || 24} onChange={e => setEditField({ ...editField, spacerHeight: parseInt(e.target.value) || 24 })} />
+                </div>
+              )}
               <div className="space-y-1"><Label>Testo campo</Label>
                 <Input value={editField.label} onChange={e => setEditField({ ...editField, label: e.target.value })} />
               </div>
@@ -576,6 +581,27 @@ export default function FormBuilderPage() {
                 )
               })}
               <p className="text-xs text-muted-foreground">Questi ruoli riceveranno email e notifica per ogni nuovo invio.</p>
+            </div>
+            <div className="pt-2 border-t space-y-2">
+              <Label>Stile del form</Label>
+              <div className="flex items-center justify-between">
+                <span className="text-sm">Colore principale (pulsanti)</span>
+                <div className="flex items-center gap-2">
+                  <input type="color" value={schema.settings.style?.primaryColor || '#000000'}
+                    onChange={e => updateSchema({ settings: { ...schema.settings, style: { ...schema.settings.style, primaryColor: e.target.value } } })}
+                    className="w-8 h-8 rounded border cursor-pointer" />
+                  <span className="text-xs font-mono">{schema.settings.style?.primaryColor || '#000000'}</span>
+                </div>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm">Sfondo</span>
+                <div className="flex items-center gap-2">
+                  <input type="color" value={schema.settings.style?.backgroundColor || '#ffffff'}
+                    onChange={e => updateSchema({ settings: { ...schema.settings, style: { ...schema.settings.style, backgroundColor: e.target.value } } })}
+                    className="w-8 h-8 rounded border cursor-pointer" />
+                  <span className="text-xs font-mono">{schema.settings.style?.backgroundColor || '#ffffff'}</span>
+                </div>
+              </div>
             </div>
           </div>
           <DialogFooter><Button onClick={() => { setShowSettings(false); save() }} disabled={saving}>Salva</Button></DialogFooter>

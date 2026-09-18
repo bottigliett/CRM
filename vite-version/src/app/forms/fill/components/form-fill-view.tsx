@@ -126,8 +126,11 @@ export function FormFillView({
     }
   }
 
+  const primaryColor = schema.settings.style?.primaryColor
+  const backgroundColor = schema.settings.style?.backgroundColor
+
   return (
-    <div className="min-h-dvh bg-background">
+    <div className="min-h-dvh" style={{ backgroundColor: backgroundColor || undefined }}>
       {preview && (
         <div className="border-b bg-muted/50">
           <div className="max-w-xl mx-auto px-4 py-2 flex items-center justify-between text-sm">
@@ -153,7 +156,7 @@ export function FormFillView({
             ))}
             <div className="flex gap-3 pt-4">
               <Button variant="outline" onClick={() => setReview(false)}><ChevronLeft className="h-4 w-4 mr-1" /> Indietro</Button>
-              <Button onClick={submit} className="flex-1">{preview ? 'Concludi anteprima' : 'Invia'}</Button>
+              <Button onClick={submit} className="flex-1" style={primaryColor ? { backgroundColor: primaryColor, borderColor: primaryColor } : undefined}>{preview ? 'Concludi anteprima' : 'Invia'}</Button>
             </div>
           </div>
         ) : (
@@ -167,6 +170,13 @@ export function FormFillView({
 
             {fields.map(f => {
               if (!isFieldVisible(f)) return null
+              if (f.type === 'spacer') {
+                return <div key={f.id} style={{ height: f.spacerHeight || 24 }} className="group/fill relative">
+                  {onEditField && (
+                    <button onClick={() => onEditField(f.id)} className="absolute -top-1 right-0 opacity-0 group-hover/fill:opacity-100 text-muted-foreground hover:text-foreground cursor-pointer" title="Modifica spazio"><Pencil className="h-3.5 w-3.5" /></button>
+                  )}
+                </div>
+              }
               const req = isFieldRequired(f)
               return (
                 <div key={f.id} className="space-y-2 group/fill" title={f.hover || undefined}>
@@ -202,7 +212,7 @@ export function FormFillView({
 
             <div className="flex gap-3 pt-4">
               {page > 0 && <Button variant="outline" onClick={() => setPage(page - 1)}><ChevronLeft className="h-4 w-4 mr-1" /> Indietro</Button>}
-              <Button onClick={next} className="flex-1">
+              <Button onClick={next} className="flex-1" style={primaryColor ? { backgroundColor: primaryColor, borderColor: primaryColor } : undefined}>
                 {page < pages.length - 1 ? 'Avanti' : (useReview ? 'Riepilogo' : (preview ? 'Concludi anteprima' : 'Invia'))}
                 <ChevronRight className="h-4 w-4 ml-1" />
               </Button>

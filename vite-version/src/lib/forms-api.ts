@@ -1,6 +1,6 @@
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api'
 
-export type FieldType = 'text' | 'email' | 'number' | 'textarea' | 'select' | 'radio' | 'checkbox' | 'date' | 'url' | 'tel'
+export type FieldType = 'text' | 'email' | 'number' | 'textarea' | 'select' | 'radio' | 'checkbox' | 'date' | 'url' | 'tel' | 'spacer'
 
 export interface FormField {
   id: string
@@ -16,12 +16,13 @@ export interface FormField {
   requiredIf?: { fieldId: string; operator: 'filled' | 'empty' }
   x?: number
   y?: number
+  spacerHeight?: number
 }
 
 export interface FormSchema {
   fields: FormField[]
   pages: { title: string }[]
-  settings: { reviewBeforeSubmit: boolean; notifyRoles: string[] }
+  settings: { reviewBeforeSubmit: boolean; notifyRoles: string[]; style?: { primaryColor?: string; backgroundColor?: string } }
 }
 
 export interface Form {
@@ -102,4 +103,5 @@ export const FIELD_TYPES: { value: FieldType; label: string }[] = [
   { value: 'select', label: 'Menu a tendina' },
   { value: 'radio', label: 'Scelta singola' },
   { value: 'checkbox', label: 'Checkbox' },
+  { value: 'spacer', label: 'Spazio' },
 ]
