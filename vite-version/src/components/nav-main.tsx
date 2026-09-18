@@ -96,7 +96,12 @@ export function NavMain({
               ) : (
                 <SidebarMenuButton asChild tooltip={item.title} className="cursor-pointer" isActive={isPathActive(item.url)}>
                   {isExternal(item.url) ? (
-                    <a href={item.url} target="_blank" rel="noopener noreferrer">
+                    <a
+                      href={item.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => { e.preventDefault(); window.open(item.url, '_blank', 'noopener,noreferrer') }}
+                    >
                       {item.icon && <item.icon />}
                       <span>{item.title}</span>
                     </a>

@@ -35,9 +35,9 @@ const ProjectDetail = lazy(() => import('@/app/projects/[id]/page'))
 const OnDuty = lazy(() => import('@/app/on-duty/page'))
 const Monitoring = lazy(() => import('@/app/monitoring/page'))
 const FormsPage = lazy(() => import('@/app/forms/page'))
+const FormDetailPage = lazy(() => import('@/app/forms/[id]/page'))
 const FormBuilderPage = lazy(() => import('@/app/forms/builder/[id]/page'))
 const FormFillPage = lazy(() => import('@/app/forms/fill/[slug]/page'))
-const FormSubmissionsPage = lazy(() => import('@/app/forms/submissions/page'))
 
 // Social Media pages
 const SocialDashboard = lazy(() => import('@/app/social/page'))
@@ -217,12 +217,8 @@ export const routes: RouteConfig[] = [
     element: <FormFillPage />
   },
   {
-    path: "/forms/submissions",
-    element: <ProtectedRoute><ModuleProtectedRoute moduleName="forms"><FormSubmissionsPage /></ModuleProtectedRoute></ProtectedRoute>
-  },
-  {
-    path: "/forms/:id/submissions",
-    element: <ProtectedRoute><ModuleProtectedRoute moduleName="forms"><FormSubmissionsPage /></ModuleProtectedRoute></ProtectedRoute>
+    path: "/forms/:id",
+    element: <ProtectedRoute><ModuleProtectedRoute moduleName="forms"><FormDetailPage /></ModuleProtectedRoute></ProtectedRoute>
   },
 
   // Social Media Routes

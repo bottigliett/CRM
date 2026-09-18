@@ -7,6 +7,7 @@ export interface FormField {
   type: FieldType
   label: string
   placeholder?: string
+  helpText?: string
   required: boolean
   options?: string[]
   page: number

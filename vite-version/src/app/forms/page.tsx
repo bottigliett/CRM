@@ -87,18 +87,18 @@ export default function FormsPage() {
               <Card key={f.id}>
                 <CardHeader className="pb-2">
                   <div className="flex items-start justify-between">
-                    <div>
-                      <CardTitle className="text-base">{f.name}</CardTitle>
+                    <button onClick={() => navigate(`/forms/${f.id}`)} className="text-left cursor-pointer">
+                      <CardTitle className="text-base hover:underline">{f.name}</CardTitle>
                       <CardDescription className="line-clamp-2">{f.description || f.slug}</CardDescription>
-                    </div>
+                    </button>
                     <Badge variant={f.status === 'PUBLISHED' ? 'default' : 'secondary'}>{f.status === 'PUBLISHED' ? 'Pubblicato' : 'Bozza'}</Badge>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <p className="text-sm text-muted-foreground">{f._count?.submissions ?? 0} invii</p>
                   <div className="flex gap-2">
-                    <Button size="sm" onClick={() => navigate(`/forms/builder/${f.id}`)} className="cursor-pointer">
-                      <Pencil className="h-3.5 w-3.5 mr-1" /> Modifica
+                    <Button size="sm" onClick={() => navigate(`/forms/${f.id}`)} className="cursor-pointer">
+                      <Inbox className="h-3.5 w-3.5 mr-1" /> Gestisci
                     </Button>
                     {f.status === 'PUBLISHED' && (
                       <Button size="sm" variant="outline" onClick={() => navigate(`/forms/fill/${f.slug}`)} className="cursor-pointer">
@@ -110,8 +110,9 @@ export default function FormsPage() {
                         <Button size="sm" variant="ghost" className="cursor-pointer"><MoreHorizontal className="h-4 w-4" /></Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => navigate(`/forms/builder/${f.id}`)}><Pencil className="mr-2 h-4 w-4" /> Costruzione</DropdownMenuItem>
                         <DropdownMenuItem onClick={() => copyUrl(f.slug)}><Copy className="mr-2 h-4 w-4" /> Copia link</DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => navigate(`/forms/${f.id}/submissions`)}><Inbox className="mr-2 h-4 w-4" /> Vedi invii</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => navigate(`/forms/${f.id}`)}><Inbox className="mr-2 h-4 w-4" /> Risposte e gestione</DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handlePublish(f)}><Send className="mr-2 h-4 w-4" /> {f.status === 'PUBLISHED' ? 'Metti in bozza' : 'Pubblica'}</DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleDelete(f)} className="text-destructive"><Trash2 className="mr-2 h-4 w-4" /> Elimina</DropdownMenuItem>
                       </DropdownMenuContent>

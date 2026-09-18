@@ -229,7 +229,7 @@ export default function FormBuilderPage() {
 
       {/* Edit field dialog */}
       <Dialog open={!!editField} onOpenChange={o => !o && setEditField(null)}>
-        <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Configura campo</DialogTitle></DialogHeader>
           {editField && (
             <div className="space-y-3 py-2">
@@ -244,6 +244,9 @@ export default function FormBuilderPage() {
               </div>
               <div className="space-y-1"><Label>Testo dentro input (placeholder)</Label>
                 <Input value={editField.placeholder || ''} onChange={e => setEditField({ ...editField, placeholder: e.target.value })} />
+              </div>
+              <div className="space-y-1"><Label>Testo di aiuto (sotto il campo)</Label>
+                <Input value={editField.helpText || ''} onChange={e => setEditField({ ...editField, helpText: e.target.value })} placeholder="Es. Inserisci il link completo dell'annuncio" />
               </div>
               {(editField.type === 'select' || editField.type === 'radio') && (
                 <div className="space-y-1"><Label>Opzioni (una per riga)</Label>

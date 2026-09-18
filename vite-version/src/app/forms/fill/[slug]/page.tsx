@@ -167,6 +167,7 @@ export default function FormFillPage() {
                 <div key={f.id} className="space-y-2">
                   <Label>{f.label}{req && <span className="text-destructive"> *</span>}</Label>
                   {renderField(f)}
+                  {f.helpText && <p className="text-xs text-muted-foreground">{f.helpText}</p>}
                 </div>
               )
             })}
