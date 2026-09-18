@@ -10,7 +10,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { ArrowLeft, Eye, UserPlus, Trash2, Pencil, Send, Copy, GitBranch, Download, Inbox, RotateCcw, Ban, CheckCircle2 } from "lucide-react"
+import { ArrowLeft, Eye, UserPlus, Trash2, Pencil, Send, Copy, GitBranch, Download, Inbox, RotateCcw, Ban, CheckCircle2, Plus } from "lucide-react"
 import { formsAPI, FIELD_TYPES, type Form, type Submission } from "@/lib/forms-api"
 import { contactsAPI, type Contact } from "@/lib/contacts-api"
 import { format } from "date-fns"
@@ -121,6 +121,34 @@ export default function FormDetailPage() {
     try { await formsAPI.remove(form.id); toast.success('Form eliminato'); navigate('/forms') } catch (e: any) { toast.error(e.message) }
   }
 
+  const [connectingFromId, setConnectingFromId] = useState<string | null>(null)
+
+  const setConnection = async (sourceId: string, targetId: string) => {
+    if (!form || sourceId === targetId) return
+    const nextFields = (form.schema as any).fields.map((f: any) =>
+      f.id === targetId ? { ...f, requiredIf: { fieldId: sourceId, operator: 'filled' } } : f
+    )
+    const nextSchema = { ...(form.schema as any), fields: nextFields }
+    try {
+      await formsAPI.update(form.id, { schema: nextSchema })
+      setForm({ ...form, schema: nextSchema })
+      toast.success('Collegamento creato')
+    } catch (e: any) { toast.error(e.message) }
+  }
+
+  const removeConnection = async (targetId: string) => {
+    if (!form) return
+    const nextFields = (form.schema as any).fields.map((f: any) =>
+      f.id === targetId ? { ...f, requiredIf: undefined } : f
+    )
+    const nextSchema = { ...(form.schema as any), fields: nextFields }
+    try {
+      await formsAPI.update(form.id, { schema: nextSchema })
+      setForm({ ...form, schema: nextSchema })
+      toast.success('Collegamento rimosso')
+    } catch (e: any) { toast.error(e.message) }
+  }
+
   return (
     <BaseLayout title={form.name} description="Gestione form: risposte, collegamenti e pubblicazione">
       <div className="px-4 lg:px-6 space-y-4">
@@ -219,51 +247,50 @@ export default function FormDetailPage() {
           <TabsContent value="collegamenti">
             <Card>
               <CardContent className="pt-6">
-                {connections.length === 0 ? (
-                  <p className="text-sm text-muted-foreground py-6 text-center">
-                    Nessun collegamento. Vai in "Costruzione" e imposta la logica condizionale su un campo.
-                  </p>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Trascina il <strong>pallino ⊕</strong> di un campo su un altro campo per renderlo obbligatorio quando il primo è compilato.
+                </p>
+                {fields.length === 0 ? (
+                  <p className="text-sm text-muted-foreground py-6 text-center">Nessun campo nel form.</p>
                 ) : (
-                  <div className="relative">
-                    {fields.length > 0 && (
-                      <svg className="absolute left-0 top-0 z-0" width="130" height={fields.length * 76} style={{ pointerEvents: 'none' }}>
-                        <defs>
-                          <marker id="arrowhead" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
-                            <path d="M0,0 L8,4 L0,8 Z" fill="#94a3b8" />
-                          </marker>
-                        </defs>
-                        {connections.map((c: any, i) => {
-                          const si = fields.findIndex(x => x.id === c.requiredIf.fieldId)
-                          const ti = fields.findIndex(x => x.id === c.id)
-                          if (si < 0 || ti < 0) return null
-                          const y1 = si * 76 + 38
-                          const y2 = ti * 76 + 38
-                          const path = `M 36 ${y1} C 14 ${y1}, 14 ${y2}, 36 ${y2}`
-                          return <path key={i} d={path} fill="none" stroke="#94a3b8" strokeWidth="2" markerEnd="url(#arrowhead)" />
-                        })}
-                      </svg>
-                    )}
-                    <div className="space-y-3 relative z-10">
-                      {fields.map((f: any, i) => {
-                        const typeLabel = FIELD_TYPES.find(t => t.value === f.type)?.label || f.type
-                        const isSource = connections.some((c: any) => c.requiredIf?.fieldId === f.id)
-                        const conn = connections.find((c: any) => c.id === f.id)
-                        return (
-                          <div key={f.id} className="flex items-center pl-16" style={{ minHeight: 76 }}>
-                            <div className={`flex-1 rounded-lg border p-3 bg-background ${isSource ? 'border-muted-foreground/40' : ''}`}>
-                              <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <div className="space-y-2">
+                    {fields.map((f: any) => {
+                      const typeLabel = FIELD_TYPES.find(t => t.value === f.type)?.label || f.type
+                      const conn = connections.find((c: any) => c.id === f.id)
+                      const src = conn ? fields.find(x => x.id === conn.requiredIf.fieldId) : null
+                      return (
+                        <div
+                          key={f.id}
+                          onDragOver={e => e.preventDefault()}
+                          onDrop={e => { e.preventDefault(); const sid = e.dataTransfer.getData('text/plain') || connectingFromId; if (sid) setConnection(sid, f.id) }}
+                          className={`flex items-center gap-2 rounded-lg border p-3 bg-background transition-colors ${connectingFromId ? 'border-dashed border-muted-foreground/40' : ''}`}
+                        >
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-2 flex-wrap">
+                              <div>
                                 <div className="font-medium text-sm">{f.label || '(senza titolo)'}</div>
-                                <div className="flex items-center gap-1.5">
-                                  {isSource && <span className="text-xs rounded bg-muted px-1.5 py-0.5 text-muted-foreground">sorgente</span>}
-                                  {conn && <span className="text-xs rounded bg-amber-100 dark:bg-amber-950/40 px-1.5 py-0.5 text-amber-700 dark:text-amber-400">obbligatorio se {conn.requiredIf.operator === 'filled' ? 'compilato' : 'vuoto'}</span>}
-                                </div>
+                                <div className="text-xs text-muted-foreground">{typeLabel}</div>
                               </div>
-                              <div className="text-xs text-muted-foreground mt-0.5">{typeLabel}</div>
+                              {conn && src && (
+                                <span className="text-xs rounded bg-amber-100 dark:bg-amber-950/40 px-2 py-0.5 text-amber-700 dark:text-amber-400 flex items-center gap-1">
+                                  ← da "{src.label || '(campo)'}"
+                                  <button onClick={() => removeConnection(f.id)} className="ml-1 text-amber-700 dark:text-amber-400 hover:text-red-600 cursor-pointer" title="Rimuovi collegamento">✕</button>
+                                </span>
+                              )}
                             </div>
                           </div>
-                        )
-                      })}
-                    </div>
+                          <div
+                            draggable
+                            onDragStart={e => { e.dataTransfer.setData('text/plain', f.id); setConnectingFromId(f.id) }}
+                            onDragEnd={() => setConnectingFromId(null)}
+                            className="shrink-0 w-7 h-7 rounded-full border flex items-center justify-center cursor-grab active:cursor-grabbing hover:bg-muted text-muted-foreground hover:text-foreground"
+                            title="Trascina su un altro campo per collegare"
+                          >
+                            <Plus className="h-3.5 w-3.5" />
+                          </div>
+                        </div>
+                      )
+                    })}
                   </div>
                 )}
               </CardContent>

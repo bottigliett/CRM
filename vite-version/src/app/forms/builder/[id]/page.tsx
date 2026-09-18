@@ -240,11 +240,17 @@ export default function FormBuilderPage() {
               <div className="space-y-1"><Label>Testo campo</Label>
                 <Input value={editField.label} onChange={e => setEditField({ ...editField, label: e.target.value })} />
               </div>
+              <div className="space-y-1"><Label>Sottotitolo (sotto il titolo)</Label>
+                <Input value={editField.subtitle || ''} onChange={e => setEditField({ ...editField, subtitle: e.target.value })} placeholder="Es. breve descrizione" />
+              </div>
               <div className="space-y-1"><Label>Testo dentro input (placeholder)</Label>
                 <Input value={editField.placeholder || ''} onChange={e => setEditField({ ...editField, placeholder: e.target.value })} />
               </div>
               <div className="space-y-1"><Label>Testo di aiuto (sotto il campo)</Label>
                 <Input value={editField.helpText || ''} onChange={e => setEditField({ ...editField, helpText: e.target.value })} placeholder="Es. Inserisci il link completo dell'annuncio" />
+              </div>
+              <div className="space-y-1"><Label>Hover (tooltip al passaggio)</Label>
+                <Input value={editField.hover || ''} onChange={e => setEditField({ ...editField, hover: e.target.value })} placeholder="Testo che appare al passaggio del mouse" />
               </div>
               {(editField.type === 'select' || editField.type === 'radio') && (
                 <div className="space-y-1"><Label>Opzioni (una per riga)</Label>

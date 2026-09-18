@@ -165,8 +165,9 @@ export function FormFillView({
               if (!isFieldVisible(f)) return null
               const req = isFieldRequired(f)
               return (
-                <div key={f.id} className="space-y-2">
+                <div key={f.id} className="space-y-2" title={f.hover || undefined}>
                   <Label>{f.label}{req && <span className="text-destructive"> *</span>}</Label>
+                  {f.subtitle && <p className="text-sm text-muted-foreground -mt-1">{f.subtitle}</p>}
                   {renderField(f)}
                   {f.helpText && <p className="text-xs text-muted-foreground">{f.helpText}</p>}
                 </div>

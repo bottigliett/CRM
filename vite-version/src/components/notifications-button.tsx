@@ -144,8 +144,8 @@ export function NotificationsButton() {
           )}
         </Button>
       </SheetTrigger>
-      <SheetContent side="right" className="w-[400px] sm:w-[540px] flex flex-col">
-        <SheetHeader className="border-b pb-4">
+      <SheetContent side="right" className="w-[400px] sm:w-[540px] flex flex-col p-0">
+        <SheetHeader className="border-b px-5 pt-5 pb-4">
           <div className="flex items-center justify-between">
             <SheetTitle className="flex items-center gap-2">
               <Bell className="h-5 w-5" />
@@ -193,7 +193,7 @@ export function NotificationsButton() {
           </div>
         </SheetHeader>
 
-        <ScrollArea className="flex-1 mt-6">
+        <ScrollArea className="flex-1 px-5 py-4">
           {loading ? (
             <div className="flex items-center justify-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-foreground"></div>
