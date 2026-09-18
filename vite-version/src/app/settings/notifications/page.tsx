@@ -297,30 +297,6 @@ export default function NotificationSettings() {
                 </CardContent>
               </Card>
 
-              {/* Centro Notifiche */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Centro Notifiche</CardTitle>
-                  <CardDescription>
-                    Controlla la visibilità del centro notifiche nella sidebar.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Mostra centro notifiche</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Visualizza l'icona del centro notifiche nella sidebar
-                      </p>
-                    </div>
-                    <Switch
-                      checked={preferences.centerEnabled}
-                      onCheckedChange={(checked) => updatePreference('centerEnabled', checked)}
-                    />
-                  </div>
-                </CardContent>
-              </Card>
-
               {/* Default Reminder Settings */}
               <Card>
                 <CardHeader>

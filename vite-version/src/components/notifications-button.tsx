@@ -191,7 +191,7 @@ export function NotificationsButton() {
           </div>
         </SheetHeader>
 
-        <ScrollArea className="flex-1 mt-4">
+        <ScrollArea className="flex-1 mt-6">
           {loading ? (
             <div className="flex items-center justify-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-foreground"></div>

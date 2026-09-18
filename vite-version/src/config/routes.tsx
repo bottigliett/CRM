@@ -88,12 +88,9 @@ const InternalServerError = lazy(() => import('@/app/errors/internal-server-erro
 const UnderMaintenance = lazy(() => import('@/app/errors/under-maintenance/page'))
 
 // Settings pages
-const UserSettings = lazy(() => import('@/app/settings/user/page'))
 const AccountSettings = lazy(() => import('@/app/settings/account/page'))
-const BillingSettings = lazy(() => import('@/app/settings/billing/page'))
 const AppearanceSettings = lazy(() => import('@/app/settings/appearance/page'))
 const NotificationSettings = lazy(() => import('@/app/settings/notifications/page'))
-const ConnectionSettings = lazy(() => import('@/app/settings/connections/page'))
 
 // Developer pages
 const DeveloperAnnouncements = lazy(() => import('@/app/developer/announcements/page'))
@@ -395,16 +392,8 @@ export const routes: RouteConfig[] = [
 
   // Settings Routes
   {
-    path: "/settings/user",
-    element: <ProtectedRoute><UserSettings /></ProtectedRoute>
-  },
-  {
     path: "/settings/account",
     element: <ProtectedRoute><AccountSettings /></ProtectedRoute>
-  },
-  {
-    path: "/settings/billing",
-    element: <ProtectedRoute><BillingSettings /></ProtectedRoute>
   },
   {
     path: "/settings/appearance",
@@ -413,10 +402,6 @@ export const routes: RouteConfig[] = [
   {
     path: "/settings/notifications",
     element: <ProtectedRoute><NotificationSettings /></ProtectedRoute>
-  },
-  {
-    path: "/settings/connections",
-    element: <ProtectedRoute><ConnectionSettings /></ProtectedRoute>
   },
 
   // Catch-all route for 404

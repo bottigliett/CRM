@@ -38,7 +38,7 @@ export function SiteHeader() {
           <div className="flex-1 max-w-sm">
             <SearchTrigger onClick={() => setSearchOpen(true)} />
           </div>
-          <div className="ml-auto flex items-center gap-2">
+          <div className="ml-auto flex items-center gap-3">
             {!isClientArea && (
               <NotificationsButton />
             )}

@@ -9,10 +9,7 @@ import {
   CheckSquare,
   Calendar,
   Settings,
-  CreditCard,
-  User,
   Bell,
-  Link2,
   Palette,
   Target,
   Users,
@@ -148,12 +145,9 @@ export function CommandSearch({ open, onOpenChange }: CommandSearchProps) {
     { title: "Utenti", url: "/users", group: "Amministrazione", icon: Users, requiresSuperAdmin: true },
 
     // Impostazioni
-    { title: "Profilo Utente", url: "/settings/user", group: "Impostazioni", icon: User },
     { title: "Account", url: "/settings/account", group: "Impostazioni", icon: Settings },
-    //{ title: "Piani e Fatturazione", url: "/settings/billing", group: "Impostazioni", icon: CreditCard },
     { title: "Aspetto", url: "/settings/appearance", group: "Impostazioni", icon: Palette },
     { title: "Notifiche", url: "/settings/notifications", group: "Impostazioni", icon: Bell },
-    //{ title: "Connessioni", url: "/settings/connections", group: "Impostazioni", icon: Link2 },
   ]
 
   // Filtra gli items in base ai permessi dell'utente
