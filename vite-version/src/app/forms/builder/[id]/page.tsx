@@ -12,14 +12,98 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Textarea } from "@/components/ui/textarea"
-import { ArrowLeft, Trash2, Plus, Settings, Save, Eye, GripVertical, Sparkles, GitBranch, MoveRight } from "lucide-react"
+import { ArrowLeft, Trash2, Plus, Settings, Save, Eye, GripVertical, Sparkles, GitBranch, Link2 } from "lucide-react"
 import { formsAPI, FIELD_TYPES, type Form, type FormField, type FieldType } from "@/lib/forms-api"
+import { FormFillView } from "@/app/forms/fill/components/form-fill-view"
 import { toast } from "sonner"
 
 const newField = (page: number, type: FieldType = 'text'): FormField => ({
   id: `f${Date.now()}${Math.floor(Math.random() * 1000)}`, type, label: '', placeholder: '', required: false, page,
   ...(type === 'select' || type === 'radio' ? { options: ['Opzione 1', 'Opzione 2'] } : {}),
 })
+
+function LogicMap({
+  fields,
+  connections,
+  onConnect,
+  onRemove,
+  onAddField,
+  onEditField,
+  fieldLabel,
+}: {
+  fields: FormField[]
+  connections: any[]
+  onConnect: (sourceId: string, targetId: string) => void
+  onRemove: (targetId: string) => void
+  onAddField: () => void
+  onEditField: (fieldId: string) => void
+  fieldLabel: (fieldId: string) => string
+}) {
+  const [draggingId, setDraggingId] = useState<string | null>(null)
+  const ROW_H = 76
+
+  return (
+    <Card>
+      <CardContent className="pt-6">
+        <style>{`@keyframes dashmove { to { stroke-dashoffset: -24; } } .logic-cable { stroke-dasharray: 8 6; animation: dashmove 1s linear infinite; }`}</style>
+        <div className="flex items-center justify-between mb-4">
+          <p className="text-sm text-muted-foreground">Trascina l'icona <Link2 className="h-3.5 w-3.5 inline" /> di un blocco su un altro per collegarli.</p>
+          <Button size="sm" variant="outline" onClick={onAddField} className="cursor-pointer"><Plus className="h-4 w-4 mr-1" /> Nuovo campo</Button>
+        </div>
+        <div className="relative">
+          {fields.length > 0 && (
+            <svg className="absolute left-0 top-0 z-0" width="60" height={fields.length * ROW_H} style={{ pointerEvents: 'none' }}>
+              <defs>
+                <marker id="logicarrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+                  <path d="M0,0 L8,4 L0,8 Z" fill="#888" />
+                </marker>
+              </defs>
+              {connections.map((c: any, i: number) => {
+                const si = fields.findIndex(x => x.id === c.requiredIf.fieldId)
+                const ti = fields.findIndex(x => x.id === c.id)
+                if (si < 0 || ti < 0) return null
+                const y1 = si * ROW_H + ROW_H / 2
+                const y2 = ti * ROW_H + ROW_H / 2
+                const path = `M 30 ${y1} C 10 ${y1}, 10 ${y2}, 30 ${y2}`
+                return <path key={i} d={path} className="logic-cable" fill="none" stroke="#888" strokeWidth="2" markerEnd="url(#logicarrow)" />
+              })}
+            </svg>
+          )}
+          <div className="space-y-3 relative z-10">
+            {fields.map((f: any) => {
+              const conn = connections.find((c: any) => c.id === f.id)
+              const src = conn ? fields.find(x => x.id === conn.requiredIf.fieldId) : null
+              return (
+                <div key={f.id} className="flex items-center pl-16" style={{ minHeight: ROW_H }}
+                  onDragOver={e => e.preventDefault()}
+                  onDrop={e => { e.preventDefault(); const sid = e.dataTransfer.getData('text/plain') || draggingId; if (sid) onConnect(sid, f.id) }}
+                >
+                  <div className="flex-1 rounded-lg border p-3 bg-background">
+                    <button onClick={() => onEditField(f.id)} className="text-left cursor-pointer w-full">
+                      <div className="font-medium text-sm">{f.label || '(senza titolo)'}</div>
+                      <div className="text-xs text-muted-foreground">{FIELD_TYPES.find(t => t.value === f.type)?.label || f.type}</div>
+                    </button>
+                    {conn && src && (
+                      <div className="text-xs text-amber-600 mt-1 flex items-center gap-1">
+                        ← "{fieldLabel(conn.requiredIf.fieldId)}"
+                        <button onClick={() => onRemove(f.id)} className="ml-1 hover:text-red-600 cursor-pointer">✕</button>
+                      </div>
+                    )}
+                  </div>
+                  <div draggable onDragStart={e => { e.dataTransfer.setData('text/plain', f.id); setDraggingId(f.id) }} onDragEnd={() => setDraggingId(null)}
+                    className="ml-2 shrink-0 w-7 h-7 rounded-full border flex items-center justify-center cursor-grab active:cursor-grabbing hover:bg-muted"
+                    title="Trascina per collegare">
+                    <Link2 className="h-3.5 w-3.5" />
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
 
 export default function FormBuilderPage() {
   const { id } = useParams()
@@ -33,6 +117,7 @@ export default function FormBuilderPage() {
   const [aiLoading, setAiLoading] = useState(false)
   const [showMap, setShowMap] = useState(false)
   const [draggedId, setDraggedId] = useState<string | null>(null)
+  const [mode, setMode] = useState<'edit' | 'preview' | 'map'>('edit')
   const loadedRef = useRef(false)
   const dirtyRef = useRef(false)
   const saveTimer = useRef<any>(null)
@@ -88,7 +173,7 @@ export default function FormBuilderPage() {
   const update = (patch: Partial<Form>) => setForm({ ...form, ...patch })
   const updateSchema = (patch: Partial<typeof schema>) => setForm({ ...form, schema: { ...schema, ...patch } })
 
-  const addField = (type: FieldType) => updateSchema({ fields: [...schema.fields, newField(0, type)] })
+  const addField = (type: FieldType, page: number = 0) => updateSchema({ fields: [...schema.fields, newField(page, type)] })
 
   const removeField = (id: string) => {
     // also clear requiredIf pointing to removed field
@@ -136,6 +221,15 @@ export default function FormBuilderPage() {
     } catch (e: any) { toast.error(e.message) } finally { setAiLoading(false) }
   }
 
+  const setConnectionLocal = (sourceId: string, targetId: string) => {
+    if (sourceId === targetId) return
+    updateSchema({ fields: schema.fields.map((f: any) => f.id === targetId ? { ...f, requiredIf: { fieldId: sourceId, operator: 'filled' } } : f) })
+  }
+
+  const removeConnectionLocal = (targetId: string) => {
+    updateSchema({ fields: schema.fields.map((f: any) => f.id === targetId ? { ...f, requiredIf: undefined } : f) })
+  }
+
   const fieldLabel = (fid: string) => schema.fields.find(f => f.id === fid)?.label || '(campo)'
 
   return (
@@ -146,14 +240,24 @@ export default function FormBuilderPage() {
             <ArrowLeft className="h-4 w-4 mr-1" /> Form
           </Button>
           <div className="flex-1" />
+          {/* Mode switch */}
+          <div className="flex gap-1 bg-muted rounded-lg p-0.5">
+            {([
+              { key: 'edit', label: 'Modifica', Icon: Pencil },
+              { key: 'preview', label: 'Anteprima', Icon: Eye },
+              { key: 'map', label: 'Mappa', Icon: GitBranch },
+            ] as const).map(m => (
+              <button
+                key={m.key}
+                onClick={() => setMode(m.key)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-colors cursor-pointer ${mode === m.key ? 'bg-background shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+              >
+                <m.Icon className="h-3.5 w-3.5" /> {m.label}
+              </button>
+            ))}
+          </div>
           <Button variant="outline" size="sm" onClick={() => setShowAi(true)} className="cursor-pointer">
-            <Sparkles className="h-4 w-4 mr-1" /> Genera con AI
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => setShowMap(!showMap)} className="cursor-pointer">
-            <GitBranch className="h-4 w-4 mr-1" /> Mappa logica
-          </Button>
-          <Button variant="outline" size="sm" onClick={goPreview} className="cursor-pointer">
-            <Eye className="h-4 w-4 mr-1" /> Anteprima
+            <Sparkles className="h-4 w-4 mr-1" /> AI
           </Button>
           <Button variant="outline" size="sm" onClick={() => setShowSettings(true)} className="cursor-pointer">
             <Settings className="h-4 w-4 mr-1" /> Impostazioni
@@ -163,39 +267,16 @@ export default function FormBuilderPage() {
           </Button>
         </div>
 
-        {/* Logic map */}
-        {showMap && (
-          <Card>
-            <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><GitBranch className="h-4 w-4" /> Mappa dei collegamenti</CardTitle></CardHeader>
-            <CardContent>
-              {schema.fields.filter(f => f.requiredIf).length === 0 ? (
-                <p className="text-sm text-muted-foreground py-3 text-center">Nessun collegamento. Imposta una "logica condizionale" su un campo per vederlo qui.</p>
-              ) : (
-                <div className="flex flex-wrap gap-2 items-center">
-                  {schema.fields.filter(f => f.requiredIf).map(f => (
-                    <div key={f.id} className="flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm">
-                      <span className="font-medium">{fieldLabel(f.requiredIf!.fieldId)}</span>
-                      <MoveRight className="h-4 w-4 text-muted-foreground" />
-                      <span className="font-medium">{f.label}</span>
-                      <span className="text-xs text-muted-foreground ml-1">
-                        ({f.requiredIf!.operator === 'filled' ? 'se compilato' : 'se vuoto'})
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
-
+        {mode === 'edit' && (
         <div className="grid gap-4 lg:grid-cols-[220px_1fr]">
           {/* Palette */}
           <div className="space-y-2">
             <div className="text-sm font-medium">Aggiungi campo</div>
             <div className="grid grid-cols-2 lg:grid-cols-1 gap-1">
               {FIELD_TYPES.map(ft => (
-                <button key={ft.value} onClick={() => addField(ft.value)}
-                  className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm hover:bg-muted transition-colors text-left cursor-pointer">
+                <button key={ft.value} onClick={() => addField(ft.value)} draggable
+                  onDragStart={e => e.dataTransfer.setData('application/x-field-type', ft.value)}
+                  className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm hover:bg-muted transition-colors text-left cursor-grab active:cursor-grabbing">
                   <Plus className="h-3.5 w-3.5 text-muted-foreground" /> {ft.label}
                 </button>
               ))}
@@ -220,7 +301,9 @@ export default function FormBuilderPage() {
                       <span className="text-xs text-muted-foreground">{fields.length} campi</span>
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-2">
+                  <CardContent className="space-y-2"
+                    onDragOver={e => e.preventDefault()}
+                    onDrop={e => { e.preventDefault(); const t = e.dataTransfer.getData('application/x-field-type') as FieldType; if (t) addField(t, pi) }}>
                     {fields.length === 0 && <p className="text-sm text-muted-foreground py-4 text-center">Trascina qui i campi dalla palette.</p>}
                     {fields.map(f => {
                       const typeLabel = FIELD_TYPES.find(t => t.value === f.type)?.label || f.type
@@ -258,6 +341,29 @@ export default function FormBuilderPage() {
             })}
           </div>
         </div>
+        )}
+
+        {mode === 'preview' && (
+          <FormFillView
+            name={form.name}
+            description={form.description || ""}
+            schema={schema}
+            preview
+            onEditField={(fid) => { const f = schema.fields.find(x => x.id === fid); if (f) setEditField(f) }}
+          />
+        )}
+
+        {mode === 'map' && (
+          <LogicMap
+            fields={schema.fields}
+            connections={schema.fields.filter((f: any) => f.requiredIf)}
+            onConnect={(sourceId, targetId) => { setConnectionLocal(sourceId, targetId) }}
+            onRemove={(targetId) => { removeConnectionLocal(targetId) }}
+            onAddField={() => addField('text')}
+            onEditField={(fid) => { const f = schema.fields.find(x => x.id === fid); if (f) setEditField(f) }}
+            fieldLabel={(fid) => schema.fields.find(f => f.id === fid)?.label || '(campo)'}
+          />
+        )}
       </div>
 
       {/* Edit field dialog */}

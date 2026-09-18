@@ -8,7 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import { ChevronLeft, ChevronRight, CheckCircle2, ArrowLeft, Eye } from "lucide-react"
+import { ChevronLeft, ChevronRight, CheckCircle2, ArrowLeft, Eye, Pencil } from "lucide-react"
 import type { FormSchema, FormField } from "@/lib/forms-api"
 
 export function FormFillView({
@@ -18,6 +18,7 @@ export function FormFillView({
   preview = false,
   onBack,
   onSubmitted,
+  onEditField,
 }: {
   name: string
   description: string
@@ -25,6 +26,7 @@ export function FormFillView({
   preview?: boolean
   onBack?: () => void
   onSubmitted?: (answers: Record<string, any>) => Promise<void>
+  onEditField?: (fieldId: string) => void
 }) {
   const [answers, setAnswers] = useState<Record<string, any>>({})
   const [page, setPage] = useState(0)
@@ -165,8 +167,19 @@ export function FormFillView({
               if (!isFieldVisible(f)) return null
               const req = isFieldRequired(f)
               return (
-                <div key={f.id} className="space-y-2" title={f.hover || undefined}>
-                  <Label>{f.label}{req && <span className="text-destructive"> *</span>}</Label>
+                <div key={f.id} className="space-y-2 group/fill" title={f.hover || undefined}>
+                  <div className="flex items-center gap-2">
+                    <Label>{f.label}{req && <span className="text-destructive"> *</span>}</Label>
+                    {onEditField && (
+                      <button
+                        onClick={() => onEditField(f.id)}
+                        className="opacity-0 group-hover/fill:opacity-100 transition-opacity text-muted-foreground hover:text-foreground cursor-pointer"
+                        title="Modifica campo"
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                  </div>
                   {f.subtitle && <p className="text-sm text-muted-foreground -mt-1">{f.subtitle}</p>}
                   {renderField(f)}
                   {f.helpText && <p className="text-xs text-muted-foreground">{f.helpText}</p>}
