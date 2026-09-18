@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from "react"
 import { useNavigate } from "react-router-dom"
 import { BaseLayout } from "@/components/layouts/base-layout"
-import { Card, CardContent } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { ColumnToggle, type ColumnDef as ToggleColumnDef } from "@/components/ui/column-toggle"
 import { ClipboardList, Plus, MoreHorizontal, Trash2, Pencil, Send, Eye, Copy, RotateCcw, Ban, CheckCircle2 } from "lucide-react"
 import { formsAPI, type Form } from "@/lib/forms-api"
 import { format } from "date-fns"
@@ -28,6 +29,64 @@ export default function FormsPage() {
   const [name, setName] = useState("")
   const [slug, setSlug] = useState("")
   const [description, setDescription] = useState("")
+
+  const DEFAULT_COLUMNS: ToggleColumnDef[] = [
+    { id: 'id', label: 'ID' },
+    { id: 'name', label: 'Nome' },
+    { id: 'slug', label: 'URL' },
+    { id: 'submissions', label: 'Invii' },
+    { id: 'updatedAt', label: 'Aggiornato' },
+    { id: 'status', label: 'Stato' },
+  ]
+
+  const [columns, setColumns] = useState<ToggleColumnDef[]>(() => {
+    try {
+      const saved = localStorage.getItem('form_col_order')
+      if (saved) {
+        const order: string[] = JSON.parse(saved)
+        return [
+          ...order.map(id => DEFAULT_COLUMNS.find(c => c.id === id)).filter(Boolean) as ToggleColumnDef[],
+          ...DEFAULT_COLUMNS.filter(c => !order.includes(c.id)),
+        ]
+      }
+    } catch {}
+    return DEFAULT_COLUMNS
+  })
+
+  const [visibleColumnsMap, setVisibleColumnsMap] = useState<Record<string, boolean>>(() => {
+    try {
+      const saved = localStorage.getItem('form_col_vis')
+      if (saved) {
+        const defaultVis = Object.fromEntries(DEFAULT_COLUMNS.map(c => [c.id, true]))
+        return { ...defaultVis, ...JSON.parse(saved) }
+      }
+    } catch {}
+    return Object.fromEntries(DEFAULT_COLUMNS.map(c => [c.id, true]))
+  })
+
+  const persistColumnPrefs = (cols: ToggleColumnDef[], vis: Record<string, boolean>) => {
+    localStorage.setItem('form_col_order', JSON.stringify(cols.map(c => c.id)))
+    localStorage.setItem('form_col_vis', JSON.stringify(vis))
+  }
+
+  const toggleColumn = (columnId: string) => {
+    setVisibleColumnsMap(prev => {
+      const next = { ...prev, [columnId]: !prev[columnId] }
+      persistColumnPrefs(columns, next)
+      return next
+    })
+  }
+
+  const handleReorder = (newOrder: string[]) => {
+    const reordered = [
+      ...newOrder.map(id => columns.find(c => c.id === id)).filter(Boolean) as ToggleColumnDef[],
+      ...columns.filter(c => !newOrder.includes(c.id)),
+    ]
+    setColumns(reordered)
+    persistColumnPrefs(reordered, visibleColumnsMap)
+  }
+
+  const visibleCols = columns.filter(c => visibleColumnsMap[c.id] !== false)
 
   const load = async () => {
     try { setLoading(true); const res = await formsAPI.list(); setForms(res.data) } catch (e: any) { toast.error(e.message) } finally { setLoading(false) }
@@ -66,98 +125,145 @@ export default function FormsPage() {
   }
 
   const statusBadge = (s: string) => {
-    if (s === 'PUBLISHED') return <Badge>Pubblicato</Badge>
-    if (s === 'DISABLED') return <Badge variant="outline" className="text-amber-600 border-amber-300">Disabilitato</Badge>
+    if (s === 'PUBLISHED') return <Badge className="bg-green-600">Pubblicato</Badge>
+    if (s === 'DISABLED') return <Badge variant="destructive">Disabilitato</Badge>
     if (s === 'ARCHIVED') return <Badge variant="secondary">Archiviato</Badge>
     return <Badge variant="secondary">Bozza</Badge>
+  }
+
+  const colStyles: Record<string, string> = {
+    id: 'w-[60px]',
+    name: 'min-w-[200px]',
+    slug: 'min-w-[160px]',
+    submissions: 'w-[80px] text-right',
+    updatedAt: 'w-[120px]',
+    status: 'w-[110px]',
+  }
+
+  const renderCell = (col: ToggleColumnDef, f: Form) => {
+    switch (col.id) {
+      case 'id':
+        return <span className="font-mono text-xs font-medium">#{f.id}</span>
+      case 'name':
+        return <span className="font-medium text-sm">{f.name}</span>
+      case 'slug':
+        return <span className="font-mono text-xs text-muted-foreground">/form/{f.slug}</span>
+      case 'submissions':
+        return <span className="tabular-nums">{f._count?.submissions ?? 0}</span>
+      case 'updatedAt':
+        return <span className="text-xs whitespace-nowrap text-muted-foreground">{format(new Date(f.updatedAt), 'dd/MM/yy', { locale: it })}</span>
+      case 'status':
+        return statusBadge(f.status)
+      default:
+        return '—'
+    }
   }
 
   return (
     <BaseLayout title="Form" description="Crea e gestisci i form personalizzati">
       <div className="px-4 lg:px-6 space-y-4">
-        <div className="flex items-center gap-2">
-          <Button onClick={() => setCreateOpen(true)} className="cursor-pointer"><Plus className="h-4 w-4 mr-2" /> Nuovo Form</Button>
-        </div>
-
-        {loading ? (
-          <p className="text-muted-foreground py-12 text-center">Caricamento…</p>
-        ) : filtered.length === 0 ? (
-          <div className="py-16 text-center text-muted-foreground">
-            <ClipboardList className="h-12 w-12 mx-auto mb-3" />
-            <p>Nessun form trovato.</p>
-          </div>
-        ) : (
-          <Card>
-            <CardContent className="p-0 overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Nome</TableHead>
-                    <TableHead>URL pubblico</TableHead>
-                    <TableHead>Stato</TableHead>
-                    <TableHead className="text-right">Invii</TableHead>
-                    <TableHead>Aggiornato</TableHead>
-                    <TableHead className="text-right">Azioni</TableHead>
-                  </TableRow>
-                  <TableRow>
-                    <TableHead className="p-1">
-                      <Input className="h-8 text-xs" placeholder="Nome…" value={nameSearch} onChange={e => setNameSearch(e.target.value)} />
-                    </TableHead>
-                    <TableHead className="p-1">
-                      <Input className="h-8 text-xs" placeholder="URL…" value={slugSearch} onChange={e => setSlugSearch(e.target.value)} />
-                    </TableHead>
-                    <TableHead className="p-1">
-                      <Select value={statusFilter} onValueChange={setStatusFilter}>
-                        <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Stato" /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">Tutti</SelectItem>
-                          <SelectItem value="PUBLISHED">Pubblicati</SelectItem>
-                          <SelectItem value="DISABLED">Disabilitati</SelectItem>
-                          <SelectItem value="DRAFT">Bozze</SelectItem>
-                          <SelectItem value="ARCHIVED">Archiviati</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </TableHead>
-                    <TableHead className="p-1"></TableHead>
-                    <TableHead className="p-1"></TableHead>
-                    <TableHead className="p-1 text-right">
-                      {(nameSearch || slugSearch || statusFilter !== 'all') && (
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setNameSearch(''); setSlugSearch(''); setStatusFilter('all') }} title="Reset filtri">
-                          <RotateCcw className="h-3.5 w-3.5" />
-                        </Button>
-                      )}
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filtered.map(f => (
-                    <TableRow key={f.id} className="cursor-pointer" onClick={() => navigate(`/forms/${f.id}`)}>
-                      <TableCell className="font-medium">{f.name}</TableCell>
-                      <TableCell className="text-muted-foreground font-mono text-xs">/form/{f.slug}</TableCell>
-                      <TableCell>{statusBadge(f.status)}</TableCell>
-                      <TableCell className="text-right">{f._count?.submissions ?? 0}</TableCell>
-                      <TableCell className="whitespace-nowrap text-muted-foreground">{format(new Date(f.updatedAt), "dd MMM yyyy", { locale: it })}</TableCell>
-                      <TableCell className="text-right whitespace-nowrap" onClick={e => e.stopPropagation()}>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild><Button size="sm" variant="ghost" className="cursor-pointer"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => navigate(`/forms/${f.id}`)}><Eye className="mr-2 h-4 w-4" /> Gestisci</DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => navigate(`/forms/builder/${f.id}`)}><Pencil className="mr-2 h-4 w-4" /> Costruzione</DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => copyUrl(f.slug)}><Copy className="mr-2 h-4 w-4" /> Copia link</DropdownMenuItem>
-                            {f.status === 'DRAFT' && <DropdownMenuItem onClick={() => setStatus(f, 'PUBLISHED')}><Send className="mr-2 h-4 w-4" /> Pubblica</DropdownMenuItem>}
-                            {f.status === 'PUBLISHED' && <DropdownMenuItem onClick={() => setStatus(f, 'DISABLED')}><Ban className="mr-2 h-4 w-4" /> Disabilita</DropdownMenuItem>}
-                            {f.status === 'DISABLED' && <DropdownMenuItem onClick={() => setStatus(f, 'PUBLISHED')}><CheckCircle2 className="mr-2 h-4 w-4" /> Riabilita</DropdownMenuItem>}
-                            <DropdownMenuItem onClick={() => handleDelete(f)} className="text-destructive"><Trash2 className="mr-2 h-4 w-4" /> Elimina</DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Elenco Form</CardTitle>
+                <CardDescription>Gestisci e monitora i tuoi form</CardDescription>
+              </div>
+              <div className="flex items-center gap-2">
+                <ColumnToggle columns={columns} visibleColumns={visibleColumnsMap} onToggle={toggleColumn} onReorder={handleReorder} />
+                <Button onClick={() => setCreateOpen(true)} className="cursor-pointer"><Plus className="h-4 w-4 mr-2" /> Nuovo Form</Button>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <p className="text-muted-foreground py-12 text-center">Caricamento…</p>
+            ) : filtered.length === 0 ? (
+              <div className="py-16 text-center text-muted-foreground">
+                <ClipboardList className="h-12 w-12 mx-auto mb-3" />
+                <p>Nessun form trovato.</p>
+              </div>
+            ) : (
+              <div className="relative rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      {visibleCols.map(col => <TableHead key={col.id} className={colStyles[col.id] ?? ''}>{col.label}</TableHead>)}
+                      <TableHead className="w-[50px]"></TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        )}
+                    <TableRow>
+                      {visibleCols.map(col => {
+                        if (col.id === 'status') {
+                          return (
+                            <TableHead key={`filter-${col.id}`} className="p-1">
+                              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                                <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Stato" /></SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="all">Tutti</SelectItem>
+                                  <SelectItem value="PUBLISHED">Pubblicati</SelectItem>
+                                  <SelectItem value="DISABLED">Disabilitati</SelectItem>
+                                  <SelectItem value="DRAFT">Bozze</SelectItem>
+                                  <SelectItem value="ARCHIVED">Archiviati</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </TableHead>
+                          )
+                        }
+                        if (col.id === 'name') {
+                          return (
+                            <TableHead key={`filter-${col.id}`} className="p-1">
+                              <Input className="h-8 text-xs" placeholder="Nome…" value={nameSearch} onChange={e => setNameSearch(e.target.value)} />
+                            </TableHead>
+                          )
+                        }
+                        if (col.id === 'slug') {
+                          return (
+                            <TableHead key={`filter-${col.id}`} className="p-1">
+                              <Input className="h-8 text-xs" placeholder="URL…" value={slugSearch} onChange={e => setSlugSearch(e.target.value)} />
+                            </TableHead>
+                          )
+                        }
+                        return <TableHead key={`filter-${col.id}`} className="p-1"></TableHead>
+                      })}
+                      <TableHead className="w-[50px] p-1">
+                        {(nameSearch || slugSearch || statusFilter !== 'all') && (
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setNameSearch(''); setSlugSearch(''); setStatusFilter('all') }} title="Reset filtri">
+                            <RotateCcw className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filtered.map(f => (
+                      <TableRow key={f.id} className={`cursor-pointer ${f.status === 'DISABLED' ? 'bg-red-50 dark:bg-red-950/20' : ''}`} onClick={() => navigate(`/forms/${f.id}`)}>
+                        {visibleCols.map(col => (
+                          <TableCell key={col.id} className={col.id === 'submissions' ? 'text-right' : ''}>
+                            {renderCell(col, f)}
+                          </TableCell>
+                        ))}
+                        <TableCell onClick={e => e.stopPropagation()}>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild><Button size="sm" variant="ghost" className="h-8 w-8 p-0 cursor-pointer"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => navigate(`/forms/${f.id}`)}><Eye className="mr-2 h-4 w-4" /> Gestisci</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => navigate(`/forms/builder/${f.id}`)}><Pencil className="mr-2 h-4 w-4" /> Costruzione</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => copyUrl(f.slug)}><Copy className="mr-2 h-4 w-4" /> Copia link</DropdownMenuItem>
+                              {f.status === 'DRAFT' && <DropdownMenuItem onClick={() => setStatus(f, 'PUBLISHED')}><Send className="mr-2 h-4 w-4" /> Pubblica</DropdownMenuItem>}
+                              {f.status === 'PUBLISHED' && <DropdownMenuItem onClick={() => setStatus(f, 'DISABLED')}><Ban className="mr-2 h-4 w-4" /> Disabilita</DropdownMenuItem>}
+                              {f.status === 'DISABLED' && <DropdownMenuItem onClick={() => setStatus(f, 'PUBLISHED')}><CheckCircle2 className="mr-2 h-4 w-4" /> Riabilita</DropdownMenuItem>}
+                              <DropdownMenuItem onClick={() => handleDelete(f)} className="text-destructive"><Trash2 className="mr-2 h-4 w-4" /> Elimina</DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
