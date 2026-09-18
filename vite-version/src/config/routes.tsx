@@ -200,7 +200,7 @@ export const routes: RouteConfig[] = [
   },
   {
     path: "/monitoring",
-    element: <ProtectedRoute><Monitoring /></ProtectedRoute>
+    element: <ProtectedRoute><ModuleProtectedRoute moduleName="monitoring"><Monitoring /></ModuleProtectedRoute></ProtectedRoute>
   },
 
   // Social Media Routes

@@ -138,6 +138,7 @@ const allNavGroups: NavGroup[] = [
         title: "Monitoraggio",
         url: "/monitoring",
         icon: Activity,
+        moduleName: "monitoring",
       },
       {
         title: "Social Media",

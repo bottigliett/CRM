@@ -16,6 +16,8 @@ export const AVAILABLE_MODULES = [
   { name: 'invoices', label: 'Fatture', description: 'Gestione fatture' },
   { name: 'projects', label: 'Progetti', description: 'Gestione progetti' },
   { name: 'on_duty', label: 'On Duty', description: 'Postazione di lavoro' },
+  { name: 'social_media', label: 'Social Media', description: 'Gestione social media' },
+  { name: 'monitoring', label: 'Monitoraggio', description: 'Monitoraggio uptime siti' },
 ];
 
 // Get all users (SUPER_ADMIN and DEVELOPER)
