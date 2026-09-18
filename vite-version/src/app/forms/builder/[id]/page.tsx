@@ -27,7 +27,8 @@ function LogicMap({
   connections,
   onConnect,
   onRemove,
-  onAddField,
+  onAddFieldAt,
+  onMoveField,
   onEditField,
   fieldLabel,
 }: {
@@ -35,69 +36,121 @@ function LogicMap({
   connections: any[]
   onConnect: (sourceId: string, targetId: string) => void
   onRemove: (targetId: string) => void
-  onAddField: () => void
+  onAddFieldAt: (type: string, x: number, y: number) => void
+  onMoveField: (id: string, x: number, y: number) => void
   onEditField: (fieldId: string) => void
   fieldLabel: (fieldId: string) => string
 }) {
-  const [draggingId, setDraggingId] = useState<string | null>(null)
-  const ROW_H = 76
+  const canvasRef = useRef<HTMLDivElement>(null)
+  const NODE_W = 190
+  const NODE_H = 64
+
+  const pos = (f: any, i: number) => ({
+    x: f.x ?? 40 + (i % 4) * (NODE_W + 60),
+    y: f.y ?? 40 + Math.floor(i / 4) * (NODE_H + 60),
+  })
+
+  const canvasDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    const rect = canvasRef.current!.getBoundingClientRect()
+    const x = e.clientX - rect.left
+    const y = e.clientY - rect.top
+    const addType = e.dataTransfer.getData('application/x-add-field')
+    const move = e.dataTransfer.getData('application/x-move-node')
+    if (addType) onAddFieldAt(addType, Math.max(0, x - NODE_W / 2), Math.max(0, y - NODE_H / 2))
+    else if (move) {
+      try { const { id, ox, oy } = JSON.parse(move); onMoveField(id, Math.max(0, x - ox), Math.max(0, y - oy)) } catch {}
+    }
+  }
 
   return (
     <Card>
       <CardContent className="pt-6">
         <style>{`@keyframes dashmove { to { stroke-dashoffset: -24; } } .logic-cable { stroke-dasharray: 8 6; animation: dashmove 1s linear infinite; }`}</style>
-        <div className="flex items-center justify-between mb-4">
-          <p className="text-sm text-muted-foreground">Trascina l'icona <Link2 className="h-3.5 w-3.5 inline" /> di un blocco su un altro per collegarli.</p>
-          <Button size="sm" variant="outline" onClick={onAddField} className="cursor-pointer"><Plus className="h-4 w-4 mr-1" /> Nuovo campo</Button>
-        </div>
-        <div className="relative">
-          {fields.length > 0 && (
-            <svg className="absolute left-0 top-0 z-0" width="60" height={fields.length * ROW_H} style={{ pointerEvents: 'none' }}>
-              <defs>
-                <marker id="logicarrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
-                  <path d="M0,0 L8,4 L0,8 Z" fill="#888" />
-                </marker>
-              </defs>
-              {connections.map((c: any, i: number) => {
-                const si = fields.findIndex(x => x.id === c.requiredIf.fieldId)
-                const ti = fields.findIndex(x => x.id === c.id)
-                if (si < 0 || ti < 0) return null
-                const y1 = si * ROW_H + ROW_H / 2
-                const y2 = ti * ROW_H + ROW_H / 2
-                const path = `M 30 ${y1} C 10 ${y1}, 10 ${y2}, 30 ${y2}`
-                return <path key={i} d={path} className="logic-cable" fill="none" stroke="#888" strokeWidth="2" markerEnd="url(#logicarrow)" />
+        <div className="flex gap-4">
+          {/* Palette */}
+          <div className="w-40 shrink-0 space-y-1">
+            <div className="text-xs font-medium text-muted-foreground mb-1">Trascina un campo sulla tavola</div>
+            {FIELD_TYPES.map(ft => (
+              <div key={ft.value} draggable
+                onDragStart={e => e.dataTransfer.setData('application/x-add-field', ft.value)}
+                className="rounded-md border px-2 py-1.5 text-xs cursor-grab active:cursor-grabbing hover:bg-muted">
+                {ft.label}
+              </div>
+            ))}
+          </div>
+
+          {/* Canvas */}
+          <div
+            ref={canvasRef}
+            className="relative flex-1 rounded-lg border overflow-auto"
+            style={{ minHeight: 560, backgroundImage: 'radial-gradient(circle, var(--border) 1px, transparent 1px)', backgroundSize: '22px 22px' }}
+            onDragOver={e => e.preventDefault()}
+            onDrop={canvasDrop}
+          >
+            <div className="relative" style={{ width: 1400, height: 900 }}>
+              <svg className="absolute inset-0 z-0" width="1400" height="900" style={{ pointerEvents: 'none' }}>
+                <defs>
+                  <marker id="logicarrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+                    <path d="M0,0 L8,4 L0,8 Z" fill="#888" />
+                  </marker>
+                </defs>
+                {connections.map((c: any, i: number) => {
+                  const sf = fields.find(x => x.id === c.requiredIf.fieldId)
+                  const tf = fields.find(x => x.id === c.id)
+                  if (!sf || !tf) return null
+                  const sp = pos(sf, fields.indexOf(sf))
+                  const tp = pos(tf, fields.indexOf(tf))
+                  const x1 = sp.x + NODE_W
+                  const y1 = sp.y + NODE_H / 2
+                  const x2 = tp.x
+                  const y2 = tp.y + NODE_H / 2
+                  const mx = (x1 + x2) / 2
+                  const path = `M ${x1} ${y1} C ${mx} ${y1}, ${mx} ${y2}, ${x2} ${y2}`
+                  return <path key={i} d={path} className="logic-cable" fill="none" stroke="#888" strokeWidth="2" markerEnd="url(#logicarrow)" />
+                })}
+              </svg>
+
+              {fields.map((f: any, i: number) => {
+                const p = pos(f, i)
+                const conn = connections.find((c: any) => c.id === f.id)
+                const src = conn ? fields.find(x => x.id === conn.requiredIf.fieldId) : null
+                return (
+                  <div key={f.id}
+                    className="absolute z-10"
+                    style={{ left: p.x, top: p.y, width: NODE_W }}
+                    draggable
+                    onDragStart={e => {
+                      const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+                      e.dataTransfer.setData('application/x-move-node', JSON.stringify({ id: f.id, ox: e.clientX - rect.left, oy: e.clientY - rect.top }))
+                      e.dataTransfer.setData('text/plain', f.id)
+                    }}
+                    onDragOver={e => e.preventDefault()}
+                    onDrop={e => { e.preventDefault(); const sid = e.dataTransfer.getData('application/x-connect'); if (sid) onConnect(sid, f.id) }}
+                  >
+                    <div className="rounded-lg border bg-background shadow-sm p-3 cursor-grab active:cursor-grabbing">
+                      <button onClick={() => onEditField(f.id)} className="text-left cursor-pointer w-full">
+                        <div className="font-medium text-sm truncate">{f.label || '(senza titolo)'}</div>
+                        <div className="text-xs text-muted-foreground">{FIELD_TYPES.find(t => t.value === f.type)?.label || f.type}</div>
+                      </button>
+                      {conn && src && (
+                        <div className="text-xs text-amber-600 mt-1 flex items-center gap-1">
+                          ← "{fieldLabel(conn.requiredIf.fieldId)}"
+                          <button onClick={() => onRemove(f.id)} className="ml-1 hover:text-red-600 cursor-pointer">✕</button>
+                        </div>
+                      )}
+                    </div>
+                    {/* Connect handle */}
+                    <div draggable
+                      onDragStart={e => { e.stopPropagation(); e.dataTransfer.setData('application/x-connect', f.id); e.dataTransfer.setData('text/plain', f.id) }}
+                      className="absolute -right-2.5 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full border bg-background shadow flex items-center justify-center cursor-crosshair hover:bg-muted"
+                      title="Trascina su un altro blocco per collegare">
+                      <Link2 className="h-3 w-3" />
+                    </div>
+                  </div>
+                )
               })}
-            </svg>
-          )}
-          <div className="space-y-3 relative z-10">
-            {fields.map((f: any) => {
-              const conn = connections.find((c: any) => c.id === f.id)
-              const src = conn ? fields.find(x => x.id === conn.requiredIf.fieldId) : null
-              return (
-                <div key={f.id} className="flex items-center pl-16" style={{ minHeight: ROW_H }}
-                  onDragOver={e => e.preventDefault()}
-                  onDrop={e => { e.preventDefault(); const sid = e.dataTransfer.getData('text/plain') || draggingId; if (sid) onConnect(sid, f.id) }}
-                >
-                  <div className="flex-1 rounded-lg border p-3 bg-background">
-                    <button onClick={() => onEditField(f.id)} className="text-left cursor-pointer w-full">
-                      <div className="font-medium text-sm">{f.label || '(senza titolo)'}</div>
-                      <div className="text-xs text-muted-foreground">{FIELD_TYPES.find(t => t.value === f.type)?.label || f.type}</div>
-                    </button>
-                    {conn && src && (
-                      <div className="text-xs text-amber-600 mt-1 flex items-center gap-1">
-                        ← "{fieldLabel(conn.requiredIf.fieldId)}"
-                        <button onClick={() => onRemove(f.id)} className="ml-1 hover:text-red-600 cursor-pointer">✕</button>
-                      </div>
-                    )}
-                  </div>
-                  <div draggable onDragStart={e => { e.dataTransfer.setData('text/plain', f.id); setDraggingId(f.id) }} onDragEnd={() => setDraggingId(null)}
-                    className="ml-2 shrink-0 w-7 h-7 rounded-full border flex items-center justify-center cursor-grab active:cursor-grabbing hover:bg-muted"
-                    title="Trascina per collegare">
-                    <Link2 className="h-3.5 w-3.5" />
-                  </div>
-                </div>
-              )
-            })}
+            </div>
           </div>
         </div>
       </CardContent>
@@ -359,7 +412,8 @@ export default function FormBuilderPage() {
             connections={schema.fields.filter((f: any) => f.requiredIf)}
             onConnect={(sourceId, targetId) => { setConnectionLocal(sourceId, targetId) }}
             onRemove={(targetId) => { removeConnectionLocal(targetId) }}
-            onAddField={() => addField('text')}
+            onAddFieldAt={(type, x, y) => updateSchema({ fields: [...schema.fields, { ...newField(0, type as FieldType), x, y }] })}
+            onMoveField={(fid, x, y) => updateSchema({ fields: schema.fields.map(f => f.id === fid ? { ...f, x, y } : f) })}
             onEditField={(fid) => { const f = schema.fields.find(x => x.id === fid); if (f) setEditField(f) }}
             fieldLabel={(fid) => schema.fields.find(f => f.id === fid)?.label || '(campo)'}
           />

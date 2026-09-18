@@ -14,6 +14,8 @@ export interface FormField {
   options?: string[]
   page: number
   requiredIf?: { fieldId: string; operator: 'filled' | 'empty' }
+  x?: number
+  y?: number
 }
 
 export interface FormSchema {
