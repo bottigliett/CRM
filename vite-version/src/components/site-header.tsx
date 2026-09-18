@@ -8,7 +8,6 @@ import { SidebarTrigger } from "@/components/ui/sidebar"
 import { CommandSearch, SearchTrigger } from "@/components/command-search"
 import { ModeToggle } from "@/components/mode-toggle"
 import { NotificationsButton } from "@/components/notifications-button"
-import { getAppUrl } from "@/lib/utils"
 
 export function SiteHeader() {
   const location = useLocation()
@@ -41,19 +40,7 @@ export function SiteHeader() {
           </div>
           <div className="ml-auto flex items-center gap-2">
             {!isClientArea && (
-              <>
-                <NotificationsButton />
-                <Button variant="ghost" asChild size="sm" className="hidden sm:flex">
-                  <a
-                    href={getAppUrl("/landing")}
-                    rel="noopener noreferrer"
-                    target="_blank"
-                    className="dark:text-foreground"
-                  >
-                    Landing Page
-                  </a>
-                </Button>
-              </>
+              <NotificationsButton />
             )}
             <Button variant="ghost" asChild size="sm" className="hidden sm:flex">
               <a
