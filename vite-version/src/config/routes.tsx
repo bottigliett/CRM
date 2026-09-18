@@ -34,6 +34,7 @@ const ProjectDetail = lazy(() => import('@/app/projects/[id]/page'))
 // On Duty page
 const OnDuty = lazy(() => import('@/app/on-duty/page'))
 const Monitoring = lazy(() => import('@/app/monitoring/page'))
+const Liinks = lazy(() => import('@/app/liinks/page'))
 
 // Social Media pages
 const SocialDashboard = lazy(() => import('@/app/social/page'))
@@ -198,6 +199,10 @@ export const routes: RouteConfig[] = [
   {
     path: "/monitoring",
     element: <ProtectedRoute><ModuleProtectedRoute moduleName="monitoring"><Monitoring /></ModuleProtectedRoute></ProtectedRoute>
+  },
+  {
+    path: "/liinks",
+    element: <ProtectedRoute><ModuleProtectedRoute moduleName="liinks"><Liinks /></ModuleProtectedRoute></ProtectedRoute>
   },
 
   // Social Media Routes

@@ -20,6 +20,7 @@ import {
   Share2,
   Lock,
   Activity,
+  Link2,
 } from "lucide-react"
 import { Link } from "react-router-dom"
 import { Logo } from "@/components/logo"
@@ -139,6 +140,12 @@ const allNavGroups: NavGroup[] = [
         url: "/monitoring",
         icon: Activity,
         moduleName: "monitoring",
+      },
+      {
+        title: "Liinks",
+        url: "/liinks",
+        icon: Link2,
+        moduleName: "liinks",
       },
       {
         title: "Social Media",

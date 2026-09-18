@@ -18,6 +18,7 @@ export const AVAILABLE_MODULES = [
   { name: 'on_duty', label: 'On Duty', description: 'Postazione di lavoro' },
   { name: 'social_media', label: 'Social Media', description: 'Gestione social media' },
   { name: 'monitoring', label: 'Monitoraggio', description: 'Monitoraggio uptime siti' },
+  { name: 'liinks', label: 'Liinks', description: 'Link in bio Instagram' },
 ];
 
 // Get all users (SUPER_ADMIN and DEVELOPER)
