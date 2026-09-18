@@ -173,6 +173,8 @@ export default function FormBuilderPage() {
   const [draggedId, setDraggedId] = useState<string | null>(null)
   const [connectingId, setConnectingId] = useState<string | null>(null)
   const [mode, setMode] = useState<'edit' | 'preview' | 'map'>('edit')
+  const [presets, setPresets] = useState<{ name: string; style: any }[]>([])
+  const [presetName, setPresetName] = useState("")
   const loadedRef = useRef(false)
   const dirtyRef = useRef(false)
   const saveTimer = useRef<any>(null)
@@ -205,6 +207,14 @@ export default function FormBuilderPage() {
     return () => window.removeEventListener('beforeunload', handler)
   }, [])
 
+  // Load style presets
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('form_style_presets')
+      if (saved) setPresets(JSON.parse(saved))
+    } catch {}
+  }, [])
+
   if (!form) return <BaseLayout title="Form Builder"><div className="px-4 lg:px-6">Caricamento…</div></BaseLayout>
 
   const schema = form.schema
@@ -227,6 +237,32 @@ export default function FormBuilderPage() {
 
   const update = (patch: Partial<Form>) => setForm({ ...form, ...patch })
   const updateSchema = (patch: Partial<typeof schema>) => setForm({ ...form, schema: { ...schema, ...patch } })
+
+  const persistPresets = (p: { name: string; style: any }[]) => localStorage.setItem('form_style_presets', JSON.stringify(p))
+
+  const savePreset = () => {
+    if (!presetName.trim()) { toast.error('Inserisci un nome per il preset'); return }
+    const style = schema.settings.style || {}
+    const next = [...presets.filter(p => p.name !== presetName.trim()), { name: presetName.trim(), style }]
+    setPresets(next)
+    persistPresets(next)
+    setPresetName("")
+    toast.success('Preset salvato')
+  }
+
+  const applyPreset = (name: string) => {
+    const preset = presets.find(p => p.name === name)
+    if (preset) {
+      updateSchema({ settings: { ...schema.settings, style: preset.style } })
+      toast.success(`Preset "${name}" applicato`)
+    }
+  }
+
+  const deletePreset = (name: string) => {
+    const next = presets.filter(p => p.name !== name)
+    setPresets(next)
+    persistPresets(next)
+  }
 
   const addField = (type: FieldType, page: number = 0) => updateSchema({ fields: [...schema.fields, newField(page, type)] })
 
@@ -647,6 +683,27 @@ export default function FormBuilderPage() {
                     <SelectItem value="lg">Grandi</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+
+              {/* Presets */}
+              <div className="pt-2 border-t space-y-2">
+                <div className="text-sm font-medium">Preset di stili</div>
+                <div className="flex items-center gap-2">
+                  <Input value={presetName} onChange={e => setPresetName(e.target.value)} placeholder="Nome del preset…" className="h-8 text-sm" />
+                  <Button size="sm" onClick={savePreset} className="shrink-0 cursor-pointer h-8">Salva</Button>
+                </div>
+                {presets.length > 0 ? (
+                  <div className="space-y-1">
+                    {presets.map(p => (
+                      <div key={p.name} className="flex items-center gap-2 rounded-md border px-2 py-1.5">
+                        <button onClick={() => applyPreset(p.name)} className="flex-1 text-left text-sm hover:underline cursor-pointer">{p.name}</button>
+                        <Button size="sm" variant="ghost" className="h-6 w-6 p-0 cursor-pointer text-destructive" onClick={() => deletePreset(p.name)} title="Elimina preset">✕</Button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground">Nessun preset salvato. Configura lo stile e clicca "Salva" per crearlo.</p>
+                )}
               </div>
             </div>
           </div>
