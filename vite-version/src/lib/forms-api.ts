@@ -71,6 +71,13 @@ export const formsAPI = {
   submit: (slug: string, data: Record<string, any>) =>
     request<{ success: boolean; data: { id: number } }>(`/forms/public/${slug}/submit`, { method: 'POST', body: JSON.stringify({ data }) }),
 
+  // AI
+  aiGenerate: (description: string) =>
+    request<{ success: boolean; data: { name: string; description: string; fields: Array<{ type: string; label: string; placeholder?: string; required: boolean; options?: string[] }> } }>(
+      '/forms/ai/generate',
+      { method: 'POST', body: JSON.stringify({ description }) }
+    ),
+
   // Submissions
   submissions: (formId?: number) => request<{ success: boolean; data: Submission[] }>(formId ? `/forms/${formId}/submissions` : '/forms/submissions'),
   assign: (id: number, contactId: number | null) =>

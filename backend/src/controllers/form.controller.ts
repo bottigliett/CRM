@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import prisma from '../config/database';
 import { AuthRequest } from '../middleware/auth';
 import { sendEmail } from '../services/email.service';
+import { generateFormSchema } from '../services/social/ai.service';
 
 const FRONTEND_URL = () => process.env.FRONTEND_URL || 'https://studiomismo.com/';
 
@@ -133,6 +134,19 @@ export const deleteForm = async (req: AuthRequest, res: Response) => {
     await prisma.form.delete({ where: { id: parseInt(req.params.id) } });
     res.json({ success: true, message: 'Form eliminato' });
   } catch (e: any) {
+    res.status(500).json({ success: false, message: e.message });
+  }
+};
+
+/** POST /api/forms/ai/generate — generate a form schema from a description (AI). */
+export const aiGenerateForm = async (req: AuthRequest, res: Response) => {
+  try {
+    const { description } = req.body;
+    if (!description) return res.status(400).json({ success: false, message: 'Descrizione obbligatoria' });
+    const result = await generateFormSchema(description);
+    res.json({ success: true, data: result });
+  } catch (e: any) {
+    console.error('[forms] aiGenerateForm error:', e.message);
     res.status(500).json({ success: false, message: e.message });
   }
 };

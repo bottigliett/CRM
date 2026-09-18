@@ -10,11 +10,15 @@ import { Switch } from "@/components/ui/switch"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { ArrowLeft, ArrowUp, ArrowDown, Trash2, Plus, Settings, Save, Eye, GripVertical } from "lucide-react"
+import { Textarea } from "@/components/ui/textarea"
+import { ArrowLeft, ArrowUp, ArrowDown, Trash2, Plus, Settings, Save, Eye, GripVertical, Sparkles, GitBranch, MoveRight } from "lucide-react"
 import { formsAPI, FIELD_TYPES, type Form, type FormField, type FieldType } from "@/lib/forms-api"
 import { toast } from "sonner"
 
-const emptyField = (page: number): FormField => ({ id: `f${Date.now()}${Math.floor(Math.random() * 1000)}`, type: 'text', label: '', placeholder: '', required: false, page })
+const newField = (page: number, type: FieldType = 'text'): FormField => ({
+  id: `f${Date.now()}${Math.floor(Math.random() * 1000)}`, type, label: '', placeholder: '', required: false, page,
+  ...(type === 'select' || type === 'radio' ? { options: ['Opzione 1', 'Opzione 2'] } : {}),
+})
 
 export default function FormBuilderPage() {
   const { id } = useParams()
@@ -23,6 +27,11 @@ export default function FormBuilderPage() {
   const [saving, setSaving] = useState(false)
   const [editField, setEditField] = useState<FormField | null>(null)
   const [showSettings, setShowSettings] = useState(false)
+  const [showAi, setShowAi] = useState(false)
+  const [aiDesc, setAiDesc] = useState("")
+  const [aiLoading, setAiLoading] = useState(false)
+  const [showMap, setShowMap] = useState(false)
+  const [draggedId, setDraggedId] = useState<string | null>(null)
 
   useEffect(() => {
     if (id) formsAPI.get(parseInt(id)).then(r => setForm(r.data)).catch(e => toast.error(e.message))
@@ -42,19 +51,15 @@ export default function FormBuilderPage() {
   }
 
   const update = (patch: Partial<Form>) => setForm({ ...form, ...patch })
-  const updateSchema = (patch: Partial<typeof schema>) => {
-    const next = { ...form, schema: { ...schema, ...patch } }
-    setForm(next)
-  }
+  const updateSchema = (patch: Partial<typeof schema>) => setForm({ ...form, schema: { ...schema, ...patch } })
 
-  const addField = (type: FieldType) => {
-    const f = emptyField(0)
-    f.type = type
-    if (type === 'select' || type === 'radio') f.options = ['Opzione 1', 'Opzione 2']
-    updateSchema({ fields: [...schema.fields, f] })
-  }
+  const addField = (type: FieldType) => updateSchema({ fields: [...schema.fields, newField(0, type)] })
 
-  const removeField = (id: string) => updateSchema({ fields: schema.fields.filter(f => f.id !== id) })
+  const removeField = (id: string) => {
+    // also clear requiredIf pointing to removed field
+    const fields = schema.fields.filter(f => f.id !== id).map(f => f.requiredIf?.fieldId === id ? { ...f, requiredIf: undefined } : f)
+    updateSchema({ fields })
+  }
 
   const moveField = (id: string, dir: -1 | 1) => {
     const arr = [...schema.fields]
@@ -65,26 +70,62 @@ export default function FormBuilderPage() {
     updateSchema({ fields: arr })
   }
 
-  const saveField = (f: FormField) => {
-    const arr = schema.fields.map(x => x.id === f.id ? f : x)
+  const moveFieldTo = (fromId: string, toId: string) => {
+    if (!fromId || fromId === toId) return
+    const arr = [...schema.fields]
+    const from = arr.findIndex(f => f.id === fromId)
+    const to = arr.findIndex(f => f.id === toId)
+    if (from < 0 || to < 0) return
+    const [moved] = arr.splice(from, 1)
+    arr.splice(to, 0, moved)
     updateSchema({ fields: arr })
+  }
+
+  const saveField = (f: FormField) => {
+    updateSchema({ fields: schema.fields.map(x => x.id === f.id ? f : x) })
     setEditField(null)
   }
 
   const addPage = () => updateSchema({ pages: [...schema.pages, { title: `Pagina ${schema.pages.length + 1}` }] })
-  const renamePage = (i: number, title: string) => {
-    const pages = schema.pages.map((p, idx) => idx === i ? { ...p, title } : p)
-    updateSchema({ pages })
+  const renamePage = (i: number, title: string) => updateSchema({ pages: schema.pages.map((p, idx) => idx === i ? { ...p, title } : p) })
+
+  const runAi = async () => {
+    if (!aiDesc.trim()) return
+    try {
+      setAiLoading(true)
+      const res = await formsAPI.aiGenerate(aiDesc)
+      const fields: FormField[] = res.data.fields.map((f, i) => ({
+        id: `ai${Date.now()}_${i}`,
+        type: (FIELD_TYPES.find(t => t.value === f.type) ? f.type : 'text') as FieldType,
+        label: f.label,
+        placeholder: f.placeholder,
+        required: !!f.required,
+        options: f.options,
+        page: 0,
+      }))
+      setForm({ ...form, name: res.data.name, description: res.data.description, schema: { ...schema, fields } })
+      setShowAi(false)
+      setAiDesc("")
+      toast.success('Form generato con AI — rivedi i campi e salva')
+    } catch (e: any) { toast.error(e.message) } finally { setAiLoading(false) }
   }
 
+  const fieldLabel = (fid: string) => schema.fields.find(f => f.id === fid)?.label || '(campo)'
+
   return (
-    <BaseLayout title={`Form Builder — ${form.name}`} description="Trascina e configura i campi del form">
+    <BaseLayout title={`Form Builder — ${form.name}`} description="Costruisci il form trascinando i campi">
       <div className="px-4 lg:px-6 space-y-4">
         <div className="flex items-center gap-2 flex-wrap">
           <Button variant="ghost" size="sm" onClick={() => navigate('/forms')} className="cursor-pointer">
             <ArrowLeft className="h-4 w-4 mr-1" /> Form
           </Button>
           <div className="flex-1" />
+          <Button variant="outline" size="sm" onClick={() => setShowAi(true)} className="cursor-pointer">
+            <Sparkles className="h-4 w-4 mr-1" /> Genera con AI
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setShowMap(!showMap)} className="cursor-pointer">
+            <GitBranch className="h-4 w-4 mr-1" /> Mappa logica
+          </Button>
           <Button variant="outline" size="sm" onClick={() => navigate(`/forms/fill/${form.slug}`)} className="cursor-pointer">
             <Eye className="h-4 w-4 mr-1" /> Anteprima
           </Button>
@@ -96,6 +137,31 @@ export default function FormBuilderPage() {
           </Button>
         </div>
 
+        {/* Logic map */}
+        {showMap && (
+          <Card>
+            <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><GitBranch className="h-4 w-4" /> Mappa dei collegamenti</CardTitle></CardHeader>
+            <CardContent>
+              {schema.fields.filter(f => f.requiredIf).length === 0 ? (
+                <p className="text-sm text-muted-foreground py-3 text-center">Nessun collegamento. Imposta una "logica condizionale" su un campo per vederlo qui.</p>
+              ) : (
+                <div className="flex flex-wrap gap-2 items-center">
+                  {schema.fields.filter(f => f.requiredIf).map(f => (
+                    <div key={f.id} className="flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm">
+                      <span className="font-medium">{fieldLabel(f.requiredIf!.fieldId)}</span>
+                      <MoveRight className="h-4 w-4 text-muted-foreground" />
+                      <span className="font-medium">{f.label}</span>
+                      <span className="text-xs text-muted-foreground ml-1">
+                        ({f.requiredIf!.operator === 'filled' ? 'se compilato' : 'se vuoto'})
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
         <div className="grid gap-4 lg:grid-cols-[220px_1fr]">
           {/* Palette */}
           <div className="space-y-2">
@@ -103,7 +169,7 @@ export default function FormBuilderPage() {
             <div className="grid grid-cols-2 lg:grid-cols-1 gap-1">
               {FIELD_TYPES.map(ft => (
                 <button key={ft.value} onClick={() => addField(ft.value)}
-                  className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm hover:bg-muted transition-colors text-left">
+                  className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm hover:bg-muted transition-colors text-left cursor-pointer">
                   <Plus className="h-3.5 w-3.5 text-muted-foreground" /> {ft.label}
                 </button>
               ))}
@@ -129,15 +195,23 @@ export default function FormBuilderPage() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-2">
-                    {fields.length === 0 && <p className="text-sm text-muted-foreground py-4 text-center">Nessun campo in questa pagina. Aggiungine uno dalla palette.</p>}
+                    {fields.length === 0 && <p className="text-sm text-muted-foreground py-4 text-center">Trascina qui i campi dalla palette.</p>}
                     {fields.map(f => {
                       const typeLabel = FIELD_TYPES.find(t => t.value === f.type)?.label || f.type
                       return (
-                        <div key={f.id} className="flex items-center gap-2 rounded-md border p-3 group">
+                        <div key={f.id}
+                          draggable
+                          onDragStart={() => setDraggedId(f.id)}
+                          onDragOver={e => e.preventDefault()}
+                          onDrop={() => { moveFieldTo(draggedId!, f.id); setDraggedId(null) }}
+                          onDragEnd={() => setDraggedId(null)}
+                          className={`flex items-center gap-2 rounded-md border p-3 group cursor-grab active:cursor-grabbing ${draggedId === f.id ? 'opacity-40' : ''}`}>
                           <GripVertical className="h-4 w-4 text-muted-foreground/40 shrink-0" />
                           <button onClick={() => setEditField(f)} className="flex-1 text-left min-w-0">
                             <div className="font-medium text-sm truncate">{f.label || '(senza titolo)'}</div>
-                            <div className="text-xs text-muted-foreground">{typeLabel}{f.required ? ' · obbligatorio' : ''}</div>
+                            <div className="text-xs text-muted-foreground">
+                              {typeLabel}{f.required ? ' · obbligatorio' : ''}{f.requiredIf ? ` · obbl. se ${f.requiredIf.operator === 'filled' ? 'compilato' : 'vuoto'}` : ''}
+                            </div>
                           </button>
                           <Button variant="ghost" size="icon" className="h-7 w-7 cursor-pointer" onClick={() => moveField(f.id, -1)}><ArrowUp className="h-3.5 w-3.5" /></Button>
                           <Button variant="ghost" size="icon" className="h-7 w-7 cursor-pointer" onClick={() => moveField(f.id, 1)}><ArrowDown className="h-3.5 w-3.5" /></Button>
@@ -155,7 +229,7 @@ export default function FormBuilderPage() {
 
       {/* Edit field dialog */}
       <Dialog open={!!editField} onOpenChange={o => !o && setEditField(null)}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Configura campo</DialogTitle></DialogHeader>
           {editField && (
             <div className="space-y-3 py-2">
@@ -186,6 +260,36 @@ export default function FormBuilderPage() {
               <div className="flex items-center justify-between"><Label>Obbligatorio</Label>
                 <Switch checked={editField.required} onCheckedChange={c => setEditField({ ...editField, required: c })} />
               </div>
+
+              {/* Conditional logic */}
+              <div className="pt-2 border-t space-y-2">
+                <Label>Logica condizionale</Label>
+                <Select
+                  value={editField.requiredIf ? (editField.requiredIf.operator === 'filled' ? 'filled' : 'empty') : 'none'}
+                  onValueChange={v => setEditField({ ...editField, requiredIf: v === 'none' ? undefined : { fieldId: editField.requiredIf?.fieldId || '', operator: v as 'filled' | 'empty' } })}
+                >
+                  <SelectTrigger><SelectValue placeholder="Nessuna" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Sempre (nessuna logica)</SelectItem>
+                    <SelectItem value="filled">Obbligatorio se un altro campo è compilato</SelectItem>
+                    <SelectItem value="empty">Obbligatorio se un altro campo è vuoto</SelectItem>
+                  </SelectContent>
+                </Select>
+                {editField.requiredIf && (
+                  <Select
+                    value={editField.requiredIf.fieldId}
+                    onValueChange={v => setEditField({ ...editField, requiredIf: { ...editField.requiredIf!, fieldId: v } })}
+                  >
+                    <SelectTrigger><SelectValue placeholder="Scegli il campo collegato…" /></SelectTrigger>
+                    <SelectContent>
+                      {schema.fields.filter(x => x.id !== editField.id).map(x => <SelectItem key={x.id} value={x.id}>{x.label || '(senza titolo)'}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  Esempio: "Confermi che l'immobile è in ordine?" diventa obbligatorio solo se il campo "link annuncio" è compilato.
+                </p>
+              </div>
             </div>
           )}
           <DialogFooter>
@@ -213,6 +317,22 @@ export default function FormBuilderPage() {
             </div>
           </div>
           <DialogFooter><Button onClick={() => { setShowSettings(false); save() }} disabled={saving}>Salva</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* AI dialog */}
+      <Dialog open={showAi} onOpenChange={setShowAi}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader><DialogTitle className="flex items-center gap-2"><Sparkles className="h-5 w-5" /> Genera form con AI</DialogTitle></DialogHeader>
+          <div className="space-y-2 py-2">
+            <Textarea value={aiDesc} onChange={e => setAiDesc(e.target.value)} rows={5}
+              placeholder="Es. Form pre-shooting: chiedi chi sarà presente al video, quali location sono disponibili, le idee del cliente, link dell'annuncio immobiliare…" />
+            <p className="text-xs text-muted-foreground">Descrivi il form e l'AI genererà i campi. Potrai poi modificarli.</p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAi(false)}>Annulla</Button>
+            <Button onClick={runAi} disabled={aiLoading || !aiDesc.trim()}>{aiLoading ? 'Generazione…' : 'Genera'}</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </BaseLayout>

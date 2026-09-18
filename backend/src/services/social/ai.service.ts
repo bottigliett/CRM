@@ -1169,3 +1169,37 @@ export async function generateSmartSuggestions(contactId: number): Promise<{
 
   return { suggestions, hasData: suggestions.length > 0 };
 }
+
+/**
+ * Generate a form schema (fields) from a natural-language description.
+ * Reuses the configured AI provider (DeepSeek/Claude) with JSON output.
+ */
+export async function generateFormSchema(description: string): Promise<{
+  name: string;
+  description: string;
+  fields: Array<{ type: string; label: string; placeholder?: string; required: boolean; options?: string[] }>;
+}> {
+  const sys = `Sei un esperto nella progettazione di moduli (form) per un CRM immobiliare. Genera un form in base alla descrizione dell'utente.
+Rispondi SOLO con JSON valido, senza testo introduttivo, nel formato:
+{"name":"<nome breve del form>","description":"<una riga>","fields":[{"type":"text|email|number|textarea|select|radio|checkbox|date|url|tel","label":"<domanda in italiano>","placeholder":"<testo dentro l'input, opzionale>","required":true|false,"options":["opzione1","opzione2"]}]}
+Regole: per select e radio includi sempre "options"; usa i tipi più adatti (link -> url, data -> date); label chiare e brevi; non includere campi inutili.`;
+
+  const content = await chat(
+    [
+      { role: 'system', content: sys },
+      { role: 'user', content: description },
+    ],
+    { temperature: 0.4, json: true }
+  );
+
+  const cleaned = content.replace(/```json|```/g, '').trim();
+  const parsed = JSON.parse(cleaned);
+  if (!parsed.fields || !Array.isArray(parsed.fields)) {
+    throw new Error('Risposta AI non valida');
+  }
+  return {
+    name: typeof parsed.name === 'string' ? parsed.name : 'Form generato',
+    description: typeof parsed.description === 'string' ? parsed.description : '',
+    fields: parsed.fields,
+  };
+}
