@@ -20,6 +20,7 @@ import {
   ArrowUpCircle,
   ArrowDownCircle,
   Euro,
+  ClipboardList,
 } from "lucide-react"
 import { tasksAPI, type Task } from "@/lib/tasks-api"
 import { eventsAPI, type Event } from "@/lib/events-api"
@@ -28,6 +29,7 @@ import { transactionsAPI, type Transaction } from "@/lib/finance-api"
 import { invoicesAPI } from "@/lib/invoices-api"
 import { contactsAPI } from "@/lib/contacts-api"
 import { leadsAPI } from "@/lib/leads-api"
+import { formsAPI } from "@/lib/forms-api"
 import { format, addDays, endOfDay, startOfYear, endOfYear, startOfMonth, endOfMonth } from "date-fns"
 import { it } from "date-fns/locale"
 import { toast } from "sonner"
@@ -103,6 +105,7 @@ export default function DashboardPage() {
   const [activeClientsCount, setActiveClientsCount] = useState(0)
   const [totalContactsCount, setTotalContactsCount] = useState(0)
   const [leadboardValue, setLeadboardValue] = useState(0)
+  const [monthlyFormsCount, setMonthlyFormsCount] = useState(0)
 
   // Check if user has Finance Tracker access
   // SUPER_ADMIN and DEVELOPER always have access, or check permissions for ADMIN
@@ -129,6 +132,14 @@ export default function DashboardPage() {
       p.moduleName === 'CONTACTS' && p.hasAccess
     ) || false
 
+  // Check if user has Forms access
+  const hasFormsAccess =
+    currentUser?.role === 'SUPER_ADMIN' ||
+    currentUser?.role === 'DEVELOPER' ||
+    currentUser?.permissions?.some(p =>
+      p.moduleName === 'forms' && p.hasAccess
+    ) || false
+
   // Calculate task statistics (currently unused but available for future use)
 
   // Check if data should be protected
@@ -151,6 +162,14 @@ export default function DashboardPage() {
 
     loadCurrentUser()
   }, [])
+
+  // Load forms received this month (only if user has Forms access)
+  useEffect(() => {
+    if (!hasFormsAccess) return
+    formsAPI.statsMonth()
+      .then(r => setMonthlyFormsCount(r.data.count))
+      .catch(() => {})
+  }, [hasFormsAccess])
 
   // Load recent tasks (all non-completed tasks)
   useEffect(() => {
@@ -861,6 +880,27 @@ export default function DashboardPage() {
                 </CardHeader>
                 <CardContent>
                   <p className="text-xs text-muted-foreground">Totale contatti in anagrafica</p>
+                </CardContent>
+              </>
+            )}
+          </Card>
+        )}
+
+        {hasFormsAccess && (
+          <Card>
+            {shouldProtectData ? (
+              <ProtectedData onUnlock={() => setPinDialogOpen(true)} compact noPadding />
+            ) : (
+              <>
+                <CardHeader className="pb-3">
+                  <CardDescription>Form ricevuti (mese)</CardDescription>
+                  <CardTitle className="text-2xl flex items-center gap-2">
+                    <ClipboardList className="h-5 w-5 text-muted-foreground" />
+                    {monthlyFormsCount}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-xs text-muted-foreground">Compilazioni form ricevute questo mese</p>
                 </CardContent>
               </>
             )}

@@ -12,6 +12,7 @@ import {
   markSubmissionRead,
   deleteSubmission,
   aiGenerateForm,
+  getMonthStats,
 } from '../controllers/form.controller';
 import { authenticate } from '../middleware/auth';
 
@@ -25,6 +26,7 @@ router.post('/public/:slug/submit', submitPublicForm);
 router.get('/', authenticate, getForms);
 router.post('/', authenticate, createForm);
 router.post('/ai/generate', authenticate, aiGenerateForm);
+router.get('/stats/month', authenticate, getMonthStats);
 router.get('/submissions', authenticate, getSubmissions); // all submissions
 router.get('/:id', authenticate, getForm);
 router.put('/:id', authenticate, updateForm);

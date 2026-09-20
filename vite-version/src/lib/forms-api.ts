@@ -84,6 +84,9 @@ export const formsAPI = {
       { method: 'POST', body: JSON.stringify({ description }) }
     ),
 
+  // Stats
+  statsMonth: () => request<{ success: boolean; data: { count: number } }>('/forms/stats/month'),
+
   // Submissions
   submissions: (formId?: number) => request<{ success: boolean; data: Submission[] }>(formId ? `/forms/${formId}/submissions` : '/forms/submissions'),
   assign: (id: number, contactId: number | null) =>
