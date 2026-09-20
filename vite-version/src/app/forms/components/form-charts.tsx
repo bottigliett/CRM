@@ -61,16 +61,21 @@ function FieldChart({ field, submissions }: { field: FormField; submissions: Sub
             <span>Media <strong className="text-foreground">{(nums.reduce((a, b) => a + b, 0) / nums.length).toFixed(2)}</strong></span>
           </div>
         )}
-        <div className="space-y-1.5">
-          {visible.map(([value, count]) => (
-            <div key={value} className="flex items-center gap-2 text-sm">
-              <div className="w-44 shrink-0 truncate" title={value}>{value}</div>
-              <div className="flex-1 min-w-20 h-5 bg-muted rounded relative overflow-hidden">
-                <div className="absolute inset-y-0 left-0 rounded bg-primary/80" style={{ width: `${(count / max) * 100}%` }} />
-              </div>
-              <div className="w-20 shrink-0 text-right text-xs text-muted-foreground tabular-nums">{count} ({((count / responded) * 100).toFixed(0)}%)</div>
-            </div>
-          ))}
+        <div className="overflow-x-auto pb-1">
+          <div className="flex items-end gap-2 min-w-max">
+            {visible.map(([value, count]) => {
+              const pct = ((count / responded) * 100).toFixed(0)
+              const h = Math.max((count / max) * 120, 4)
+              return (
+                <div key={value} className="flex flex-col items-center justify-end" style={{ width: 92, height: 168 }} title={`${value}: ${count} (${pct}%)`}>
+                  <span className="text-[11px] font-medium tabular-nums leading-none">{count}</span>
+                  <span className="text-[9px] text-muted-foreground tabular-nums leading-none mb-0.5">{pct}%</span>
+                  <div className="w-12 rounded-t bg-primary/80" style={{ height: h }} />
+                  <div className="w-full px-1 text-[10px] text-muted-foreground truncate text-center mt-1 leading-tight" title={value}>{value}</div>
+                </div>
+              )
+            })}
+          </div>
         </div>
         {hidden > 0 && (
           <button onClick={() => setShowAll(true)} className="text-xs text-muted-foreground hover:underline cursor-pointer">Mostra altri {hidden} valori</button>
