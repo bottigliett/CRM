@@ -325,7 +325,7 @@ export default function FormDetailPage() {
 
           <TabsContent value="collegamenti">
             <p className="text-sm text-muted-foreground">
-              Costruzione a schema: trascina i campi sulla tavola, spostali e collega il <strong>pallino ⊕</strong> di un campo su un altro per renderlo obbligatorio quando il primo è compilato.
+              Schema dei collegamenti (sola visualizzazione). Le frecce indicano che un campo diventa obbligatorio quando il campo di partenza è compilato. Per modificare usa <strong>Costruzione → Mappa</strong>.
             </p>
             <LogicMap
               fields={fields}
@@ -335,6 +335,7 @@ export default function FormDetailPage() {
               onAddFieldAt={addFieldAt}
               onMoveField={moveField}
               fieldLabel={(fid) => fields.find(f => f.id === fid)?.label || '(campo)'}
+              readOnly
             />
           </TabsContent>
         </Tabs>

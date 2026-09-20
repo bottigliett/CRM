@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef } from "react"
+import { useRef } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Plus, Link2 } from "lucide-react"
@@ -15,6 +15,7 @@ export function LogicMap({
   onMoveField,
   onEditField,
   fieldLabel,
+  readOnly,
 }: {
   fields: FormField[]
   connections: any[]
@@ -24,6 +25,7 @@ export function LogicMap({
   onMoveField: (id: string, x: number, y: number) => void
   onEditField?: (fieldId: string) => void
   fieldLabel: (fieldId: string) => string
+  readOnly?: boolean
 }) {
   const canvasRef = useRef<HTMLDivElement>(null)
   const NODE_W = 190
@@ -52,24 +54,26 @@ export function LogicMap({
       <CardContent className="pt-6">
         <style>{`@keyframes dashmove { to { stroke-dashoffset: -24; } } .logic-cable { stroke-dasharray: 8 6; animation: dashmove 1s linear infinite; }`}</style>
         <div className="flex gap-4">
-          <div className="w-40 shrink-0 space-y-1">
-            <div className="text-xs font-medium text-muted-foreground mb-1">Trascina un campo sulla tavola</div>
-            {FIELD_TYPES.map(ft => (
-              <div key={ft.value} draggable
-                onClick={() => onAddFieldAt(ft.value, 40 + (fields.length % 4) * 240, 40 + Math.floor(fields.length / 4) * 130)}
-                onDragStart={e => e.dataTransfer.setData('application/x-add-field', ft.value)}
-                className="rounded-md border px-2 py-1.5 text-xs cursor-pointer hover:bg-muted">
-                {ft.label}
-              </div>
-            ))}
-          </div>
+          {!readOnly && (
+            <div className="w-40 shrink-0 space-y-1">
+              <div className="text-xs font-medium text-muted-foreground mb-1">Trascina un campo sulla tavola</div>
+              {FIELD_TYPES.map(ft => (
+                <div key={ft.value} draggable
+                  onClick={() => onAddFieldAt(ft.value, 40 + (fields.length % 4) * 240, 40 + Math.floor(fields.length / 4) * 130)}
+                  onDragStart={e => e.dataTransfer.setData('application/x-add-field', ft.value)}
+                  className="rounded-md border px-2 py-1.5 text-xs cursor-pointer hover:bg-muted">
+                  {ft.label}
+                </div>
+              ))}
+            </div>
+          )}
 
           <div
             ref={canvasRef}
             className="relative flex-1 rounded-lg border overflow-auto"
             style={{ minHeight: 560, backgroundImage: 'radial-gradient(circle, var(--border) 1px, transparent 1px)', backgroundSize: '22px 22px' }}
             onDragOver={e => e.preventDefault()}
-            onDrop={canvasDrop}
+            onDrop={readOnly ? undefined : canvasDrop}
           >
             <div className="relative" style={{ width: 1400, height: 900 }}>
               <svg className="absolute inset-0 z-0" width="1400" height="900" style={{ pointerEvents: 'none' }}>
@@ -102,33 +106,36 @@ export function LogicMap({
                   <div key={f.id}
                     className="absolute z-10"
                     style={{ left: p.x, top: p.y, width: NODE_W }}
-                    draggable
+                    draggable={!readOnly}
                     onDragStart={e => {
+                      if (readOnly) return
                       const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
                       e.dataTransfer.setData('application/x-move-node', JSON.stringify({ id: f.id, ox: e.clientX - rect.left, oy: e.clientY - rect.top }))
                       e.dataTransfer.setData('text/plain', f.id)
                     }}
                     onDragOver={e => e.preventDefault()}
-                    onDrop={e => { e.preventDefault(); const sid = e.dataTransfer.getData('application/x-connect'); if (sid) onConnect(sid, f.id) }}
+                    onDrop={e => { e.preventDefault(); if (readOnly) return; const sid = e.dataTransfer.getData('application/x-connect'); if (sid) onConnect(sid, f.id) }}
                   >
-                    <div className="rounded-lg border bg-background shadow-sm p-3 cursor-grab active:cursor-grabbing">
-                      <button onClick={() => onEditField && onEditField(f.id)} className="text-left cursor-pointer w-full">
+                    <div className={`rounded-lg border bg-background shadow-sm p-3 ${readOnly ? '' : 'cursor-grab active:cursor-grabbing'}`}>
+                      <button onClick={() => !readOnly && onEditField && onEditField(f.id)} className="text-left w-full" disabled={readOnly}>
                         <div className="font-medium text-sm truncate">{f.label || '(senza titolo)'}</div>
                         <div className="text-xs text-muted-foreground">{FIELD_TYPES.find(t => t.value === f.type)?.label || f.type}</div>
                       </button>
                       {conn && src && (
                         <div className="text-xs text-amber-600 mt-1 flex items-center gap-1">
                           ← "{fieldLabel(conn.requiredIf.fieldId)}"
-                          <button onClick={() => onRemove(f.id)} className="ml-1 hover:text-red-600 cursor-pointer">✕</button>
+                          {!readOnly && <button onClick={() => onRemove(f.id)} className="ml-1 hover:text-red-600 cursor-pointer">✕</button>}
                         </div>
                       )}
                     </div>
-                    <div draggable
-                      onDragStart={e => { e.stopPropagation(); e.dataTransfer.setData('application/x-connect', f.id); e.dataTransfer.setData('text/plain', f.id) }}
-                      className="absolute -right-2.5 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full border bg-background shadow flex items-center justify-center cursor-crosshair hover:bg-muted"
-                      title="Trascina su un altro blocco per collegare">
-                      <Link2 className="h-3 w-3" />
-                    </div>
+                    {!readOnly && (
+                      <div draggable
+                        onDragStart={e => { e.stopPropagation(); e.dataTransfer.setData('application/x-connect', f.id); e.dataTransfer.setData('text/plain', f.id) }}
+                        className="absolute -right-2.5 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full border bg-background shadow flex items-center justify-center cursor-crosshair hover:bg-muted"
+                        title="Trascina su un altro blocco per collegare">
+                        <Link2 className="h-3 w-3" />
+                      </div>
+                    )}
                   </div>
                 )
               })}

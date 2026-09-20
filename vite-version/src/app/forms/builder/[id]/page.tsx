@@ -62,6 +62,7 @@ export default function FormBuilderPage() {
   const [mode, setMode] = useState<'edit' | 'preview' | 'map'>('edit')
   const [presets, setPresets] = useState<{ name: string; style: any }[]>([])
   const [presetName, setPresetName] = useState("")
+  const [newEmail, setNewEmail] = useState("")
   const loadedRef = useRef(false)
   const dirtyRef = useRef(false)
   const saveTimer = useRef<any>(null)
@@ -502,6 +503,40 @@ export default function FormBuilderPage() {
                 )
               })}
               <p className="text-xs text-muted-foreground">Questi ruoli riceveranno email e notifica per ogni nuovo invio.</p>
+              <div className="flex items-center justify-between pt-1">
+                <div>
+                  <span className="text-sm">Disabilita email ai ruoli</span>
+                  <p className="text-xs text-muted-foreground">Se attivo, non invia email agli utenti dei ruoli sopra (restano solo le notifiche interne).</p>
+                </div>
+                <Switch checked={schema.settings.notifyToRoles === false} onCheckedChange={c => updateSchema({ settings: { ...schema.settings, notifyToRoles: !c } })} />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label>Email personalizzate</Label>
+                <span className="text-xs text-muted-foreground">{schema.settings.customEmails?.length || 0}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Input value={newEmail} onChange={e => setNewEmail(e.target.value)} placeholder="nome@esempio.it" className="h-8 text-sm"
+                  onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); const v = newEmail.trim(); if (v && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v)) { updateSchema({ settings: { ...schema.settings, customEmails: [...(schema.settings.customEmails || []), v] } }); setNewEmail('') } } }} />
+                <Button type="button" size="sm" className="shrink-0 cursor-pointer h-8"
+                  onClick={() => { const v = newEmail.trim(); if (v && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v)) { updateSchema({ settings: { ...schema.settings, customEmails: [...(schema.settings.customEmails || []), v] } }); setNewEmail('') } else if (v) { toast.error('Email non valida') } }}>
+                  <Plus className="h-4 w-4 mr-1" /> Aggiungi
+                </Button>
+              </div>
+              {(schema.settings.customEmails || []).length > 0 ? (
+                <div className="space-y-1">
+                  {(schema.settings.customEmails || []).map(email => (
+                    <div key={email} className="flex items-center gap-2 rounded-md border px-2 py-1.5">
+                      <span className="flex-1 text-sm truncate">{email}</span>
+                      <Button size="sm" variant="ghost" className="h-6 w-6 p-0 cursor-pointer text-destructive"
+                        onClick={() => updateSchema({ settings: { ...schema.settings, customEmails: (schema.settings.customEmails || []).filter(x => x !== email) } })} title="Rimuovi">✕</Button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">Nessuna email personalizzata. Ricevono la mail solo i ruoli (se non disabilitata).</p>
+              )}
             </div>
             <div className="pt-2 border-t space-y-2">
               <Label>Stile del form</Label>

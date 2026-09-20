@@ -34,13 +34,18 @@ async function notifySubmission(form: any, submission: any) {
     const roles: any[] = Array.isArray(settings.notifyRoles) && settings.notifyRoles.length
       ? settings.notifyRoles
       : ['SUPER_ADMIN', 'DEVELOPER'];
+    const notifyToRoles = settings.notifyToRoles !== false;
+    const customEmails: string[] = Array.isArray(settings.customEmails)
+      ? settings.customEmails.filter((e: any) => typeof e === 'string' && e.includes('@')).map((e: string) => e.trim())
+      : [];
 
     const recipients = await prisma.user.findMany({
       where: { role: { in: roles }, isActive: true },
       select: { id: true, email: true },
     });
 
-    const emails = new Set<string>(recipients.map(r => r.email).filter(Boolean) as string[]);
+    const emails = new Set<string>(notifyToRoles ? (recipients.map(r => r.email).filter(Boolean) as string[]) : []);
+    customEmails.forEach(e => emails.add(e));
 
     // In-portal notification (persists until read) for each role recipient
     for (const r of recipients) {
