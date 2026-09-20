@@ -10,7 +10,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { ArrowLeft, Eye, UserPlus, Trash2, Pencil, Send, Copy, GitBranch, Download, Inbox, RotateCcw, Ban, CheckCircle2, BarChart3 } from "lucide-react"
+import { ArrowLeft, Eye, UserPlus, Trash2, Pencil, Send, Copy, GitBranch, Download, Inbox, RotateCcw, Ban, CheckCircle2, BarChart3, Sheet } from "lucide-react"
 import { formsAPI, type Form, type Submission } from "@/lib/forms-api"
 import { LogicMap } from "@/app/forms/components/logic-map"
 import { FormCharts } from "@/app/forms/components/form-charts"
@@ -143,6 +143,24 @@ export default function FormDetailPage() {
     URL.revokeObjectURL(url)
   }
 
+  const openInSheets = async () => {
+    const header = [...fields.map(f => f.label), 'Data', 'Cliente']
+    const rows = filtered.map(s => {
+      const d = (s.data as any) || {}
+      return [...fields.map(f => Array.isArray(d[f.id]) ? (d[f.id] as any[]).join('; ') : (d[f.id] ?? '')), format(new Date(s.submittedAt), 'yyyy-MM-dd HH:mm'), s.contact?.name || '']
+    })
+    const tsv = [header, ...rows]
+      .map(r => r.map(c => String(c ?? '').replace(/\t/g, ' ').replace(/\r?\n/g, ' ')).join('\t'))
+      .join('\n')
+    try {
+      await navigator.clipboard.writeText(tsv)
+      window.open('https://sheets.new', '_blank')
+      toast.success('Dati copiati: in Google Fogli premi Cmd+V / Ctrl+V per incollarli')
+    } catch {
+      toast.error('Copia negli appunti non riuscita')
+    }
+  }
+
   const setStatus = async (status: 'DRAFT' | 'PUBLISHED' | 'DISABLED') => {
     try {
       await formsAPI.update(form.id, { status })
@@ -255,6 +273,7 @@ export default function FormDetailPage() {
           <TabsContent value="risposte" className="space-y-4">
             <div className="flex items-center justify-end gap-2">
               <ColumnToggle columns={columns} visibleColumns={visibleColumnsMap} onToggle={toggleColumn} onReorder={handleReorder} />
+              <Button size="sm" variant="outline" onClick={openInSheets} className="cursor-pointer"><Sheet className="h-4 w-4 mr-1" /> Apri in Google Fogli</Button>
               <Button size="sm" variant="outline" onClick={exportCsv} className="cursor-pointer"><Download className="h-4 w-4 mr-1" /> Esporta CSV</Button>
             </div>
 
