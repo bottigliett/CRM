@@ -584,6 +584,12 @@ export default function FormBuilderPage() {
                   </SelectContent>
                 </Select>
               </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm">Larghezza form (px)</span>
+                <Input type="number" min={320} max={1200} step={10} value={schema.settings.style?.width || 640}
+                  onChange={e => { const n = parseInt(e.target.value); updateSchema({ settings: { ...schema.settings, style: { ...schema.settings.style, width: isNaN(n) ? 640 : n } } }) }}
+                  className="w-24 h-8 text-xs" />
+              </div>
 
               {/* Presets */}
               <div className="pt-2 border-t space-y-2">

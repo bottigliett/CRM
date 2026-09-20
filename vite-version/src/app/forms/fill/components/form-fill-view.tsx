@@ -132,6 +132,7 @@ export function FormFillView({
   const alignment = schema.settings.style?.alignment || 'center'
   const inputSize = schema.settings.style?.inputSize || 'md'
   const showBanner = schema.settings.style?.showBanner !== false
+  const formWidth = schema.settings.style?.width || 640
 
   const alignClass = alignment === 'left' ? 'mr-auto ml-0' : alignment === 'right' ? 'ml-auto mr-0' : 'mx-auto'
   const inputH = inputSize === 'sm' ? 'h-8' : inputSize === 'lg' ? 'h-12' : 'h-10'
@@ -151,7 +152,7 @@ export function FormFillView({
           </div>
         </div>
       </div>
-      <div className={`px-4 lg:px-6 py-8 sm:py-12 ${alignClass}`}>
+      <div className={`px-4 py-8 sm:py-12 ${alignClass}`} style={{ maxWidth: `${formWidth}px` }}>
         {showBanner && (
           <div className="mb-8">
             <h1 className="text-2xl font-bold">{name}</h1>

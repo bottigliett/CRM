@@ -22,7 +22,7 @@ export interface FormField {
 export interface FormSchema {
   fields: FormField[]
   pages: { title: string }[]
-  settings: { reviewBeforeSubmit: boolean; notifyRoles: string[]; notifyToRoles?: boolean; customEmails?: string[]; style?: { primaryColor?: string; backgroundColor?: string; alignment?: 'center' | 'left' | 'right'; inputSize?: 'sm' | 'md' | 'lg'; showBanner?: boolean } }
+  settings: { reviewBeforeSubmit: boolean; notifyRoles: string[]; notifyToRoles?: boolean; customEmails?: string[]; style?: { primaryColor?: string; backgroundColor?: string; alignment?: 'center' | 'left' | 'right'; inputSize?: 'sm' | 'md' | 'lg'; showBanner?: boolean; width?: number } }
 }
 
 export interface Form {
