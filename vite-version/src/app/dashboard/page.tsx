@@ -21,6 +21,8 @@ import {
   ArrowDownCircle,
   Euro,
   ClipboardList,
+  Users,
+  Contact,
 } from "lucide-react"
 import { tasksAPI, type Task } from "@/lib/tasks-api"
 import { eventsAPI, type Event } from "@/lib/events-api"
@@ -828,7 +830,7 @@ export default function DashboardPage() {
       )}
 
       {/* Stats Box - Come nel CRM originale */}
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {hasContactsAccess && (
           <Card>
             {shouldProtectData ? (
@@ -837,7 +839,10 @@ export default function DashboardPage() {
               <>
                 <CardHeader className="pb-3">
                   <CardDescription>Clienti Attivi</CardDescription>
-                  <CardTitle className="text-2xl">{activeClientsCount}</CardTitle>
+                  <CardTitle className="text-2xl flex items-center gap-2">
+                    <Users className="h-5 w-5 text-muted-foreground" />
+                    {activeClientsCount}
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <p className="text-xs text-muted-foreground">Totale clienti attivi</p>
@@ -855,8 +860,8 @@ export default function DashboardPage() {
               <>
                 <CardHeader className="pb-3">
                   <CardDescription>Valore Pipeline {new Date().getFullYear()}</CardDescription>
-                  <CardTitle className="text-3xl flex items-center gap-2">
-                    <Euro className="h-6 w-6" />
+                  <CardTitle className="text-2xl flex items-center gap-2">
+                    <Euro className="h-5 w-5 text-muted-foreground" />
                     {leadboardValue.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </CardTitle>
                 </CardHeader>
@@ -876,7 +881,10 @@ export default function DashboardPage() {
               <>
                 <CardHeader className="pb-3">
                   <CardDescription>Numero Contatti</CardDescription>
-                  <CardTitle className="text-2xl">{totalContactsCount}</CardTitle>
+                  <CardTitle className="text-2xl flex items-center gap-2">
+                    <Contact className="h-5 w-5 text-muted-foreground" />
+                    {totalContactsCount}
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <p className="text-xs text-muted-foreground">Totale contatti in anagrafica</p>
