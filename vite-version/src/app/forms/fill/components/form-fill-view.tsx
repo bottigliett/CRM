@@ -9,6 +9,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { ChevronLeft, ChevronRight, CheckCircle2, ArrowLeft, Eye, Pencil, Link2 } from "lucide-react"
+import { ThemeToggle } from "@/components/theme-toggle"
 import type { FormSchema, FormField } from "@/lib/forms-api"
 
 export function FormFillView({
@@ -137,14 +138,19 @@ export function FormFillView({
 
   return (
     <div className="min-h-dvh" style={{ backgroundColor: backgroundColor || undefined }}>
-      {preview && (
-        <div className="border-b bg-muted/50">
-          <div className="max-w-xl mx-auto px-4 py-2 flex items-center justify-between text-sm">
+      <div className="border-b bg-muted/50">
+        <div className="max-w-xl mx-auto px-4 py-2 flex items-center justify-between text-sm">
+          {preview ? (
             <span className="flex items-center gap-2 text-muted-foreground"><Eye className="h-4 w-4" /> Anteprima del form</span>
-            {onBack && <Button variant="ghost" size="sm" onClick={onBack} className="cursor-pointer"><ArrowLeft className="h-4 w-4 mr-1" /> Esci</Button>}
+          ) : (
+            <span className="text-muted-foreground">{name}</span>
+          )}
+          <div className="flex items-center gap-1">
+            <ThemeToggle />
+            {preview && onBack && <Button variant="ghost" size="sm" onClick={onBack} className="cursor-pointer"><ArrowLeft className="h-4 w-4 mr-1" /> Esci</Button>}
           </div>
         </div>
-      )}
+      </div>
       <div className={`max-w-xl px-4 py-8 sm:py-12 ${alignClass}`}>
         {showBanner && (
           <div className="mb-8">
