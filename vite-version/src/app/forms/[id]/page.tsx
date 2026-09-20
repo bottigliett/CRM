@@ -10,9 +10,10 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { ArrowLeft, Eye, UserPlus, Trash2, Pencil, Send, Copy, GitBranch, Download, Inbox, RotateCcw, Ban, CheckCircle2 } from "lucide-react"
+import { ArrowLeft, Eye, UserPlus, Trash2, Pencil, Send, Copy, GitBranch, Download, Inbox, RotateCcw, Ban, CheckCircle2, BarChart3 } from "lucide-react"
 import { formsAPI, type Form, type Submission } from "@/lib/forms-api"
 import { LogicMap } from "@/app/forms/components/logic-map"
+import { FormCharts } from "@/app/forms/components/form-charts"
 import { ColumnToggle, type ColumnDef as ToggleColumnDef } from "@/components/ui/column-toggle"
 import { contactsAPI, type Contact } from "@/lib/contacts-api"
 import { format } from "date-fns"
@@ -247,6 +248,7 @@ export default function FormDetailPage() {
         <Tabs value={tab} onValueChange={setTab}>
           <TabsList>
             <TabsTrigger value="risposte"><Inbox className="h-4 w-4 mr-1" /> Risposte ({submissions.length})</TabsTrigger>
+            <TabsTrigger value="grafici"><BarChart3 className="h-4 w-4 mr-1" /> Grafici</TabsTrigger>
             <TabsTrigger value="collegamenti"><GitBranch className="h-4 w-4 mr-1" /> Collegamenti</TabsTrigger>
           </TabsList>
 
@@ -321,6 +323,10 @@ export default function FormDetailPage() {
                 </CardContent>
               </Card>
             )}
+          </TabsContent>
+
+          <TabsContent value="grafici">
+            <FormCharts fields={fields} submissions={submissions} />
           </TabsContent>
 
           <TabsContent value="collegamenti">
