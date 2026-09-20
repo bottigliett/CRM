@@ -264,7 +264,7 @@ export default function FormBuilderPage() {
     persistPresets(next)
   }
 
-  const addField = (type: FieldType, page: number = 0) => updateSchema({ fields: [...schema.fields, newField(page, type)] })
+  const addField = (type: FieldType, page: number = 0) => updateSchema({ fields: [newField(page, type), ...schema.fields] })
 
   const removeField = (id: string) => {
     // also clear requiredIf pointing to removed field
