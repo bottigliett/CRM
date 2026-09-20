@@ -10,8 +10,9 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { ArrowLeft, Eye, UserPlus, Trash2, Pencil, Send, Copy, GitBranch, Download, Inbox, RotateCcw, Ban, CheckCircle2, Plus } from "lucide-react"
-import { formsAPI, FIELD_TYPES, type Form, type Submission } from "@/lib/forms-api"
+import { ArrowLeft, Eye, UserPlus, Trash2, Pencil, Send, Copy, GitBranch, Download, Inbox, RotateCcw, Ban, CheckCircle2 } from "lucide-react"
+import { formsAPI, type Form, type Submission } from "@/lib/forms-api"
+import { LogicMap } from "@/app/forms/components/logic-map"
 import { ColumnToggle, type ColumnDef as ToggleColumnDef } from "@/components/ui/column-toggle"
 import { contactsAPI, type Contact } from "@/lib/contacts-api"
 import { format } from "date-fns"
@@ -37,7 +38,6 @@ export default function FormDetailPage() {
   const [assigning, setAssigning] = useState<Submission | null>(null)
   const [contactSearch, setContactSearch] = useState("")
   const [contacts, setContacts] = useState<Contact[]>([])
-  const [connectingFromId, setConnectingFromId] = useState<string | null>(null)
 
   const formId = id ? parseInt(id) : NaN
 
@@ -196,6 +196,30 @@ export default function FormDetailPage() {
     } catch (e: any) { toast.error(e.message) }
   }
 
+  const addFieldAt = async (type: string, x: number, y: number) => {
+    if (!form) return
+    const f: any = {
+      id: `f${Date.now()}${Math.floor(Math.random() * 1000)}`, type, label: '', placeholder: '', required: false, page: 0, x, y,
+      ...(type === 'select' || type === 'radio' ? { options: ['Opzione 1', 'Opzione 2'] } : {}),
+    }
+    const nextSchema = { ...(form.schema as any), fields: [...(form.schema as any).fields, f] }
+    try {
+      await formsAPI.update(form.id, { schema: nextSchema })
+      setForm({ ...form, schema: nextSchema })
+      toast.success('Campo aggiunto')
+    } catch (e: any) { toast.error(e.message) }
+  }
+
+  const moveField = async (fid: string, x: number, y: number) => {
+    if (!form) return
+    const nextFields = (form.schema as any).fields.map((f: any) => f.id === fid ? { ...f, x, y } : f)
+    const nextSchema = { ...(form.schema as any), fields: nextFields }
+    try {
+      await formsAPI.update(form.id, { schema: nextSchema })
+      setForm({ ...form, schema: nextSchema })
+    } catch (e: any) { toast.error(e.message) }
+  }
+
   return (
     <BaseLayout title={form.name} description="Gestione form: risposte, collegamenti e pubblicazione">
       <div className="px-4 lg:px-6 space-y-4">
@@ -300,56 +324,18 @@ export default function FormDetailPage() {
           </TabsContent>
 
           <TabsContent value="collegamenti">
-            <Card>
-              <CardContent className="pt-6">
-                <p className="text-sm text-muted-foreground mb-4">
-                  Trascina il <strong>pallino ⊕</strong> di un campo su un altro campo per renderlo obbligatorio quando il primo è compilato.
-                </p>
-                {fields.length === 0 ? (
-                  <p className="text-sm text-muted-foreground py-6 text-center">Nessun campo nel form.</p>
-                ) : (
-                  <div className="space-y-2">
-                    {fields.map((f: any) => {
-                      const typeLabel = FIELD_TYPES.find(t => t.value === f.type)?.label || f.type
-                      const conn = connections.find((c: any) => c.id === f.id)
-                      const src = conn ? fields.find(x => x.id === conn.requiredIf.fieldId) : null
-                      return (
-                        <div
-                          key={f.id}
-                          onDragOver={e => e.preventDefault()}
-                          onDrop={e => { e.preventDefault(); const sid = e.dataTransfer.getData('text/plain') || connectingFromId; if (sid) setConnection(sid, f.id) }}
-                          className={`flex items-center gap-2 rounded-lg border p-3 bg-background transition-colors ${connectingFromId ? 'border-dashed border-muted-foreground/40' : ''}`}
-                        >
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between gap-2 flex-wrap">
-                              <div>
-                                <div className="font-medium text-sm">{f.label || '(senza titolo)'}</div>
-                                <div className="text-xs text-muted-foreground">{typeLabel}</div>
-                              </div>
-                              {conn && src && (
-                                <span className="text-xs rounded bg-amber-100 dark:bg-amber-950/40 px-2 py-0.5 text-amber-700 dark:text-amber-400 flex items-center gap-1">
-                                  ← da "{src.label || '(campo)'}"
-                                  <button onClick={() => removeConnection(f.id)} className="ml-1 text-amber-700 dark:text-amber-400 hover:text-red-600 cursor-pointer" title="Rimuovi collegamento">✕</button>
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                          <div
-                            draggable
-                            onDragStart={e => { e.dataTransfer.setData('text/plain', f.id); setConnectingFromId(f.id) }}
-                            onDragEnd={() => setConnectingFromId(null)}
-                            className="shrink-0 w-7 h-7 rounded-full border flex items-center justify-center cursor-grab active:cursor-grabbing hover:bg-muted text-muted-foreground hover:text-foreground"
-                            title="Trascina su un altro campo per collegare"
-                          >
-                            <Plus className="h-3.5 w-3.5" />
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+            <p className="text-sm text-muted-foreground">
+              Costruzione a schema: trascina i campi sulla tavola, spostali e collega il <strong>pallino ⊕</strong> di un campo su un altro per renderlo obbligatorio quando il primo è compilato.
+            </p>
+            <LogicMap
+              fields={fields}
+              connections={connections}
+              onConnect={setConnection}
+              onRemove={removeConnection}
+              onAddFieldAt={addFieldAt}
+              onMoveField={moveField}
+              fieldLabel={(fid) => fields.find(f => f.id === fid)?.label || '(campo)'}
+            />
           </TabsContent>
         </Tabs>
       </div>
