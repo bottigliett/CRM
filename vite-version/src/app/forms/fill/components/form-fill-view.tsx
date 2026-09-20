@@ -139,11 +139,11 @@ export function FormFillView({
   return (
     <div className="min-h-dvh" style={{ backgroundColor: backgroundColor || undefined }}>
       <div className="border-b bg-muted/50">
-        <div className="max-w-xl mx-auto px-4 py-2 flex items-center justify-between text-sm">
+        <div className="px-4 lg:px-6 h-14 flex items-center justify-between text-sm">
           {preview ? (
             <span className="flex items-center gap-2 text-muted-foreground"><Eye className="h-4 w-4" /> Anteprima del form</span>
           ) : (
-            <span className="text-muted-foreground">{name}</span>
+            <span className="text-muted-foreground truncate pr-2">{name}</span>
           )}
           <div className="flex items-center gap-1">
             <ThemeToggle />
@@ -151,7 +151,7 @@ export function FormFillView({
           </div>
         </div>
       </div>
-      <div className={`max-w-xl px-4 py-8 sm:py-12 ${alignClass}`}>
+      <div className={`px-4 lg:px-6 py-8 sm:py-12 ${alignClass}`}>
         {showBanner && (
           <div className="mb-8">
             <h1 className="text-2xl font-bold">{name}</h1>

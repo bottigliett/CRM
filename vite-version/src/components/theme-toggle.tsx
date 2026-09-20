@@ -1,12 +1,9 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { useTheme } from "@/hooks/use-theme"
 import { Moon, Sun } from "lucide-react"
 
 export function ThemeToggle() {
-  const { setTheme } = useTheme()
-
   return (
     <Button
       type="button"
@@ -14,8 +11,12 @@ export function ThemeToggle() {
       size="icon"
       className="relative h-9 w-9 cursor-pointer text-foreground"
       onClick={() => {
-        const isDark = document.documentElement.classList.contains("dark")
-        setTheme(isDark ? "light" : "dark")
+        const root = document.documentElement
+        const isDark = root.classList.contains("dark")
+        const next = isDark ? "light" : "dark"
+        root.classList.remove("light", "dark")
+        root.classList.add(next)
+        localStorage.setItem("vite-ui-theme", next)
       }}
       title="Cambia sfondo (chiaro/scuro)"
     >
