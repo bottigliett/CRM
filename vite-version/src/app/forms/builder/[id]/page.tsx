@@ -22,6 +22,29 @@ const newField = (page: number, type: FieldType = 'text'): FormField => ({
   ...(type === 'select' || type === 'radio' ? { options: ['Opzione 1', 'Opzione 2'] } : {}),
 })
 
+function FieldPalette({ onAdd, onAddPage }: { onAdd: (type: FieldType) => void; onAddPage?: () => void }) {
+  return (
+    <div className="space-y-1">
+      <div className="text-xs font-medium text-muted-foreground mb-1">Aggiungi campo (trascina o clicca)</div>
+      {FIELD_TYPES.map(ft => (
+        <div key={ft.value} draggable
+          onClick={() => onAdd(ft.value)}
+          onDragStart={e => e.dataTransfer.setData('application/x-add-field', ft.value)}
+          className="rounded-md border px-2 py-1.5 text-xs cursor-pointer hover:bg-muted transition-colors">
+          {ft.label}
+        </div>
+      ))}
+      {onAddPage && (
+        <div className="pt-2 border-t">
+          <Button variant="outline" size="sm" onClick={onAddPage} className="w-full cursor-pointer">
+            <Plus className="h-4 w-4 mr-1" /> Pagina
+          </Button>
+        </div>
+      )}
+    </div>
+  )
+}
+
 function LogicMap({
   fields,
   connections,
@@ -373,24 +396,10 @@ export default function FormBuilderPage() {
         )}
 
         {mode === 'edit' && (
-        <div className="grid gap-4 lg:grid-cols-[220px_1fr]">
+        <div className="grid gap-4 lg:grid-cols-[200px_1fr]">
           {/* Palette */}
-          <div className="space-y-2">
-            <div className="text-sm font-medium">Aggiungi campo</div>
-            <div className="grid grid-cols-2 lg:grid-cols-1 gap-1">
-              {FIELD_TYPES.map(ft => (
-                <button key={ft.value} onClick={() => addField(ft.value)} draggable
-                  onDragStart={e => e.dataTransfer.setData('application/x-field-type', ft.value)}
-                  className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm hover:bg-muted transition-colors text-left cursor-grab active:cursor-grabbing">
-                  <Plus className="h-3.5 w-3.5 text-muted-foreground" /> {ft.label}
-                </button>
-              ))}
-            </div>
-            <div className="pt-3 border-t">
-              <Button variant="outline" size="sm" onClick={addPage} className="w-full cursor-pointer">
-                <Plus className="h-4 w-4 mr-1" /> Pagina
-              </Button>
-            </div>
+          <div className="w-48 shrink-0">
+            <FieldPalette onAdd={(t) => addField(t, 0)} onAddPage={addPage} />
           </div>
 
           {/* Fields */}
@@ -466,16 +475,8 @@ export default function FormBuilderPage() {
 
         {mode === 'preview' && (
           <div className="grid gap-4 lg:grid-cols-[200px_1fr]">
-            <div className="space-y-1">
-              <div className="text-xs font-medium text-muted-foreground mb-1">Trascina o clicca un campo</div>
-              {FIELD_TYPES.map(ft => (
-                <div key={ft.value} draggable
-                  onClick={() => addField(ft.value, 0)}
-                  onDragStart={e => e.dataTransfer.setData('application/x-add-field', ft.value)}
-                  className="rounded-md border px-2 py-1.5 text-xs cursor-pointer hover:bg-muted">
-                  {ft.label}
-                </div>
-              ))}
+            <div className="w-48 shrink-0">
+              <FieldPalette onAdd={(t) => addField(t, 0)} />
             </div>
             <div onDragOver={e => e.preventDefault()}
               onDrop={e => { e.preventDefault(); const t = e.dataTransfer.getData('application/x-add-field') as FieldType; if (t) addField(t, 0) }}>
