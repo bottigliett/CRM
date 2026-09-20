@@ -149,15 +149,42 @@ export default function FormDetailPage() {
       const d = (s.data as any) || {}
       return [...fields.map(f => Array.isArray(d[f.id]) ? (d[f.id] as any[]).join('; ') : (d[f.id] ?? '')), format(new Date(s.submittedAt), 'yyyy-MM-dd HH:mm'), s.contact?.name || '']
     })
-    const tsv = [header, ...rows]
-      .map(r => r.map(c => String(c ?? '').replace(/\t/g, ' ').replace(/\r?\n/g, ' ')).join('\t'))
-      .join('\n')
     try {
-      await navigator.clipboard.writeText(tsv)
-      window.open('https://sheets.new', '_blank')
-      toast.success('Dati copiati: in Google Fogli premi Cmd+V / Ctrl+V per incollarli')
+      const { Workbook } = await import('exceljs')
+      const wb = new Workbook()
+      const ws = wb.addWorksheet((form.name || 'Risposte').slice(0, 31))
+      ws.addRow(header)
+      const headerRow = ws.getRow(1)
+      headerRow.height = 24
+      const border = {
+        top: { style: 'thin', color: { argb: 'FFD2E3FC' } },
+        left: { style: 'thin', color: { argb: 'FFD2E3FC' } },
+        bottom: { style: 'medium', color: { argb: 'FF174EA6' } },
+        right: { style: 'thin', color: { argb: 'FFD2E3FC' } },
+      } as any
+      headerRow.eachCell(cell => {
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1A73E8' } }
+        cell.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 11 }
+        cell.alignment = { horizontal: 'center', vertical: 'middle' }
+        cell.border = border
+      })
+      rows.forEach(r => ws.addRow(r.map(c => String(c ?? ''))))
+      ws.views = [{ state: 'frozen', ySplit: 1 }]
+      header.forEach((h, i) => {
+        const maxLen = Math.max(String(h).length, ...rows.map(r => String(r[i] ?? '').length))
+        ws.getColumn(i + 1).width = Math.min(Math.max(maxLen + 2, 12), 44)
+      })
+      const buf = await wb.xlsx.writeBuffer()
+      const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${(form.name || 'form').replace(/[^\w\-]+/g, '_')}.xlsx`
+      a.click()
+      URL.revokeObjectURL(url)
+      toast.success('File XLSX scaricato: caricalo su Google Drive per aprirlo in Fogli')
     } catch {
-      toast.error('Copia negli appunti non riuscita')
+      toast.error('Generazione XLSX non riuscita')
     }
   }
 
@@ -273,7 +300,7 @@ export default function FormDetailPage() {
           <TabsContent value="risposte" className="space-y-4">
             <div className="flex items-center justify-end gap-2">
               <ColumnToggle columns={columns} visibleColumns={visibleColumnsMap} onToggle={toggleColumn} onReorder={handleReorder} />
-              <Button size="sm" variant="outline" onClick={openInSheets} className="cursor-pointer"><Sheet className="h-4 w-4 mr-1" /> Apri in Google Fogli</Button>
+              <Button size="sm" variant="outline" onClick={openInSheets} className="cursor-pointer"><Sheet className="h-4 w-4 mr-1" /> Esporta XLSX (Fogli)</Button>
               <Button size="sm" variant="outline" onClick={exportCsv} className="cursor-pointer"><Download className="h-4 w-4 mr-1" /> Esporta CSV</Button>
             </div>
 
