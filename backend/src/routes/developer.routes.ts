@@ -17,6 +17,7 @@ import {
   updatePersonalClient,
   deletePersonalClient,
   getPersonalInvoices,
+  getPersonalInvoice,
   createPersonalInvoice,
   updatePersonalInvoice,
   deletePersonalInvoice,
@@ -78,6 +79,7 @@ router.delete('/personal/clients/:id', deletePersonalClient);
 // Personal invoices
 router.get('/personal/invoices', getPersonalInvoices);
 router.get('/personal/invoices/next-number', getNextPersonalInvoiceNumber);
+router.get('/personal/invoices/:id', getPersonalInvoice);
 router.post('/personal/invoices', createPersonalInvoice);
 router.put('/personal/invoices/:id', updatePersonalInvoice);
 router.patch('/personal/invoices/:id', patchPersonalInvoice);

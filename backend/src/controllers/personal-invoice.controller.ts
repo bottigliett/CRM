@@ -88,6 +88,22 @@ export const getPersonalInvoices = async (req: AuthRequest, res: Response) => {
   }
 };
 
+export const getPersonalInvoice = async (req: AuthRequest, res: Response) => {
+  const userId = await requireDeveloper(req, res);
+  if (userId === null) return;
+  try {
+    const id = parseInt(req.params.id);
+    const invoice = await prisma.personalInvoice.findUnique({
+      where: { id },
+      include: { personalClient: true, paymentEntity: true },
+    });
+    if (!invoice) return res.status(404).json({ success: false, message: 'Fattura non trovata' });
+    return res.json({ success: true, data: invoice });
+  } catch (e: any) {
+    return res.status(500).json({ success: false, message: e.message });
+  }
+};
+
 function nextInvoiceNumber(year: number, existing: string[]): string {
   const prefix = `PERS/${year}/`;
   const nums = existing
