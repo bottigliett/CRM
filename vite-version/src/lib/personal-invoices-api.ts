@@ -88,7 +88,58 @@ class PersonalInvoicesAPI {
 
   async getInvoicePDFData(id: number) {
     const r = await request<{ success: boolean; data: any }>(`/developer/personal/invoices/${id}`);
-    return { ...r, data: { ...r.data, personal: true } };
+    const inv = r.data;
+    const mesi = ['gennaio', 'febbraio', 'marzo', 'aprile', 'maggio', 'giugno', 'luglio', 'agosto', 'settembre', 'ottobre', 'novembre', 'dicembre'];
+    const fmtIssue = (iso: string) => {
+      const d = new Date(iso);
+      return isNaN(d.getTime()) ? '' : `${d.getDate()} ${mesi[d.getMonth()]} ${d.getFullYear()}`;
+    };
+    const fmtDue = (iso: string) => {
+      const d = new Date(iso);
+      return isNaN(d.getTime()) ? '' : `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+    };
+    let services: any[] = [];
+    try {
+      const parsed = inv.description ? JSON.parse(inv.description) : [];
+      services = Array.isArray(parsed) ? parsed.map((s: any) => ({
+        description: s.description,
+        quantity: String(s.quantity),
+        unitPrice: Number(s.unitPrice) > 0 ? Number(s.unitPrice).toFixed(2).replace('.', ',') : '',
+      })) : [];
+    } catch {
+      services = [{
+        description: inv.description || inv.subject,
+        quantity: String(inv.quantity),
+        unitPrice: Number(inv.unitPrice) > 0 ? Number(inv.unitPrice).toFixed(2).replace('.', ',') : '',
+      }];
+    }
+    return {
+      ...r,
+      data: {
+        invoiceNumber: inv.invoiceNumber,
+        invoiceDate: fmtIssue(inv.issueDate),
+        paymentDays: inv.paymentDays,
+        dueDate: fmtDue(inv.dueDate),
+        clientName: inv.clientName,
+        clientAddress: inv.clientAddress,
+        clientPIva: inv.clientPIva,
+        clientCF: inv.clientCF,
+        subject: inv.subject,
+        services,
+        subtotal: Number(inv.subtotal).toFixed(2).replace('.', ','),
+        vatPercentage: String(Math.round(Number(inv.vatPercentage))),
+        vatAmount: Number(inv.vatAmount).toFixed(2).replace('.', ','),
+        total: Number(inv.total).toFixed(2).replace('.', ','),
+        fiscalNotes: inv.fiscalNotes,
+        isVatZero: Number(inv.vatPercentage) === 0,
+        paymentBeneficiary: inv.paymentEntity?.beneficiary || 'DAVIDE MARANGONI',
+        paymentIban: inv.paymentEntity?.iban || 'LT95 3250 0482 6617 5203',
+        paymentBank: inv.paymentEntity?.bankName || 'REVOLUT BANK UAB',
+        paymentBic: inv.paymentEntity?.bic || 'REVOLT21',
+        paymentSdi: inv.paymentEntity?.sdi || 'JI3TXCE',
+        personal: true,
+      },
+    };
   }
 
   async reserveTaxes(id: number, taxPercentage?: number) {

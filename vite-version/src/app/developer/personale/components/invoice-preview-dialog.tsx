@@ -133,6 +133,13 @@ function getInvoicePreviewHTML(data: any): string {
         <!-- HEADER -->
         <div style="display: grid; grid-template-columns: 1fr 1fr; column-gap: 18mm;">
           <div>
+            ${data.personal ? `
+            <span style="display: block;">DAVIDE MARANGONI</span>
+            <span style="display: block;">IT05052740239</span>
+            <span style="display: block;">marangonidavide05@gmail.com</span>
+            <span style="display: block;">+39 3275995680</span>
+            <span style="display: block;">Via Dossobuono 16, Sommacampagna Verona</span>
+            ` : `
             <span style="display: block;">MISMO®STUDIO</span>
             <span style="display: block;">di Stefano Costato e Davide Marangoni</span>
             <span style="display: block;">P.IVA IT04904900232 / IT05052740239</span>
@@ -140,6 +147,7 @@ function getInvoicePreviewHTML(data: any): string {
             <span style="display: block;">(+39) 375 620 9885</span>
             <span style="display: block;">Via Madonna 14 - 37026</span>
             <span style="display: block;">Pescantina / Verona - IT</span>
+            `}
           </div>
           <div style="justify-self: end; max-width: 78mm; width: 100%;">
             <div style="display: grid; grid-template-columns: 1fr auto; column-gap: 10mm;">
