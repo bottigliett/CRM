@@ -22,6 +22,7 @@ import {
   Activity,
   Link2,
   ClipboardList,
+  BarChart3,
 } from "lucide-react"
 import { Link } from "react-router-dom"
 import { Logo } from "@/components/logo"
@@ -204,6 +205,11 @@ const developerNavGroup: NavGroup = {
       title: "Personale",
       url: "/developer/personale",
       icon: Lock,
+    },
+    {
+      title: "Analytics",
+      url: "/developer/analytics",
+      icon: BarChart3,
     },
   ],
 }

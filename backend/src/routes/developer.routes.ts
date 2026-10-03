@@ -32,6 +32,7 @@ import {
   patchPersonalInvoice,
   duplicatePersonalInvoice,
 } from '../controllers/personal-invoice.controller';
+import { getAnalytics } from '../controllers/developer-analytics.controller';
 
 const router = Router();
 
@@ -49,6 +50,9 @@ router.get('/database', getDatabaseInfo);
 
 // GET /api/developer/activity-history - Storico attività ultimi 7 giorni
 router.get('/activity-history', getActivityHistory);
+
+// GET /api/developer/analytics - Report aziendale privato (DEVELOPER only)
+router.get('/analytics', getAnalytics);
 
 // POST /api/developer/clean-sessions - Pulizia sessioni scadute
 router.post('/clean-sessions', cleanOldSessions);
