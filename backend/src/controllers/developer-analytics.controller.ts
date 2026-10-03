@@ -18,6 +18,23 @@ async function requireDeveloper(req: AuthRequest, res: Response): Promise<number
 
 const EXCL = "(COALESCE(client_name,'') NOT LIKE '%DIEFFE%' AND COALESCE(client_name,'') NOT LIKE '%MISMO%')";
 
+// Recursively coerce BigInt / Prisma Decimal to plain JS values (safe for JSON).
+function normalize(value: any): any {
+  if (value === null || value === undefined) return value;
+  if (typeof value === 'bigint') return Number(value);
+  if (value instanceof Date) return value;
+  if (Array.isArray(value)) return value.map(normalize);
+  if (typeof value === 'object') {
+    if (typeof value.toJSON === 'function' && value.constructor?.name === 'Decimal') {
+      return Number(value.toString());
+    }
+    const out: any = {};
+    for (const k of Object.keys(value)) out[k] = normalize(value[k]);
+    return out;
+  }
+  return value;
+}
+
 /**
  * Private company analytics (DEVELOPER only).
  * Excludes DIEFFE BROS and MISMO by request.
@@ -165,7 +182,7 @@ export const getAnalytics = async (req: AuthRequest, res: Response) => {
 
     res.json({
       success: true,
-      data: {
+      data: normalize({
         totals: {
           paidRevenue: paid,
           issued,
@@ -181,9 +198,9 @@ export const getAnalytics = async (req: AuthRequest, res: Response) => {
           taskEstHours: Number(taskH[0]?.taskEstHours) || 0,
         },
         yearly: yearlyRev.map((r: any) => ({
-          year: r.y,
+          year: Number(r.y),
           revenue: Number(r.revenue) || 0,
-          expenses: Number((yearlyExp.find((e: any) => e.y === r.y) || {}).expenses) || 0,
+          expenses: Number((yearlyExp.find((e: any) => Number(e.y) === Number(r.y)) || {}).expenses) || 0,
         })),
         monthly: monthlyRev.map((r: any) => {
           const ex = monthlyExp.find((e: any) => e.m === r.m);
@@ -193,7 +210,7 @@ export const getAnalytics = async (req: AuthRequest, res: Response) => {
         overdue: overdue.map((r: any) => ({ client: r.cliente, invoiceNumber: r.num, total: Number(r.total) || 0, dueDate: r.due, overdueDays: Number(r.overdue_days) || 0 })),
         timeByCategory: timeByCategory.map((r: any) => ({ category: r.category, events: Number(r.events) || 0, hours: Number(r.hours) || 0 })),
         expenseByCategory: expenseByCategory.map((r: any) => ({ category: r.category, count: Number(r.n) || 0, total: Number(r.total) || 0 })),
-      },
+      }),
     });
   } catch (e: any) {
     console.error('[analytics] error:', e.message);
