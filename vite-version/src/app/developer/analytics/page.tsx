@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
+import { Navigate } from "react-router-dom"
 import { BaseLayout } from "@/components/layouts/base-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -8,11 +9,13 @@ import { Badge } from "@/components/ui/badge"
 import { Euro, TrendingUp, TrendingDown, Wallet, Clock } from "lucide-react"
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, Legend, CartesianGrid } from "recharts"
 import { developerAnalyticsAPI, type AnalyticsData } from "@/lib/developer-analytics-api"
+import { useAuthStore } from "@/store/auth-store"
 import { toast } from "sonner"
 
 const eur = (n: number) => `€ ${(n ?? 0).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 
 export default function DeveloperAnalyticsPage() {
+  const user = useAuthStore(s => s.user)
   const [data, setData] = useState<AnalyticsData | null>(null)
   const [loading, setLoading] = useState(true)
   const [clientSort, setClientSort] = useState<'revenue' | 'euroPerHour'>('revenue')
@@ -35,6 +38,11 @@ export default function DeveloperAnalyticsPage() {
     else c.sort((a, b) => (b.euroPerHour ?? -1) - (a.euroPerHour ?? -1))
     return c
   }, [data, clientSort])
+
+  // Solo DEVELOPER può accedere; gli altri (SUPER_ADMIN, ADMIN, ecc.) vengono rimandati alla dashboard.
+  if (user && user.role !== "DEVELOPER") {
+    return <Navigate to="/dashboard" replace />
+  }
 
   if (loading) {
     return <BaseLayout title="Analytics"><div className="px-4 lg:px-6">Caricamento…</div></BaseLayout>
